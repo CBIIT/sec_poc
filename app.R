@@ -15,6 +15,8 @@ library(sqldf)
 library(shinyWidgets)
 library(stringi)
 library(sjmisc)
+library(shinydashboard)
+
 ui <- fluidPage(
   useShinyjs(),
   tags$head(tags$style(
