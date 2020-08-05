@@ -16,6 +16,7 @@ library(shinyWidgets)
 library(stringi)
 library(sjmisc)
 library(shinydashboard)
+library(shinyBS)
 
 ui <- fluidPage(
   useShinyjs(),
@@ -64,16 +65,31 @@ ui <- fluidPage(
           status = "primary"
           # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
         ),
+        radioGroupButtons(
+          inputId = "hiv",
+          label = "HIV",
+          choices = c("Yes", "No", "Unspecified"),
+          selected = "Unspecified",
+          justified = FALSE,
+          status = "primary"
+          # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+        ),
         actionButton("search_and_match", "SEARCH AND MATCH")
       )
     ),
     
     
     mainPanel(
-      actionButton("toggleSidebar", "Toggle sidebar")
-      ,
+      #actionButton("toggleSidebar", "<-")
+      actionLink("toggleSidebar", NULL, icon("arrow-left"), style = "text-align: left;"),
+      bsTooltip("toggleSidebar", 'Hide/show the search criteria', placement = "bottom", trigger = "hover",
+                options = NULL),
+      
+      
       fluidRow(
 
+        
+        
           checkboxGroupInput(
             "match_types_to_show_col2",
             label = " ",
