@@ -65,6 +65,7 @@ ui <- fluidPage(
           status = "primary"
           # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
         ),
+        selectizeInput("disease_typer",label = "Diseases", NULL, multiple = TRUE),
         radioGroupButtons(
           inputId = "hiv",
           label = "HIV",
@@ -228,6 +229,17 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
+  
+  dbinfo <- config::get()
+  session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+  
+  df_disease_choices <- 
+    dbGetQuery(session_conn, "select distinct preferred_name
+               from trial_diseases ds where ds.disease_type like '%maintype%' or ds.disease_type like  '%subtype%'")
+  DBI::dbDisconnect(session_conn)
+  
+  updateSelectizeInput(session,  'disease_typer', choices = df_disease_choices$preferred_name , server = TRUE)
+  
   observeEvent(input$toggleSidebar, {
     shinyjs::toggle(id = "Sidebar")
   })
