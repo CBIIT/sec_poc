@@ -66,6 +66,8 @@ ui <- fluidPage(
           # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
         ),
         selectizeInput("disease_typer",label = "Diseases", NULL, multiple = TRUE),
+        selectizeInput("misc_typer",label = "Misc", NULL, multiple = TRUE),
+        
         radioGroupButtons(
           inputId = "hiv",
           label = "HIV",
@@ -234,11 +236,20 @@ server <- function(input, output, session) {
   session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
   
   df_disease_choices <- 
-    dbGetQuery(session_conn, "select distinct preferred_name
-               from trial_diseases ds where ds.disease_type like '%maintype%' or ds.disease_type like  '%subtype%'")
+    dbGetQuery(session_conn, "select  preferred_name 
+               from trial_diseases ds where ds.disease_type like '%maintype%' or ds.disease_type like  '%subtype%'
+			   group by preferred_name
+			   order by count(preferred_name) desc")
+  
+  df_misc_choices <-
+    dbGetQuery(session_conn, "select pref_name from ncit where concept_status <> 'Obsolete_Concept' or concept_status is null order by parents, pref_name
+")
+    
   DBI::dbDisconnect(session_conn)
   
   updateSelectizeInput(session,  'disease_typer', choices = df_disease_choices$preferred_name , server = TRUE)
+  updateSelectizeInput(session,  'misc_typer', choices = df_misc_choices$pref_name , server = TRUE)
+  
   
   observeEvent(input$toggleSidebar, {
     shinyjs::toggle(id = "Sidebar")
