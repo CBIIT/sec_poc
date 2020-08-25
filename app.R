@@ -17,6 +17,38 @@ library(stringi)
 library(sjmisc)
 library(shinydashboard)
 library(shinyBS)
+library(collapsibleTree)
+source('hh_collapsibleTreeNetwork.R')
+source('getDiseaseTreeData.R')
+source('paste3.R')
+source('get_lat_long_for_zipcode.R')
+
+source('disease_tree_modal.R')
+
+
+#
+#
+dbinfo <- config::get()
+
+Sys.setenv(LD_LIBRARY_PATH = "/usr/local/lib")
+library(reticulate)
+#use_python('/usr/bin/python3', required=TRUE )
+reticulate::py_discover_config()
+source_python(paste(
+  dbinfo$python_file_dir,
+  '/create_performance_expression.py',
+  sep = ""
+))
+source('get_api_studies_for_disease.R')
+source('fix_blood_results.R')
+source('get_api_studies_for_location_and_distance.R')
+source('get_maintypes_for_diseases.R')
+source('eval_prior_therapy.R')
+source('eval_prior_therapy_app.R')
+source('eval_criteria.R')
+source('get_api_studies_with_va_sites.R')
+source('get_api_studies_for_postal_code.R')
+source('transform_perf_status.R')
 
 ui <- fluidPage(
   useShinyjs(),
@@ -27,8 +59,9 @@ ui <- fluidPage(
   titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;")),
   sidebarLayout(
     div(
-      id = "Sidebar",
-      
+      id = "Sidebar",  #width:1000px;
+      tags$head(tags$style(".modal-dialog{  overflow-y: auto;pointer-events: initial; overflow-x: auto'  max-width: 100%;}")),
+      tags$head(tags$style(".modal-body{ min-height:600px}")),
       sidebarPanel(
         tags$style(".well {background-color:#F0F8FF;}"),
         fluidRow(
@@ -65,8 +98,12 @@ ui <- fluidPage(
           status = "primary"
           # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
         ),
-        selectizeInput("disease_typer",label = "Diseases", NULL, multiple = TRUE),
-        selectizeInput("misc_typer",label = "Misc", NULL, multiple = TRUE),
+        
+        actionButton("gyn_disease_button", "Gyn diseases"),
+        
+        selectizeInput("maintype_typer", label = "Maintypes", NULL , multiple = TRUE),
+        selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
+        selectizeInput("misc_typer", label = "Misc", NULL, multiple = TRUE),
         
         radioGroupButtons(
           inputId = "hiv",
@@ -127,8 +164,8 @@ ui <- fluidPage(
         ,
         column(
           1,
-        offset = 1,
-         # style = 'padding-left:10px; padding-right:10px; ',
+          offset = 1,
+          # style = 'padding-left:10px; padding-right:10px; ',
           dropdownButton(
             #tags$h3("List of Input"),
             inputId = "disease_type_dropdown",
@@ -164,7 +201,7 @@ ui <- fluidPage(
                 "III" = " (  phase == 'III' | phase == 'II_III' ) ",
                 "IV " = " phase == 'IV' "
               )
-            
+              
               
             )
             
@@ -219,41 +256,240 @@ ui <- fluidPage(
             
           )
           
+          
+        )
         
       )
-    
     )
   )
-)
 )
 
 
 
 
 server <- function(input, output, session) {
-  
   dbinfo <- config::get()
-  session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+  con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
   
-  df_disease_choices <- 
-    dbGetQuery(session_conn, "select  preferred_name 
-               from trial_diseases ds where ds.disease_type like '%maintype%' or ds.disease_type like  '%subtype%'
-			   group by preferred_name
-			   order by count(preferred_name) desc")
+  df_disease_choices <-
+    dbGetQuery(
+      con,
+      "select  preferred_name
+      from trial_diseases ds where ds.disease_type like '%maintype%' or ds.disease_type like  '%subtype%'
+      group by preferred_name
+      order by count(preferred_name) desc"
+    )
   
   df_misc_choices <-
-    dbGetQuery(session_conn, "select pref_name from ncit where concept_status <> 'Obsolete_Concept' or concept_status is null order by parents, pref_name
-")
-    
-  DBI::dbDisconnect(session_conn)
+    dbGetQuery(
+      con ,
+      "select pref_name from ncit where concept_status <> 'Obsolete_Concept' or concept_status is null order by parents, pref_name
+      "
+    )
   
-  updateSelectizeInput(session,  'disease_typer', choices = df_disease_choices$preferred_name , server = TRUE)
-  updateSelectizeInput(session,  'misc_typer', choices = df_misc_choices$pref_name , server = TRUE)
+  df_maintypes <-
+    dbGetQuery(
+      con,
+      "select preferred_name, count(preferred_name) as disease_count
+      from trial_diseases ds where ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%'
+      group by preferred_name
+      order by count(preferred_name) desc"
+    )
+  
+  crit_sql <-
+    "select
+  '<a href=https://www.cancer.gov/about-cancer/treatment/clinical-trials/search/v?id=' ||  nct_id || '&r=1 target=\"_blank\">' || nct_id || '</a>' as nct_id,
+  nct_id as clean_nct_id, age_expression, disease_names, diseases, gender, gender_expression, max_age_in_years, min_age_in_years,
+  'not yet' as hgb_description, 'FALSE' as hgb_criteria,
+  disease_names_lead, diseases_lead ,
+  brief_title, phase
+  from trials"
+  df_crit <- dbGetQuery(con, crit_sql)
+  
+  plt_sql <- "select nct_id,
+  curated_description as plt_description from refined_platelets
+  where curated_description not like '%institutional%'
+  "
+  
+  df_plt <- dbGetQuery(con, plt_sql)
+  df_plt$plt_criteria <- fix_blood_results(df_plt$plt_description)
+  
+  wbc_sql <-
+    "select nct_id, clean_inclusion_wbc_criteria as wbc_description from refined_wbc_report"
+  df_wbc <- dbGetQuery(con, wbc_sql)
+  df_wbc$wbc_criteria <- fix_blood_results(df_wbc$wbc_description)
+  
+  perf_sql <-
+    "select nct_id,curated_inclusion_performance_statement as perf_description,
+  cast(NULL as text) perf_criteria
+  
+  from refined_performance_report"
+  df_perf <- dbGetQuery(con, perf_sql)
+  
+  df_perf_new <- parse_dataframe(df_perf['perf_description'])
+  df_perf_new <- subset(df_perf_new, select = c(perf_criteria))
+  df_perf$perf_criteria <- df_perf_new$perf_criteria
+  
+  
+  df_biomarker_exc_sql <-
+    "select nct_id, biomarker_ncit_code as biomarker_exc_ncit_code, name, name_2, name_3, name_4, name_5, name_6, name_7 from biomarker_exc "
+  df_biomarker_exc <- dbGetQuery(con, df_biomarker_exc_sql)
+  df_biomarker_exc$biomarker_exc_description <-
+    paste3(
+      df_biomarker_exc$name,
+      df_biomarker_exc$name_2,
+      df_biomarker_exc$name_3,
+      df_biomarker_exc$name_4,
+      df_biomarker_exc$name_5,
+      df_biomarker_exc$name_6,
+      df_biomarker_exc$name_7,
+      sep = "; "
+    )
+  
+  df_biomarker_inc_sql <-
+    "select nct_id, biomarker_ncit_code as biomarker_inc_ncit_code, name as biomarker_inc_description
+  from biomarker_inc where biomarker_ncit_code is not null"
+  df_biomarker_inc <- dbGetQuery(con, df_biomarker_inc_sql)
+  
+  
+  #browser()
+  
+  imm_sql <-
+    "select nct_id, immunotherapy_ncit_codes__text as imm_description ,
+  immunotherapy_ncit_codes__clean as imm_criteria
+  from lung_prior_therapy
+  where immunotherapy_ncit_codes__clean is not null and  inc_exc_indicator_immuno = 0 "
+  
+  df_imm <- dbGetQuery(con, imm_sql)
+  
+  
+  #
+  # Prior therapy / chemotherapy
+  #
+  
+  chemo_exc_sql <-
+    "select nct_id, chemotherapy_ncit_codes__text as chemotherapy_exc_text , chemotherapy_ncit_codes__clean as chemotherapy_exc_code from lung_prior_therapy_chemo
+  where chemotherapy_ncit_codes__clean is not null and inc_exc_indicator = 0"
+  chemo_inc_sql <-
+    "select nct_id, chemotherapy_ncit_codes__text as chemotherapy_inc_text,
+  chemotherapy_ncit_codes__clean as chemotherapy_inc_code from lung_prior_therapy_chemo
+  where chemotherapy_ncit_codes__clean is not null and inc_exc_indicator = 1"
+  df_chemo_exc <- dbGetQuery(con, chemo_exc_sql)
+  df_chemo_inc <- dbGetQuery(con, chemo_inc_sql)
+  
+  
+  hiv_exc_sql <-
+    "select nct_id, hiv_ncit_codes__text as hiv_exc_text, hiv_ncit_codes__clean as hiv_exc_code from hiv_exclusion"
+  df_hiv_exc <- dbGetQuery(con, hiv_exc_sql)
+  
+  #browser()
+  
+  df_crit <-
+    merge(df_crit,
+          df_plt,
+          by.x = 'clean_nct_id',
+          by.y = 'nct_id' ,
+          all.x = TRUE)
+  df_crit <-
+    merge(df_crit,
+          df_wbc,
+          by.x = 'clean_nct_id',
+          by.y = 'nct_id' ,
+          all.x = TRUE)
+  
+  df_crit <-
+    merge(df_crit,
+          df_perf,
+          by.x = 'clean_nct_id',
+          by.y = 'nct_id',
+          all.x = TRUE)
+  
+  df_crit <-
+    merge(df_crit,
+          df_imm,
+          by.x = 'clean_nct_id',
+          by.y = 'nct_id',
+          all.x = TRUE)
+  
+  df_crit <-
+    merge(
+      df_crit,
+      df_biomarker_inc,
+      by.x = 'clean_nct_id',
+      by.y = 'nct_id',
+      all.x = TRUE
+    )
+  df_crit <-
+    merge(
+      df_crit,
+      df_biomarker_exc,
+      by.x = 'clean_nct_id',
+      by.y = 'nct_id',
+      all.x = TRUE
+    )
+  df_crit <-
+    merge(
+      df_crit,
+      df_chemo_exc,
+      by.x = 'clean_nct_id',
+      by.y = 'nct_id',
+      all.x = TRUE
+    )
+  df_crit <-
+    merge(
+      df_crit,
+      df_chemo_inc,
+      by.x = 'clean_nct_id',
+      by.y = 'nct_id',
+      all.x = TRUE
+    )
+  
+  df_crit <-
+    merge(
+      df_crit,
+      df_hiv_exc,
+      by.x = 'clean_nct_id',
+      by.y = 'nct_id',
+      all.x = TRUE
+    )
+  
+  
+  
+  DBI::dbDisconnect(con)
+  
+  updateSelectizeInput(session,
+                       'maintype_typer',
+                       choices = df_maintypes$preferred_name ,
+                       server = TRUE)
+  
+  updateSelectizeInput(session,
+                       'disease_typer',
+                       choices = df_disease_choices$preferred_name ,
+                       server = TRUE)
+  updateSelectizeInput(session,
+                       'misc_typer',
+                       choices = df_misc_choices$pref_name ,
+                       server = TRUE)
   
   
   observeEvent(input$toggleSidebar, {
     shinyjs::toggle(id = "Sidebar")
   })
+  
+  observeEvent(input$gyn_disease_button,
+               {
+                 print("gyn button")
+                 ev_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+                 dt_df <- getDiseaseTreeData(ev_conn, 'C4913')
+                 DBI::dbDisconnect(ev_conn)
+                # browser()
+                 showModal(diseaseTreeModal(failed = FALSE, msg = '',  
+                                            init_code = 'C4913', input_df = dt_df)
+                          
+                           )
+                 
+                 
+               })
+  
 }
-
 shinyApp(ui, server)
