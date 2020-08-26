@@ -977,7 +977,17 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
  
   
   
-  
+  observeEvent(input$disease_selected,
+               {
+                 print("disease selected button pressed from modal")
+                 disease_name <- input$selected_node[[length(input$selected_node)]]
+                 print(disease_name)
+                 
+                 updateVarSelectizeInput(session, 'misc_typer', server = TRUE, selected = disease_name)
+                 
+               }
+               
+  )
   
   observeEvent(input$gyn_disease_button,
                {
@@ -1012,8 +1022,8 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   observeEvent(input$selected_node, ignoreNULL = FALSE, {
     print("node selected")
     print(input$selected_node)
-    #browser()
-    output$gyn_selected <- renderText(input$selected_node[[1]] )
+   # browser()
+    output$gyn_selected <- renderText(input$selected_node[[length(input$selected_node)]] )
     # browser()
     print("----------")
   })
