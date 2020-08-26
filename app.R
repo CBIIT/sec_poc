@@ -834,7 +834,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
           scrollCollapse = TRUE,
           paging = TRUE,
           #paging = TRUE,
-          fixedColumns = list(leftColumns = 5),
+          fixedColumns = list(leftColumns = 3),
           style = "overflow-y: scroll",
           
         
@@ -851,8 +851,9 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
             ),
             # 17,18,19 are chemo inclusion, ignore for now
           #  list(width = '150px', targets = c(10)),
-           # list(width = '200px', targets = c(2, 8)),
+            list(width = '300px', targets = c(2,5)),
             
+        list(className = 'dt-center', targets = c(3, 6:ncol(sessionInfo$df_matches_to_show))),
             # Columns with hover tooltips
             
             list(
@@ -868,7 +869,8 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
               )
             )
           ,
-          list(
+          
+        list(
             targets = match(
               c('Lead Disease Match', 'Disease Match', 'VA Sites',
                 'NIH CC',
@@ -920,7 +922,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
           
         )
        )  
-      ) 
+      ) %>% DT::formatStyle(columns = c(2,4,5), fontSize = '75%')
     # %>% formatStyle(
     #      c(
     #       'Disease Match'
@@ -937,8 +939,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     #     ),
     #     # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
     #     backgroundColor = styleEqual(c(0, 1, NA), c('#ADFF2F', 'red', 'yellow'))
-    #   ) %>%
-    #   DT::formatStyle(columns = c(2, 8), fontSize = '75%')
+    #   ) 
     
     output$df_matches_data = DT::renderDT(new_match_dt, server = TRUE)
     
