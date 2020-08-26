@@ -103,6 +103,8 @@ ui <- fluidPage(
         
         selectizeInput("maintype_typer", label = "Maintypes", NULL , multiple = TRUE),
         selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
+                
+        
         selectizeInput("misc_typer", label = "Misc", NULL, multiple = TRUE),
         
         radioGroupButtons(
@@ -271,15 +273,22 @@ server <- function(input, output, session) {
   dbinfo <- config::get()
   con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
   
-  df_disease_choices <-
+  df_disease_choice_data <-
     dbGetQuery(
       con,
-      "select  preferred_name
+      "with preferred_names as (
+select  preferred_name, count(preferred_name) as name_count
       from trial_diseases ds where ds.disease_type like '%maintype%' or ds.disease_type like  '%subtype%'
       group by preferred_name
-      order by count(preferred_name) desc"
+      )
+select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.preferred_name = n.pref_name	  
+      order by name_count desc"
     )
   
+  df_disease_choices <- setNames(
+      as.vector(df_disease_choice_data[["code"]]),as.vector(df_disease_choice_data[["preferred_name"]]))
+  
+  browser()
   df_misc_choices <-
     dbGetQuery(
       con ,
@@ -464,7 +473,8 @@ server <- function(input, output, session) {
   
   updateSelectizeInput(session,
                        'disease_typer',
-                       choices = df_disease_choices$preferred_name ,
+                       #choices = df_disease_choices$preferred_name ,
+                       choices = df_disease_choices,
                        server = TRUE)
   updateSelectizeInput(session,
                        'misc_typer',
@@ -479,6 +489,8 @@ server <- function(input, output, session) {
   observeEvent(input$search_and_match, {
     print("search and match")
     print(paste("age : ", input$patient_age))
+    print("diseases : ")
+    print(input$disease_typer)
     
     #
     # Make a new dataframe for the patient data 
@@ -493,7 +505,12 @@ server <- function(input, output, session) {
     }
   
     # add a disease for now
-    sel[nrow(sel) + 1, ] = c("C8953", "YES")
+    
+    #sel[nrow(sel) + 1, ] = c("C8953", "YES")
+    
+    for (row in 0:length(input$disease_typer)) {
+      sel[nrow(sel) + 1, ] = c( input$disease_typer[row], "YES")
+    }
     
     sel_codes <- sel$Code
     possible_disease_codes_df <-
@@ -553,7 +570,6 @@ server <- function(input, output, session) {
     
     print("Instantiating patient data")
     for (row in 1:nrow(sel)) {
-      contactCenterRow <- sel[row, 'Contact Center Row']
       code <- sel[row, 'Code']
       codeVal <- sel[row, 'Value']
       #   #   print(code)
