@@ -867,35 +867,41 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                 "}"
               )
             )
-            
-          )  # The clean_nct_id column is hidden
+            # ,
+            # list (
+            #   targets = match( c(
+            #     'Gender Match',
+            #     'Age Match',
+            #     'HGB Match',
+            #     'PLT Match',
+            #     'WBC Match',
+            #     'Performance Status Match',
+            #     'Disease Match',
+            #     'Lead Disease Match'
+            #     ,
+            #     'Biomarker Inclusion Match'
+            #     ,
+            #     'Chemotherapy Inclusion Match'
+            #     ,
+            #     'VA Sites',
+            #     'NIH CC'),  names(sessionInfo$df_matches_to_show))
+            #   ,
+            #   backgroundColor = styleEqual(c(0, 1, NA), c('red', '#ADFF2F', 'yellow'))
+            # 
+            # )
+          
           
           
         )
-      ) 
-    # %>% formatStyle(
-    #     c(
-    #       'Gender Match',
-    #       'Age Match',
-    #       'HGB Match',
-    #       'PLT Match',
-    #       'WBC Match',
-    #       'Performance Status Match',
-    #       'Disease Match',
-    #       'Lead Disease Match'
-    #       ,
-    #       'Biomarker Inclusion Match'
-    #       ,
-    #       'Chemotherapy Inclusion Match'
-    #       ,
-    #       'VA Sites',
-    #       'NIH CC'
-    #       
-    #       
-    #     ),
-    #     # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
-    #     backgroundColor = styleEqual(c(0, 1, NA), c('red', '#ADFF2F', 'yellow'))
-    #   ) %>% formatStyle(
+       )  
+      ) %>% formatStyle(
+         c(
+          'Disease Match'
+         ),
+         # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
+         backgroundColor = styleEqual(c(0, 1, NA), c('red', '#ADFF2F', 'yellow'))
+       )
+     # %>% formatStyle(
     #     c(
     #       'Biomarker Exclusion Match',
     #       'Immunotherapy Exclusion Match',
