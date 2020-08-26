@@ -867,6 +867,21 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                 "}"
               )
             )
+          ,
+          list(
+            targets = match(
+              c("Lead Disease Match"),
+              names(sessionInfo$df_matches_to_show)
+            ),
+            render = JS(
+              "function(data, type, row, meta) {  if (data === null) { return \"\" } ",
+              "else if (type == 'display' && data == true ) { return '<img src=\"checkmark-32.png\" />'} ",
+              "else if (type == 'display' && data == false ) {  return 'x ';}" , 
+              "else  { return \"\" ; }",
+              "}"
+            )
+          )
+         
             # ,
             # list (
             #   targets = match( c(
