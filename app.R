@@ -476,6 +476,53 @@ server <- function(input, output, session) {
     shinyjs::toggle(id = "Sidebar")
   })
   
+  observeEvent(input$search_and_match, {
+    print("search and match")
+    print(paste("age : ", input$patient_age))
+    
+    #
+    # Make a new dataframe for the patient data 
+    #
+    sel <- data.frame(matrix(ncol = 2, nrow = 0))
+    tnames_x <- c("Code", "Value")
+    colnames(sel) <- tnames_x
+    
+    if(!is.na(input$patient_age)) {
+      print("we have an age")
+      sel[nrow(sel) + 1,] = c("C25150","YES")
+    }
+  
+    sel_codes <- sel$Code
+    possible_disease_codes_df <-
+      sel[which(sel$Value == 'YES'),]  # NOTE USE TRANSITIVE CLOSURE TO MAKE SURE IF I NEED TO
+    print("---- possible disease codes -----")
+    print(possible_disease_codes_df)
+    sel_codes2 <- paste("'", sel$Code, "'", sep = "")
+    csv_codes <- paste(sel_codes2, collapse = ",")
+    print(csv_codes)
+    
+    #
+    # Now get the disease matching studies
+    #
+    disease_df <-
+      get_api_studies_for_disease(possible_disease_codes_df$Code)
+    df_crit$api_disease_match <-
+      df_crit$clean_nct_id %in% disease_df$nct_id  # will set T/F for each row
+    
+    # Get the VA studies
+    va_df <- get_api_studies_with_va_sites()
+    df_crit$va_match <- df_crit$clean_nct_id %in% va_df$nct_id
+    
+    #Get the NIH CC studies
+    nih_cc_df <- get_api_studies_for_postal_code('20892')
+    df_crit$nih_cc_match <-
+      df_crit$clean_nct_id %in% nih_cc_df$nct_id
+    
+    browser()
+  },
+  label = 'search and match'
+  )
+  
   observeEvent(input$gyn_disease_button,
                {
                  print("gyn button")
