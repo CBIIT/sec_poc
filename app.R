@@ -62,8 +62,8 @@ ui <- fluidPage(
   sidebarLayout(
     div(
       id = "Sidebar",  #width:1000px;
-      tags$head(tags$style(".modal-dialog{  overflow-y: auto;pointer-events: initial; overflow-x: auto'  max-width: 100%;}")),
-      tags$head(tags$style(".modal-body{ min-height:600px}")),
+     # tags$head(tags$style(".modal-dialog{  overflow-y: auto;pointer-events: initial; overflow-x: auto;  max-width: 100%;}")),
+  #    tags$head(tags$style(".modal-body{ min-height:700px}")),
       sidebarPanel(
         tags$style(".well {background-color:#F0F8FF;}"),
         fluidRow(
@@ -985,6 +985,21 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                  ev_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
                  dt_df <- getDiseaseTreeData(ev_conn, 'C4913')
                  DBI::dbDisconnect(ev_conn)
+                 output$disease_tree <- renderCollapsibleTree({
+                   hh_collapsibleTreeNetwork( 
+                     dt_df,
+                     collapsed = TRUE,
+                     linkLength = 450,
+                     zoomable = FALSE,
+                     inputId = "selected_node",
+                     nodeSize = 'nodeSize',
+                     #nodeSize = 14,
+                     aggFun = 'identity',
+                     fontSize = 14 #,
+                     #  width = '2000px',
+                     #  height = '700px'
+                   )})
+                
                 # browser()
                  showModal(diseaseTreeModal(failed = FALSE, msg = '',  
                                             init_code = 'C4913', input_df = dt_df)
@@ -993,6 +1008,15 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                  
                  
                })
+  
+  observeEvent(input$selected_node, ignoreNULL = FALSE, {
+    print("node selected")
+    print(input$selected_node)
+    #browser()
+    output$gyn_selected <- renderText(input$selected_node[[1]] )
+    # browser()
+    print("----------")
+  })
   
 }
 shinyApp(ui, server)
