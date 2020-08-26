@@ -124,6 +124,7 @@ ui <- fluidPage(
     
     
     mainPanel(
+      id = "Main",
       #actionButton("toggleSidebar", "<-")
       actionLink("toggleSidebar", NULL, icon("arrow-left"), style = "text-align: left;"),
       bsTooltip(
@@ -285,7 +286,8 @@ server <- function(input, output, session) {
   
   sessionInfo <- reactiveValues(
     df_matches_to_show = NULL,
-    df_matches = NULL
+    df_matches = NULL,
+    sidebar_shown = TRUE
   )
   
   con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
@@ -500,7 +502,27 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   
   
   observeEvent(input$toggleSidebar, {
-    shinyjs::toggle(id = "Sidebar")
+ 
+    if(sessionInfo$sidebar_shown) {
+      print("hiding sidebar")
+      sessionInfo$sidebar_shown <- FALSE
+      removeCssClass("Main", "col-sm-8")
+      addCssClass("Main", "col-sm-12")
+      shinyjs::hide(id = "Sidebar")
+    }  
+    else {
+      print("showing sidebar")
+      sessionInfo$sidebar_shown <- TRUE
+      removeCssClass("Main", "col-sm-12")
+      addCssClass("Main", "col-sm-8")
+      shinyjs::show(id = "Sidebar")
+      shinyjs::enable(id = "Sidebar")
+    }  
+  #  shinyjs::toggle(id = "Sidebar")
+    
+    
+
+    
   })
   
   observeEvent(input$search_and_match, {
@@ -508,6 +530,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     print(paste("age : ", input$patient_age))
     print("diseases : ")
     print(input$disease_typer)
+    click("toggleSidebar")
     
     #
     # Make a new dataframe for the patient data 
@@ -817,7 +840,9 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
         class = 'cell-border stripe compact wrap hover',
         # class = 'cell-border stripe compact nowrap hover',
         
-        extensions = c('FixedColumns', 'Buttons'),
+        #extensions = c('FixedColumns', 'Buttons'),
+        extensions = c('FixedColumns'),
+        
         
         options = list(
           lengthMenu = c(50, 100, 500),
