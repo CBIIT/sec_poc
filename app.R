@@ -489,7 +489,7 @@ server <- function(input, output, session) {
     
     if(!is.na(input$patient_age)) {
       print("we have an age")
-      sel[nrow(sel) + 1,] = c("C25150","YES")
+      sel[nrow(sel) + 1,] = c("C25150",toString(input$patient_age))
     }
   
     sel_codes <- sel$Code
@@ -518,7 +518,200 @@ server <- function(input, output, session) {
     df_crit$nih_cc_match <-
       df_crit$clean_nct_id %in% nih_cc_df$nct_id
     
+    # Get the patient maintypes
+    patient_maintypes_df <-
+      get_maintypes_for_diseases(possible_disease_codes_df$Code, session_conn)
+    print(paste("patient maintypes = ", patient_maintypes_df))
+    s2 <-
+      paste("'", patient_maintypes_df$maintype, "'", sep = "")
+    c2 <- paste(s2, collapse = ",")
+    
+    
+    maintype_studies_all_sql <-
+      paste(
+        'select distinct nct_id from trial_maintypes where nci_thesaurus_concept_id in (',
+        c2,
+        ')'
+      )
+    
+    session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+    maintype_studies_all <- dbGetQuery(session_conn,
+                                       maintype_studies_all_sql)
+    
+    #
+    # Logic for the lead disease match is to check that the study matches per api AND matches for lead disease maintype
+    #
+    df_crit$lead_disease_match <-
+      df_crit$clean_nct_id %in% disease_df$nct_id &
+      df_crit$clean_nct_id %in% maintype_studies_all$nct_id
+    
+    patient_data_env <- new.env(size = 200L)
+    
+    print("Instantiating patient data")
+    for (row in 1:nrow(sel)) {
+      contactCenterRow <- sel[row, 'Contact Center Row']
+      code <- sel[row, 'Code']
+      codeVal <- sel[row, 'Value']
+      #   #   print(code)
+      if (!is.na(suppressWarnings(as.numeric(codeVal)))) {
+        eval(parse(text = paste(code , '<-', codeVal)))
+        eval(parse(text = paste(code , '<-', codeVal)), envir = patient_data_env)
+        
+        print(paste(code , '<-', codeVal))
+      }  else {
+        eval(parse(text = paste(
+          code , '<-' , "'",  trimws(codeVal), "'", sep = ""
+        )), envir = patient_data_env)
+        print(paste(code , '<-' , "'",  trimws(codeVal), "'", sep = ""))
+        
+      }
+  #    incProgress(amount = step,
+  #                message = 'Computing Matches',
+  #                'Evaluating patient data')
+    }
+    
+    #browser()
+    print("creating the full match dataframe")
+    #  print(input$disease_type)
+    df_matches <-
+      # data.table(
+      data.frame(
+        'nct_id' = df_crit$nct_id,
+        'brief_title' = df_crit$brief_title,
+        'phase' = df_crit$phase,
+        'num_trues' = NA,
+        'disease_codes' = df_crit$diseases,
+        'disease_names' = df_crit$disease_names,
+        'disease_codes_lead' = df_crit$diseases_lead,
+        'disease_names_lead' = df_crit$disease_names_lead,
+        'disease_matches' = df_crit$api_disease_match,
+        'lead_disease_matches' = df_crit$lead_disease_match,
+        'biomarker_inc_description' = df_crit$biomarker_inc_description,
+        'biomarker_inc_ncit_code' = df_crit$biomarker_inc_ncit_code,
+        'biomarker_inc_matches' = NA,
+        'biomarker_exc_description' = df_crit$biomarker_exc_description,
+        'biomarker_exc_ncit_code' = df_crit$biomarker_exc_ncit_code,
+        'biomarker_exc_matches' = NA,
+        'chemotherapy_inc_description' = df_crit$chemotherapy_inc_text,
+        'chemotherapy_inc_criteria' = df_crit$chemotherapy_inc_code,
+        'chemotherapy_inc_matches' = NA,
+        'chemotherapy_exc_description' = df_crit$chemotherapy_exc_text,
+        'chemotherapy_exc_criteria' = df_crit$chemotherapy_exc_code,
+        'chemotherapy_exc_matches' = NA,
+        'immunotherapy_description' =  df_crit$imm_description,
+        'immunotherapy_criteria' = df_crit$imm_criteria,
+        'immunotherapy_matches' = NA,
+        'hiv_description' = df_crit$hiv_exc_text,
+        'hiv_criteria' = df_crit$hiv_exc_code,
+        'hiv_exc_matches' = NA,
+        'va_matches' = df_crit$va_match,
+        'nih_cc_matches' = df_crit$nih_cc_match,
+        'gender' = df_crit$gender,
+        'gender_criteria' = df_crit$gender_expression,
+        'gender_matches' = NA,
+        'min_age_in_years ' = df_crit$min_age_in_years,
+        'max_age_in_years' = df_crit$max_age_in_years,
+        'age_criteria' = df_crit$age_expression,
+        'age_matches' = NA,
+        'hgb_description' = df_crit$hgb_description,
+        'hgb_criteria' = df_crit$hgb_criteria,
+        'hgb_matches' = NA,
+        'plt_description' = df_crit$plt_description,
+        'plt_criteria' = df_crit$plt_criteria,
+        'plt_matches' = NA,
+        'wbc_description' = df_crit$wbc_description,
+        'wbc_criteria' = df_crit$wbc_criteria,
+        'wbc_matches' = NA,
+        'perf_description' = df_crit$perf_description,
+        'perf_criteria' = df_crit$perf_criteria,
+        'perf_matches' = NA,
+        'clean_nct_id' = df_crit$clean_nct_id,
+        stringsAsFactors = FALSE
+      )
+    
+    df_matches$immunotherapy_matches <-
+      lapply(df_matches$immunotherapy_criteria,
+             function(x)
+               eval_prior_therapy_app(csv_codes, x, session_conn,
+                                      eval_env =
+                                        patient_data_env))
+    
+    df_matches$biomarker_inc_matches <-
+      lapply(df_matches$biomarker_inc_ncit_code,
+             function(x)
+               eval_prior_therapy_app(csv_codes, x, session_conn,
+                                      eval_env =
+                                        patient_data_env))
+    df_matches$biomarker_exc_matches <-
+      lapply(df_matches$biomarker_exc_ncit_code,
+             function(x)
+               eval_prior_therapy_app(csv_codes, x, session_conn,
+                                      eval_env =
+                                        patient_data_env))
+    df_matches$chemotherapy_inc_matches <-
+      lapply(df_matches$chemotherapy_inc_criteria,
+             function(x)
+               eval_prior_therapy_app(csv_codes, x, session_conn,
+                                      eval_env =
+                                        patient_data_env))
+    
+    df_matches$chemotherapy_exc_matches <-
+      lapply(df_matches$chemotherapy_exc_criteria,
+             function(x)
+               eval_prior_therapy_app(csv_codes, x, session_conn,
+                                      eval_env =
+                                        patient_data_env))
+    
+    df_matches$age_matches <-
+      lapply(df_matches$age_criteria,
+             function(x)
+               eval_criteria(x, eval_env = patient_data_env))
+    
+    df_matches$gender_matches <-
+      lapply(df_matches$gender_criteria,
+             function(x)
+               eval_criteria(x, eval_env = patient_data_env))
+    
+    df_matches$hgb_matches <-
+      lapply(df_matches$hgb_criteria,
+             function(x)
+               eval_criteria(x, eval_env = patient_data_env))
+    
+    df_matches$plt_matches <-
+      lapply(df_matches$plt_criteria,
+             function(x)
+               eval_criteria(x, eval_env = patient_data_env))
+    
+    df_matches$wbc_matches <-
+      lapply(df_matches$wbc_criteria,
+             function(x)
+               eval_criteria(x, eval_env = patient_data_env))
+    
+    df_matches$perf_matches <-
+      #        lapply(df_matches$perf_criteria,
+      #               function(x)
+      #                 eval_criteria(x, eval_env = patient_data_env))
+      lapply(df_matches$perf_criteria,
+             function(x)
+               eval_prior_therapy_app(csv_codes, x, session_conn,
+                                      eval_env =
+                                        patient_data_env,
+                                      FUN = transform_perf_status))
+    
+    df_matches$hiv_exc_matches <-
+      lapply(df_matches$hiv_criteria,
+             function(x)
+               eval_prior_therapy_app(csv_codes, x, session_conn,
+                                      eval_env =
+                                        patient_data_env))
+    
+    # Magic call to fix up the dataframe after the lapply calls which creates lists....
+    df_matches <- as.data.frame(lapply(df_matches, unlist))
+    print(Sys.time())
     browser()
+    DBI::dbDisconnect(session_conn)
+    
+    
   },
   label = 'search and match'
   )
