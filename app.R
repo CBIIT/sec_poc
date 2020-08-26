@@ -18,6 +18,8 @@ library(sjmisc)
 library(shinydashboard)
 library(shinyBS)
 library(collapsibleTree)
+library(stringi)
+library(sjmisc)
 source('hh_collapsibleTreeNetwork.R')
 source('getDiseaseTreeData.R')
 source('paste3.R')
@@ -261,6 +263,15 @@ ui <- fluidPage(
           
         )
         
+      ),
+      fluidRow(
+        column(
+          width = 12,
+          offset = 0,
+          style = 'padding:10px;',
+          DT::dataTableOutput("df_matches_data")
+        )
+        
       )
     )
   )
@@ -271,6 +282,12 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   dbinfo <- config::get()
+  
+  sessionInfo <- reactiveValues(
+    df_matches_to_show = NULL,
+    df_matches = NULL
+  )
+  
   con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
   
   df_disease_choice_data <-
@@ -288,7 +305,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   df_disease_choices <- setNames(
       as.vector(df_disease_choice_data[["code"]]),as.vector(df_disease_choice_data[["preferred_name"]]))
   
-  browser()
+  #browser()
   df_misc_choices <-
     dbGetQuery(
       con ,
@@ -496,8 +513,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     # Make a new dataframe for the patient data 
     #
     sel <- data.frame(matrix(ncol = 2, nrow = 0))
-    tnames_x <- c("Code", "Value")
-    colnames(sel) <- tnames_x
+    colnames(sel) <-  c("Code", "Value")
     
     if(!is.na(input$patient_age)) {
       print("we have an age")
@@ -508,10 +524,10 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     
     #sel[nrow(sel) + 1, ] = c("C8953", "YES")
     
-    for (row in 0:length(input$disease_typer)) {
+    for (row in 1:length(input$disease_typer)) {
       sel[nrow(sel) + 1, ] = c( input$disease_typer[row], "YES")
     }
-    
+   # browser()
     sel_codes <- sel$Code
     possible_disease_codes_df <-
       sel[which(sel$Value == 'YES'),]  # NOTE USE TRANSITIVE CLOSURE TO MAKE SURE IF I NEED TO
@@ -728,13 +744,181 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     # Magic call to fix up the dataframe after the lapply calls which creates lists....
     df_matches <- as.data.frame(lapply(df_matches, unlist))
     print(Sys.time())
-    browser()
     DBI::dbDisconnect(session_conn)
+    sessionInfo$df_matches <- df_matches
+    print("creating table to display")
+    sessionInfo$df_matches_to_show <- sessionInfo$df_matches[, c('nct_id', 'brief_title', 'phase',
+                                                                 'disease_names', 'disease_names_lead',
+                                                                 'disease_matches', 'lead_disease_matches',
+                                                                 'va_matches','nih_cc_matches',
+                                                                 'gender_matches', 'age_matches',
+                                                                 'biomarker_inc_matches',
+                                                                 'biomarker_exc_matches',
+                                                                 'chemotherapy_inc_matches',
+                                                                 'immunotherapy_matches',
+                                                                 'hiv_exc_matches',
+                                                                 'plt_matches',
+                                                                 'wbc_matches',
+                                                                 'perf_matches',
+                                                                 'clean_nct_id')]
+    colnames(sessionInfo$df_matches_to_show) = c(
+      'NCT ID',
+      'Title',
+      'Phase',
+      'Disease Names',
+      'Lead Disease Names',
+      'Disease Match',
+      'Lead Disease Match',
+      'VA Sites',
+      'NIH CC',
+      'Gender Match',
+      'Age Match',
+      'Biomarker Inclusion Match',
+      'Biomarker Exclusion Match',
+      'Chemotherapy Inclusion Match',
+      'Immunotherapy Exclusion Match',
+      'HIV Exclusion Match',
+      'PLT Match',
+      'WBC Match',
+      'Performance Status Match',
+      'clean_nct_id'
+    )
     
+    initially_hidden_columns <- c('clean_nct_id')
+    columns_with_tooltips <- c("Disease Names")
+    new_match_dt <-
+      datatable(
+        sessionInfo$df_matches_to_show,
+        colnames = c(
+          'NCT ID',
+          'Title',
+          'Phase',
+          'Disease Names',
+          'Lead Disease Names',
+          'Disease Match',
+          'Lead Disease Match',
+          'VA Sites',
+          'NIH CC',
+          'Gender Match',
+          'Age Match',
+          'Biomarker Inclusion Match',
+          'Biomarker Exclusion Match',
+          'Chemotherapy Inclusion Match',
+          'Immunotherapy Exclusion Match',
+          'HIV Exclusion Match',
+          'PLT Match',
+          'WBC Match',
+          'Performance Status Match',
+          'clean_nct_id'
+        ),
+        # true_disease,
+        # filter='top',
+        escape = FALSE,
+        class = 'cell-border stripe compact wrap hover',
+        # class = 'cell-border stripe compact nowrap hover',
+        
+        extensions = c('FixedColumns', 'Buttons'),
+        
+        options = list(
+          lengthMenu = c(50, 100, 500),
+          processing = TRUE,
+          dom =  '<"top"lifp<"clear">>t<"bottom"B <"clear">>',
+         
+          #    dom = 'ft',
+          searching = TRUE,
+          autoWidth = TRUE,
+          scrollX = TRUE,
+          deferRender = TRUE,
+          # scrollY = "400px",
+          scrollY = "45vh",
+          scrollCollapse = TRUE,
+          paging = TRUE,
+          #paging = TRUE,
+          fixedColumns = list(leftColumns = 5),
+          style = "overflow-y: scroll",
+          
+        
+          
+          columnDefs = list(
+            # Initially hidden columns
+            list(
+              visible = FALSE,
+              targets = match(
+                initially_hidden_columns,
+                names(sessionInfo$df_matches_to_show)
+              )
+              #targets = c(4,  5,7,  11,12,14,15,17,18,19, 20  , 21,23,24,   26,27,30,31,33,34,35 ,37,38,40,41,43,44, 46,47,49)
+            ),
+            # 17,18,19 are chemo inclusion, ignore for now
+          #  list(width = '150px', targets = c(10)),
+           # list(width = '200px', targets = c(2, 8)),
+            
+            # Columns with hover tooltips
+            
+            list(
+              targets = match(
+                columns_with_tooltips,
+                names(sessionInfo$df_matches_to_show)
+              ),
+              render = JS(
+                "function(data, type, row, meta) { if (data === null) { return \"\" } ",
+                "return type === 'display' && data.length > 30 ?",
+                "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;",
+                "}"
+              )
+            )
+            
+          )  # The clean_nct_id column is hidden
+          
+          
+        )
+      ) 
+    # %>% formatStyle(
+    #     c(
+    #       'Gender Match',
+    #       'Age Match',
+    #       'HGB Match',
+    #       'PLT Match',
+    #       'WBC Match',
+    #       'Performance Status Match',
+    #       'Disease Match',
+    #       'Lead Disease Match'
+    #       ,
+    #       'Biomarker Inclusion Match'
+    #       ,
+    #       'Chemotherapy Inclusion Match'
+    #       ,
+    #       'VA Sites',
+    #       'NIH CC'
+    #       
+    #       
+    #     ),
+    #     # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
+    #     backgroundColor = styleEqual(c(0, 1, NA), c('red', '#ADFF2F', 'yellow'))
+    #   ) %>% formatStyle(
+    #     c(
+    #       'Biomarker Exclusion Match',
+    #       'Immunotherapy Exclusion Match',
+    #       'Chemotherapy Exclusion Match',
+    #       'HIV Exclusion Match'
+    #     ),
+    #     # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
+    #     backgroundColor = styleEqual(c(0, 1, NA), c('#ADFF2F', 'red', 'yellow'))
+    #   ) %>%
+    #   DT::formatStyle(columns = c(2, 8), fontSize = '75%')
+    
+    output$df_matches_data = DT::renderDT(new_match_dt, server = TRUE)
+    
+    # browser()
     
   },
   label = 'search and match'
   )
+  
+ 
+  
+  
+  
   
   observeEvent(input$gyn_disease_button,
                {
