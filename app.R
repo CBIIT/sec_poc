@@ -102,7 +102,7 @@ ui <- fluidPage(
         ),
         
         actionButton("gyn_disease_button", "Gyn diseases"),
-        
+        uiOutput("disease_buttons"),
         selectizeInput("maintype_typer", label = "Maintypes", NULL , multiple = TRUE),
         selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
                 
@@ -287,9 +287,10 @@ server <- function(input, output, session) {
   sessionInfo <- reactiveValues(
     df_matches_to_show = NULL,
     df_matches = NULL,
-    sidebar_shown = TRUE
+    sidebar_shown = TRUE,
+    disease_buttons = NULL
   )
-  
+
   con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
   
   df_disease_choice_data <-
@@ -847,7 +848,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
         options = list(
           lengthMenu = c(50, 100, 500),
           processing = TRUE,
-          dom =  '<"top"lifp<"clear">>t<"bottom"B <"clear">>',
+          dom =  '<"top"f<"clear">>t<"bottom"Blip <"clear">>',
          
           #    dom = 'ft',
           searching = TRUE,
@@ -982,9 +983,15 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                  print("disease selected button pressed from modal")
                  disease_name <- input$selected_node[[length(input$selected_node)]]
                  print(disease_name)
-                 
-                 updateVarSelectizeInput(session, 'misc_typer', server = TRUE, selected = disease_name)
-                 
+                 if(is.null(sessionInfo$disease_buttons)) {
+                   print('first disease button')
+                   sessionInfo$disease_buttons <-  c(disease_name)
+                 } else {
+                   print("already have some buttons")
+                   append(sessionInfo$disease_buttons, disease_name) 
+                 }
+                 print(sessionInfo$disease_buttons)
+                 removeModal()
                }
                
   )
