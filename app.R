@@ -870,13 +870,24 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
           ,
           list(
             targets = match(
-              c("Lead Disease Match"),
+              c('Lead Disease Match', 'Disease Match', 'VA Sites',
+                'NIH CC',
+                'Gender Match',
+                'Age Match',
+                'Biomarker Inclusion Match',
+                'Biomarker Exclusion Match',
+                'Chemotherapy Inclusion Match',
+                'Immunotherapy Exclusion Match',
+                'HIV Exclusion Match',
+                'PLT Match',
+                'WBC Match',
+                'Performance Status Match'),
               names(sessionInfo$df_matches_to_show)
             ),
             render = JS(
               "function(data, type, row, meta) {  if (data === null) { return \"\" } ",
               "else if (type == 'display' && data == true ) { return '<img src=\"checkmark-32.png\" />'} ",
-              "else if (type == 'display' && data == false ) {  return 'x ';}" , 
+              "else if (type == 'display' && data == false ) {  return  '<img src=\"x-mark-32.png\" />';}" , 
               "else  { return \"\" ; }",
               "}"
             )
@@ -909,13 +920,14 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
           
         )
        )  
-      ) %>% formatStyle(
-         c(
-          'Disease Match'
-         ),
-         # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
-         backgroundColor = styleEqual(c(0, 1, NA), c('red', '#ADFF2F', 'yellow'))
-       )
+      ) 
+    # %>% formatStyle(
+    #      c(
+    #       'Disease Match'
+    #      ),
+    #      # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
+    #      backgroundColor = styleEqual(c(0, 1, NA), c('red', '#ADFF2F', 'yellow'))
+    #    )
      # %>% formatStyle(
     #     c(
     #       'Biomarker Exclusion Match',
