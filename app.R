@@ -492,6 +492,9 @@ server <- function(input, output, session) {
       sel[nrow(sel) + 1,] = c("C25150",toString(input$patient_age))
     }
   
+    # add a disease for now
+    sel[nrow(sel) + 1, ] = c("C8953", "YES")
+    
     sel_codes <- sel$Code
     possible_disease_codes_df <-
       sel[which(sel$Value == 'YES'),]  # NOTE USE TRANSITIVE CLOSURE TO MAKE SURE IF I NEED TO
@@ -500,6 +503,8 @@ server <- function(input, output, session) {
     sel_codes2 <- paste("'", sel$Code, "'", sep = "")
     csv_codes <- paste(sel_codes2, collapse = ",")
     print(csv_codes)
+    
+    session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     
     #
     # Now get the disease matching studies
@@ -534,7 +539,6 @@ server <- function(input, output, session) {
         ')'
       )
     
-    session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     maintype_studies_all <- dbGetQuery(session_conn,
                                        maintype_studies_all_sql)
     
