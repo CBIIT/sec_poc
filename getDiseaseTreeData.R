@@ -16,8 +16,8 @@ pd.descendant = tc1.parent and tc1.level = 1
 ,
 data_for_tree as
 (
-  select distinct n1.pref_name || ' ('|| n1.code || ')' as parent,
-  n2.pref_name || ' ('|| n2.code || ')' as child,
+  select distinct n1.pref_name as parent,
+  n2.pref_name as child,
   pd.level
   from parent_descendant pd
   join ncit n1 on pd.parent = n1.code 
@@ -29,7 +29,7 @@ data_for_tree as
 all_nodes as (
 select parent, child, level from data_for_tree
 union
-select NULL as parent , pref_name || ' (' || n.code || ')' as child, 0 as level
+select NULL as parent , pref_name as child, 0 as level
 from ncit n where n.code = ?
 )
 select parent, child, level as levels, 10 as nodeSize from all_nodes where level < 999
