@@ -26,7 +26,7 @@ source('paste3.R')
 source('get_lat_long_for_zipcode.R')
 
 source('disease_tree_modal.R')
-
+source('check_if_any.R')
 
 #
 #
@@ -531,6 +531,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     print(paste("age : ", input$patient_age))
     print("diseases : ")
     print(input$disease_typer)
+    print(paste("gender : ", input$gender))
     click("toggleSidebar")
     
     #
@@ -548,9 +549,25 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     
     #sel[nrow(sel) + 1, ] = c("C8953", "YES")
     
-    for (row in 1:length(input$disease_typer)) {
-      sel[nrow(sel) + 1, ] = c( input$disease_typer[row], "YES")
+   # browser()
+    if (length(input$disease_typer) > 0) {
+      for (row in 1:length(input$disease_typer)) {
+        sel[nrow(sel) + 1,] = c(input$disease_typer[row], "YES")
+      }
     }
+    
+    if (input$gender == 'Male') {
+      sel[nrow(sel) + 1,] = c('C46109', "YES")
+    } else if (input$gender == 'Female') {
+      sel[nrow(sel) + 1,] = c('C46110', "YES")
+    }
+    
+    if(input$hiv == 'Yes') {
+      sel[nrow(sel) + 1,] = c('C15175', "YES")
+    } #else if (input$hiv == 'No') {
+     # sel[nrow(sel) + 1,] = c('C15175', "NO")
+      
+  #  }
    # browser()
     sel_codes <- sel$Code
     possible_disease_codes_df <-
@@ -771,44 +788,76 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     DBI::dbDisconnect(session_conn)
     sessionInfo$df_matches <- df_matches
     print("creating table to display")
-    sessionInfo$df_matches_to_show <- sessionInfo$df_matches[, c('nct_id', 'brief_title', 'phase',
-                                                                 'disease_names', 'disease_names_lead',
-                                                                 'disease_matches', 'lead_disease_matches',
-                                                                 'va_matches','nih_cc_matches',
-                                                                 'gender_matches', 'age_matches',
-                                                                 'biomarker_inc_matches',
-                                                                 'biomarker_exc_matches',
-                                                                 'chemotherapy_inc_matches',
-                                                                 'immunotherapy_matches',
-                                                                 'hiv_exc_matches',
-                                                                 'plt_matches',
-                                                                 'wbc_matches',
-                                                                 'perf_matches',
-                                                                 'clean_nct_id')]
-    colnames(sessionInfo$df_matches_to_show) = c(
+  
+    sessionInfo$df_matches_to_show <- sessionInfo$df_matches
+    colnames(sessionInfo$df_matches_to_show) =  c(
       'NCT ID',
       'Title',
       'Phase',
+      '# Matches',
+      'Disease Codes',
       'Disease Names',
+      'Lead Disease Codes',
       'Lead Disease Names',
       'Disease Match',
       'Lead Disease Match',
+      'Biomarker Inclusion',
+      'Biomarker Inclusion Expression',
+      'Biomarker Inclusion Match',
+      'Biomarker Exclusion',
+      'Biomarker Exclusion Expression',
+      'Biomarker Exclusion Match',
+      'Chemotherapy Inclusion',
+      'Chemotherapy Inclusion Expression',
+      'Chemotherapy Inclusion Match',
+      'Chemotherapy Exclusion',
+      'Chemotherapy Exclusion Expression',
+      'Chemotherapy Exclusion Match',
+      'Immunotherapy Exclusion Criteria',
+      'Immunotherapy Exclusion Expression',
+      'Immunotherapy Exclusion Match',
+      'HIV Exclusion Criteria',
+      'HIV Exclusion Expression',
+      'HIV Exclusion Match',
       'VA Sites',
       'NIH CC',
+      'Gender',
+      'Gender Expression',
       'Gender Match',
+      'Min Age',
+      'Max Age',
+      'Age Expression',
       'Age Match',
-      'Biomarker Inclusion Match',
-      'Biomarker Exclusion Match',
-      'Chemotherapy Inclusion Match',
-      'Immunotherapy Exclusion Match',
-      'HIV Exclusion Match',
+      'HGB Criteria',
+      'HGB Expression',
+      'HGB Match',
+      'PLT Criteria',
+      'PLT Expression',
       'PLT Match',
+      'WBC Criteria',
+      'WBC Expression',
       'WBC Match',
+      'Performance Status Criteria',
+      'Performance Status Expression',
       'Performance Status Match',
       'clean_nct_id'
     )
     
-    initially_hidden_columns <- c('clean_nct_id')
+    initially_hidden_columns <- c('clean_nct_id',  '# Matches',
+                                  'Disease Codes',  'Lead Disease Codes', 'Biomarker Inclusion',
+                                  'Biomarker Inclusion Expression','Biomarker Exclusion',
+                                  'Biomarker Exclusion Expression', 'Chemotherapy Inclusion',
+                                  'Chemotherapy Inclusion Expression',     'Chemotherapy Exclusion',
+                                  'Chemotherapy Exclusion Expression','Immunotherapy Exclusion Criteria',
+                                  'Immunotherapy Exclusion Expression', 'HIV Exclusion Criteria',
+                                  'HIV Exclusion Expression',    'Gender',
+                                  'Gender Expression', 'Min Age',
+                                  'Max Age',
+                                  'Age Expression',   'HGB Criteria','HGB Match',
+                                  'HGB Expression','PLT Criteria',
+                                  'PLT Expression',  'WBC Criteria',
+                                  'WBC Expression','Performance Status Criteria',
+                                  'Performance Status Expression')
     columns_with_tooltips <- c("Disease Names")
     new_match_dt <-
       datatable(
@@ -817,21 +866,51 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
           'NCT ID',
           'Title',
           'Phase',
+          '# Matches',
+          'Disease Codes',
           'Disease Names',
+          'Lead Disease Codes',
           'Lead Disease Names',
           'Disease Match',
           'Lead Disease Match',
+          'Biomarker Inclusion',
+          'Biomarker Inclusion Expression',
+          'Biomarker Inclusion Match',
+          'Biomarker Exclusion',
+          'Biomarker Exclusion Expression',
+          'Biomarker Exclusion Match',
+          'Chemotherapy Inclusion',
+          'Chemotherapy Inclusion Expression',
+          'Chemotherapy Inclusion Match',
+          'Chemotherapy Exclusion',
+          'Chemotherapy Exclusion Expression',
+          'Chemotherapy Exclusion Match',
+          'Immunotherapy Exclusion Criteria',
+          'Immunotherapy Exclusion Expression',
+          'Immunotherapy Exclusion Match',
+          'HIV Exclusion Criteria',
+          'HIV Exclusion Expression',
+          'HIV Exclusion Match',
           'VA Sites',
           'NIH CC',
+          'Gender',
+          'Gender Expression',
           'Gender Match',
+          'Min Age',
+          'Max Age',
+          'Age Expression',
           'Age Match',
-          'Biomarker Inclusion Match',
-          'Biomarker Exclusion Match',
-          'Chemotherapy Inclusion Match',
-          'Immunotherapy Exclusion Match',
-          'HIV Exclusion Match',
+          'HGB Criteria',
+          'HGB Expression',
+          'HGB Match',
+          'PLT Criteria',
+          'PLT Expression',
           'PLT Match',
+          'WBC Criteria',
+          'WBC Expression',
           'WBC Match',
+          'Performance Status Criteria',
+          'Performance Status Expression',
           'Performance Status Match',
           'clean_nct_id'
         ),
@@ -877,7 +956,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
             ),
             # 17,18,19 are chemo inclusion, ignore for now
           #  list(width = '150px', targets = c(10)),
-            list(width = '300px', targets = c(2,5)),
+            list(width = '300px', targets = c(2,8)),
             
         list(className = 'dt-center', targets = c(3, 6:ncol(sessionInfo$df_matches_to_show))),
             # Columns with hover tooltips
@@ -903,10 +982,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                 'Gender Match',
                 'Age Match',
                 'Biomarker Inclusion Match',
-                'Biomarker Exclusion Match',
                 'Chemotherapy Inclusion Match',
-                'Immunotherapy Exclusion Match',
-                'HIV Exclusion Match',
                 'PLT Match',
                 'WBC Match',
                 'Performance Status Match'),
@@ -920,52 +996,31 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
               "}"
             )
           )
-         
-            # ,
-            # list (
-            #   targets = match( c(
-            #     'Gender Match',
-            #     'Age Match',
-            #     'HGB Match',
-            #     'PLT Match',
-            #     'WBC Match',
-            #     'Performance Status Match',
-            #     'Disease Match',
-            #     'Lead Disease Match'
-            #     ,
-            #     'Biomarker Inclusion Match'
-            #     ,
-            #     'Chemotherapy Inclusion Match'
-            #     ,
-            #     'VA Sites',
-            #     'NIH CC'),  names(sessionInfo$df_matches_to_show))
-            #   ,
-            #   backgroundColor = styleEqual(c(0, 1, NA), c('red', '#ADFF2F', 'yellow'))
-            # 
-            # )
-          
-          
+        ,
+        list(
+          targets = match(
+            c(
+              'Biomarker Exclusion Match',
+              'Immunotherapy Exclusion Match',
+              'HIV Exclusion Match',
+              'Chemotherapy Exclusion Match'
+          ),
+            names(sessionInfo$df_matches_to_show)
+          ),
+          render = JS(
+            "function(data, type, row, meta) {  if (data === null) { return \"\" } ",
+            "else if (type == 'display' && data == false ) { return '<img src=\"checkmark-32.png\" />'} ",
+            "else if (type == 'display' && data == true ) {  return  '<img src=\"x-mark-32.png\" />';}" , 
+            "else  { return \"\" ; }",
+            "}"
+          )
+        )
+        
           
         )
        )  
-      ) %>% DT::formatStyle(columns = c(2,4,5), fontSize = '75%')
-    # %>% formatStyle(
-    #      c(
-    #       'Disease Match'
-    #      ),
-    #      # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
-    #      backgroundColor = styleEqual(c(0, 1, NA), c('red', '#ADFF2F', 'yellow'))
-    #    )
-     # %>% formatStyle(
-    #     c(
-    #       'Biomarker Exclusion Match',
-    #       'Immunotherapy Exclusion Match',
-    #       'Chemotherapy Exclusion Match',
-    #       'HIV Exclusion Match'
-    #     ),
-    #     # backgroundColor = styleEqual(c(1), c('#ADFF2F'))
-    #     backgroundColor = styleEqual(c(0, 1, NA), c('#ADFF2F', 'red', 'yellow'))
-    #   ) 
+      ) %>% DT::formatStyle(columns = c(2,6,8), fontSize = '75%')
+ 
     
     output$df_matches_data = DT::renderDT(new_match_dt, server = TRUE)
     
