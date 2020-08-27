@@ -61,11 +61,12 @@ ui <- fluidPage(
   titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;")),
   sidebarLayout(
     div(
-      id = "Sidebar",  #width:1000px;
+      id = "Sidebar", # width = 3,
      # tags$head(tags$style(".modal-dialog{  overflow-y: auto;pointer-events: initial; overflow-x: auto;  max-width: 100%;}")),
   #    tags$head(tags$style(".modal-body{ min-height:700px}")),
       sidebarPanel(
         tags$style(".well {background-color:#F0F8FF;}"),
+        width=3,
         fluidRow(
           column(8, align = 'left', h4("Search Criteria")),
           column(
@@ -138,123 +139,148 @@ ui <- fluidPage(
       
       fluidRow(
         column(
-          1,
-          style = 'padding-left:0px; padding-right:10px; ',
-          dropdownButton(
-            #tags$h3("List of Input"),
-            inputId = "participant_attributes_dropdown",
-            circle = FALSE,
-            label = "Participant Attributes",
-            checkboxGroupInput(
-              "match_types_to_show_col2",
-              label = "",
-              inline = FALSE,
-              choices = c(
-                "Performance Status" = " (perf_matches == TRUE | is.na(perf_matches) ) ",
-                "Immunotherapy (exclusion)" = " ( immunotherapy_matches == FALSE | is.na(immunotherapy_matches) ) ",
-                #     "Biomarkers" = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) ) | ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )  "
-                "Biomarkers (exclusion) " = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) )   ",
-                "Biomarkers (inclusion) " = " ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )   " ,
-                "Chemotherapy (exclusion) " = " ( chemotherapy_exc_matches == FALSE | is.na(chemotherapy_exc_matches) )   "
-                ,
-                "HIV Status (exclusion) " = " ( hiv_exc_matches == FALSE | is.na(hiv_exc_matches) ) "
-                #,
-                #"Chemotherapy (inclusion) " = " ( chemotherapy_inc_matches == TRUE | is.na(chemotherapy_inc_matches) )   "
-                
-              )
-              
-            )
+          4,
+               pickerInput(
+                 "match_types_picker",
+                 label = 'Participant Attributes',
+                 choices = c(
+                   "Disease" = "disease_matches == TRUE",
+                   "Gender" = "gender_matches == TRUE",
+                   "Age" = "age_matches == TRUE",
+                   #    "HGB" = "hgb_matches == TRUE",
+                   "PLT" = " ( plt_matches == TRUE | is.na(plt_matches) ) ",
+                   "WBC" = " (  wbc_matches == TRUE | is.na(wbc_matches) )  ",
+                   "Performance Status" = " (perf_matches == TRUE | is.na(perf_matches) ) ",
+                   "Immunotherapy (exclusion)" = " ( immunotherapy_matches == FALSE | is.na(immunotherapy_matches) ) ",
+                   #     "Biomarkers" = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) ) | ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )  "
+                   "Biomarkers (exclusion) " = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) )   ",
+                   "Biomarkers (inclusion) " = " ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )   " ,
+                   "Chemotherapy (exclusion) " = " ( chemotherapy_exc_matches == FALSE | is.na(chemotherapy_exc_matches) )   "
+                   ,
+                   "HIV Status (exclusion) " = " ( hiv_exc_matches == FALSE | is.na(hiv_exc_matches) ) "
+                   #,
+                   #"Chemotherapy (inclusion) " = " ( chemotherapy_inc_matches == TRUE | is.na(chemotherapy_inc_matches) )   "
+                   
+                 ),
+                 selected = NULL,
+                 multiple = TRUE,
+                 options = list(),
+                 choicesOpt = NULL,
+                 width = 'auto',
+                 inline = FALSE
+               )
+          ),        
+        # column(
+        #   1,
+        #   style = 'padding-left:0px; padding-right:10px; ',
+        #   dropdownButton(
+        #     #tags$h3("List of Input"),
+        #     inputId = "participant_attributes_dropdown",
+        #     circle = FALSE,
+        #     label = "Participant Attributes",
+        #     checkboxGroupInput(
+        #       "match_types_to_show_col",
+        #       label = "",
+        #       inline = FALSE,
+        #       choices = c(
+        #         "Disease" = "disease_matches == TRUE",
+        #         "Gender" = "gender_matches == TRUE",
+        #         "Age" = "age_matches == TRUE",
+        #         #    "HGB" = "hgb_matches == TRUE",
+        #         "PLT" = " ( plt_matches == TRUE | is.na(plt_matches) ) ",
+        #         "WBC" = " (  wbc_matches == TRUE | is.na(wbc_matches) )  ",
+        #         "Performance Status" = " (perf_matches == TRUE | is.na(perf_matches) ) ",
+        #         "Immunotherapy (exclusion)" = " ( immunotherapy_matches == FALSE | is.na(immunotherapy_matches) ) ",
+        #         #     "Biomarkers" = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) ) | ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )  "
+        #         "Biomarkers (exclusion) " = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) )   ",
+        #         "Biomarkers (inclusion) " = " ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )   " ,
+        #         "Chemotherapy (exclusion) " = " ( chemotherapy_exc_matches == FALSE | is.na(chemotherapy_exc_matches) )   "
+        #         ,
+        #         "HIV Status (exclusion) " = " ( hiv_exc_matches == FALSE | is.na(hiv_exc_matches) ) "
+        #         #,
+        #         #"Chemotherapy (inclusion) " = " ( chemotherapy_inc_matches == TRUE | is.na(chemotherapy_inc_matches) )   "
+        #         
+        #       )
+        #       
+        #     )
+        #   )
+        # )
+        # ,
+        
+        column(
+          2,
+          radioButtons(
+            "disease_type",
+            "Disease types:",
+            c("Trial" = "trial",
+              "Lead" = "lead"),
+            inline = FALSE
           )
         )
         ,
         column(
-          1,
-          offset = 1,
-          # style = 'padding-left:10px; padding-right:10px; ',
-          dropdownButton(
-            #tags$h3("List of Input"),
-            inputId = "disease_type_dropdown",
-            circle = FALSE,
-            label = "Disease Type",
-            radioButtons("disease_type",
-                         #  "Disease types to match:",
-                         "",
-                         c("Trial" = "trial",
-                           "Lead" = "lead"),
-                         inline = TRUE)
-            
-          )
-        )
-        ,
-        column(
-          1,
-          #style='padding-left:5px; padding-right:10px; ',
-          
-          offset = 1,
-          dropdownButton(
-            #tags$h3("List of Input"),
+          2,
+          pickerInput(
             inputId = "phases_dropdown",
-            circle = FALSE,
             label = "Phases",
-            checkboxGroupInput(
-              "phases",
-              label = "",
-              inline = FALSE,
-              choices = c(
-                "I  " = "  ( phase == 'O' |  phase == 'I' | phase == 'I_II')  ",
-                "II " = " ( phase == 'II'| phase == 'I_II' | phase == 'II_III' ) ",
-                "III" = " (  phase == 'III' | phase == 'II_III' ) ",
-                "IV " = " phase == 'IV' "
-              )
-              
-              
+            choices = c(
+              "I  " = "  ( phase == 'O' |  phase == 'I' | phase == 'I_II')  ",
+              "II " = " ( phase == 'II'| phase == 'I_II' | phase == 'II_III' ) ",
+              "III" = " (  phase == 'III' | phase == 'II_III' ) ",
+              "IV " = " phase == 'IV' "
+            ),
+            selected = NULL,
+            multiple = TRUE,
+            options = list(),
+            choicesOpt = NULL,
+            width = 'auto',
+            inline = FALSE
+            )
+        )   
+            ,
+            
+          
+        
+        
+        column(
+          2,
+          #style='padding-left:5px; padding-right:10px; ',
+          
+         # offset = 1,
+       
+            pickerInput
+            (
+              "sites",
+              label = "Study Sites",
+              choices = c("VA" = "  ( va_matches == TRUE )  ",
+                          "NIH CC" = " ( nih_cc_matches == TRUE ) "),
+              selected = NULL,
+              multiple = TRUE,
+              options = list(),
+              choicesOpt = NULL,
+              width = 'auto',
+              inline = FALSE
             )
             
             
             
           )
-        )
         ,
         column(
-          1,
+          2,
           #style='padding-left:5px; padding-right:10px; ',
           
-          offset = 1,
-          dropdownButton(
-            #tags$h3("List of Input"),
-            inputId = "study_sites_dropdown",
-            circle = FALSE,
-            label = "Study Sites",
-            checkboxGroupInput(
-              "sites",
-              label = "",
-              inline = TRUE,
-              choices = c("VA" = "  ( va_matches == TRUE )  ",
-                          "NIH CC" = " ( nih_cc_matches == TRUE ) ")
-            )
-            
-            
-            
-          )
-        ),
-        column(
-          1,
-          #style='padding-left:5px; padding-right:10px; ',
-          
-          offset = 1,
-          dropdownButton(
-            #tags$h3("List of Input"),
-            inputId = "Distance_dropdown",
-            circle = FALSE,
-            label = "Distance (miles)",
+          #offset = 1,
+       
             numericInput(
               "distance_in_miles",
-              "",
+              label = "Distance (mi)",
               '',
               min = 1,
               max = 9999,
-              step = 10,
-              width = '100px'
+              step = 10 
+              #,
+              #width = '100px'
             )
             
             
@@ -262,7 +288,7 @@ ui <- fluidPage(
           )
           
           
-        )
+        
         
       ),
       fluidRow(
@@ -1090,5 +1116,19 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     print("----------")
   })
   
+  observeEvent(c(input$match_types_to_show,input$participant_attributes_dropdown),
+               ignoreNULL = FALSE,
+     {
+    print("checkbox")
+    }
+  )
+    
+  observeEvent(
+  input$match_types_picker,
+  ignoreNULL = FALSE,
+  {
+    print("match types picker")
+  }
+  )
 }
 shinyApp(ui, server)
