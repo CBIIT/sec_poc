@@ -164,7 +164,7 @@ ui <- fluidPage(
                  ),
                  selected = NULL,
                  multiple = TRUE,
-                 options = list(),
+                 options = pickerOptions(actionsBox = TRUE),
                  choicesOpt = NULL,
                  width = 'auto',
                  inline = FALSE
