@@ -814,8 +814,12 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     DBI::dbDisconnect(session_conn)
     sessionInfo$df_matches <- df_matches
     print("creating table to display")
-  
+
+    
+    
     sessionInfo$df_matches_to_show <- sessionInfo$df_matches
+    
+    observe( {
     colnames(sessionInfo$df_matches_to_show) =  c(
       'NCT ID',
       'Title',
@@ -885,6 +889,8 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                                   'WBC Expression','Performance Status Criteria',
                                   'Performance Status Expression')
     columns_with_tooltips <- c("Disease Names")
+    
+
     new_match_dt <-
       datatable(
         sessionInfo$df_matches_to_show,
@@ -1047,9 +1053,10 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
        )  
       ) %>% DT::formatStyle(columns = c(2,6,8), fontSize = '75%')
  
-    
+ 
     output$df_matches_data = DT::renderDT(new_match_dt, server = TRUE)
-    
+    }
+    )
     # browser()
     
   },
@@ -1124,11 +1131,41 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   )
     
   observeEvent(
-  input$match_types_picker,
+  c(input$match_types_picker,
+    input$disease_type)
+,
   ignoreNULL = FALSE,
   {
     print("match types picker")
+    f1 <- paste(input$match_types_picker, collapse = " & ")
+    filterer <- f1
+    print(paste("f1 = ", f1))
+    
+   
+    if(!is.null(sessionInfo$df_matches_to_show)) {
+       print("we have data")
+      
+       if (filterer != "") {
+         print("there is filtering")
+         if (input$disease_type == 'lead') {
+           filterer <-
+             gsub('disease_matches', 'lead_disease_matches', filterer)
+         }
+         t <- sessionInfo$df_matches
+         sessionInfo$df_matches_to_show <- filter_(t, filterer)
+       } else {
+         print(" no filtering ")
+         sessionInfo$df_matches_to_show <- sessionInfo$df_matches
+      }
+    
+    # 
+    # }
+    # 
+    }
+    else {
+       print("no data, nothing to do")
+      }
   }
-  )
+)
 }
 shinyApp(ui, server)
