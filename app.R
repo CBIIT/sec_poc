@@ -162,7 +162,7 @@ ui <- fluidPage(
                    #"Chemotherapy (inclusion) " = " ( chemotherapy_inc_matches == TRUE | is.na(chemotherapy_inc_matches) )   "
                    
                  ),
-                 selected = NULL,
+                 selected = "disease_matches == TRUE",
                  multiple = TRUE,
                  options = pickerOptions(actionsBox = TRUE),
                  choicesOpt = NULL,
@@ -315,8 +315,10 @@ server <- function(input, output, session) {
     df_matches = NULL,
     sidebar_shown = TRUE,
     disease_buttons = NULL
+ 
   )
-
+  counter <- reactiveValues(countervalue = 0)
+  
   con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
   
   df_disease_choice_data <-
@@ -818,6 +820,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     
     
     sessionInfo$df_matches_to_show <- sessionInfo$df_matches
+    counter$countervalue <- counter$countervalue + 1  
     
     observe( {
     colnames(sessionInfo$df_matches_to_show) =  c(
@@ -1058,6 +1061,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     }
     )
     # browser()
+    sessionInfo$run_count <- sessionInfo$run_count+1 
     
   },
   label = 'search and match'
@@ -1123,24 +1127,10 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     print("----------")
   })
   
-  observeEvent(c(input$match_types_to_show,input$participant_attributes_dropdown),
-               ignoreNULL = FALSE,
-     {
-    print("checkbox")
-    }
-  )
-    
-  observeEvent(
-  c(input$match_types_picker,
-    input$disease_type
-    ,
-    input$phases,
-    input$sites
-  )
-,
-  ignoreNULL = FALSE,
-  {
-    print("match types picker")
+  # This gets called whenever filtering has changed 
+  
+  get_filterer <- function() {
+    print("get_filterer")
     match_types_string <- paste(input$match_types_picker, collapse = " & ")
     phase_string <- paste(input$phases, collapse = " | ")
     filterer <- match_types_string
@@ -1181,29 +1171,57 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     }
     
     print(paste("filterer =", filterer))
+    
     if(!is.null(sessionInfo$df_matches_to_show)) {
-       print("we have data")
+      print("we have data")
       
-       if (filterer != "") {
-         print("there is filtering")
-         if (input$disease_type == 'lead') {
-           filterer <-
-             gsub('disease_matches', 'lead_disease_matches', filterer)
-         }
-         t <- sessionInfo$df_matches
-         sessionInfo$df_matches_to_show <- filter_(t, filterer)
-       } else {
-         print(" no filtering ")
-         sessionInfo$df_matches_to_show <- sessionInfo$df_matches
+      if (filterer != "") {
+        print("there is filtering")
+        if (input$disease_type == 'lead') {
+          filterer <-
+            gsub('disease_matches', 'lead_disease_matches', filterer)
+        }
+        t <- sessionInfo$df_matches
+        sessionInfo$df_matches_to_show <- filter_(t, filterer)
+      } else {
+        print(" no filtering ")
+        sessionInfo$df_matches_to_show <- sessionInfo$df_matches
       }
-
-    # 
-    # }
-    # 
+      
+      # 
+      # }
+      # 
     }
     else {
-       print("no data, nothing to do")
-      }
+      print("no data, nothing to do")
+    }
+    
+    return(filterer)
+    
+  }
+    
+
+  #
+  # Note that counter$countervalue is here because it gets changed during the search and match button click to 
+  # make this called upon first load of a given search
+  #
+  
+  observeEvent(
+  c(input$match_types_picker,
+    input$disease_type
+    ,
+    input$phases,
+    input$sites,
+    counter$countervalue
+  )
+,
+  ignoreNULL = FALSE,
+  {
+    
+    
+    filterer <- get_filterer()
+    print(paste("filterer =", filterer))
+  
   }
 )
 }
