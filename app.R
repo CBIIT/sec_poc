@@ -1134,7 +1134,8 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   c(input$match_types_picker,
     input$disease_type
     ,
-    input$phases
+    input$phases,
+    input$sites
   )
 ,
   ignoreNULL = FALSE,
@@ -1168,6 +1169,17 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       }
     }
     
+    sites_search <- paste(input$sites, collapse = " & ")
+    if (filterer == "") {
+      if (!is_empty(sites_search)) {
+        filterer <- sites_search
+      }
+    } else {
+      if (!is_empty(sites_search)) {
+        filterer <- paste(filterer, sites_search, sep = " & ")
+      }
+    }
+    
     print(paste("filterer =", filterer))
     if(!is.null(sessionInfo$df_matches_to_show)) {
        print("we have data")
@@ -1184,7 +1196,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
          print(" no filtering ")
          sessionInfo$df_matches_to_show <- sessionInfo$df_matches
       }
-    
+
     # 
     # }
     # 
