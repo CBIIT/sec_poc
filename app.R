@@ -221,7 +221,7 @@ ui <- fluidPage(
         column(
           2,
           pickerInput(
-            inputId = "phases_dropdown",
+            inputId = "phases",
             label = "Phases",
             choices = c(
               "I  " = "  ( phase == 'O' |  phase == 'I' | phase == 'I_II')  ",
@@ -1132,16 +1132,43 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     
   observeEvent(
   c(input$match_types_picker,
-    input$disease_type)
+    input$disease_type
+    ,
+    input$phases
+  )
 ,
   ignoreNULL = FALSE,
   {
     print("match types picker")
-    f1 <- paste(input$match_types_picker, collapse = " & ")
-    filterer <- f1
-    print(paste("f1 = ", f1))
+    match_types_string <- paste(input$match_types_picker, collapse = " & ")
+    phase_string <- paste(input$phases, collapse = " | ")
+    filterer <- match_types_string
+    print(paste("match_types_string = ", match_types_string))
+    print(paste("phase_string = ", phase_string))
     
-   
+    if (match_types_string != '') {
+      match_types_string <- paste("(", match_types_string, ")")
+    }
+    if (phase_string != '') {
+      phase_string <- paste("(", phase_string, ")")
+    }
+    
+    filterer <- ""
+    
+    if(match_types_string != '') {
+      if(phase_string != '') {
+        filterer <- paste(match_types_string," & ", phase_string) 
+      } else {
+        filterer <- match_types_string
+      }
+    }
+    else {
+      if(phase_string != '') {
+        filterer <- phase_string
+      }
+    }
+    
+    print(paste("filterer =", filterer))
     if(!is.null(sessionInfo$df_matches_to_show)) {
        print("we have data")
       
