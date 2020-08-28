@@ -58,6 +58,17 @@ ui <- fluidPage(
     HTML("hr {border-top: 1px solid #000000;}")
   )),
   
+  #
+  # set the shiny bsmodal to be as large as it can be.
+  #
+  
+  tags$head(tags$style(HTML('
+
+                        .modal-lg {
+                        width: 100vw; height: 90vh;
+
+                        }
+                      '))),
   titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;")),
   sidebarLayout(
     div(
@@ -103,6 +114,7 @@ ui <- fluidPage(
         ),
         
         actionButton("gyn_disease_button", "Gyn diseases"),
+        actionButton("show_gyn_disease", "Gyn"),
         uiOutput("disease_buttons"),
         selectizeInput("maintype_typer", label = "Maintypes", NULL , multiple = TRUE),
         selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
@@ -300,6 +312,22 @@ ui <- fluidPage(
         )
         
       )
+      , 
+      bsModal("modalExample", "Select Disease", "show_gyn_disease", size = "large",
+              fluidPage(id = "treePanel",
+                        fluidRow(column(
+                          12,
+                          wellPanel(
+                            id = "tPanel",
+                            style = "overflow-y:auto;  max-height: 800vh; overflow-x:auto; max-width: 900vw",
+                            collapsibleTreeOutput("disease_tree"#, height = "80vh", width = "90vw"
+                                                   )
+                          )
+                        )),
+                        fluidRow(textOutput("gyn_selected"))
+                        
+              )
+              )
     )
   )
 )
@@ -511,8 +539,24 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     )
   
   
+  dt_gyn_tree <- getDiseaseTreeData(con, 'C4913')
+  
   
   DBI::dbDisconnect(con)
+  output$disease_tree <- renderCollapsibleTree({
+    hh_collapsibleTreeNetwork( 
+      dt_gyn_tree,
+      collapsed = TRUE,
+      linkLength = 450,
+      zoomable = FALSE,
+      inputId = "selected_node",
+      nodeSize = 'nodeSize',
+      #nodeSize = 14,
+      aggFun = 'identity',
+      fontSize = 14 #,
+      #  width = '2000px',
+      #  height = '700px'
+    )})
   
   updateSelectizeInput(session,
                        'maintype_typer',
