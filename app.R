@@ -105,7 +105,7 @@ ui <- fluidPage(
         ),
         radioGroupButtons(
           inputId = "gender",
-          label = "Gender",
+          label = "Sex",
           choices = c("Male", "Female", "Unspecified"),
           selected = "Unspecified",
           justified = FALSE,
@@ -158,11 +158,11 @@ ui <- fluidPage(
           trigger = "hover",
           options = NULL
         ),
-        selectizeInput("maintype_typer", label = "Maintypes", NULL , multiple = TRUE),
-        selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
+     #   selectizeInput("maintype_typer", label = "Maintypes", NULL , multiple = TRUE),
+    #    selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
                 
         
-        selectizeInput("misc_typer", label = "Misc", NULL, multiple = TRUE),
+       # selectizeInput("misc_typer", label = "Misc", NULL, multiple = TRUE),
         
         
        
@@ -669,6 +669,18 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
 
     
   })
+  
+  observeEvent(input$clear_all , {
+    print("clear all")
+    updateNumericInput(session, "patient_wbc", value = NA)
+    updateNumericInput(session, "patient_plt", value = NA)
+    updateNumericInput(session, "patient_age", value = NA)
+    updateRadioGroupButtons(session, "hiv", selected = 'Unspecified')
+    updateRadioGroupButtons(session, "gender", selected = 'Unspecified')
+    sessionInfo$disease_df <- sessionInfo$disease_df[0,]
+    
+  }
+  ) 
   
   observeEvent(input$search_and_match, {
     print("search and match")
