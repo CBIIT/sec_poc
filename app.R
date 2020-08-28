@@ -124,6 +124,7 @@ ui <- fluidPage(
         ),
         
         actionButton("show_gyn_disease", "Gyn"),
+        actionButton("show_lung_disease", "Lung"),
         DTOutput("diseases"),
      
         numericInput(
@@ -328,6 +329,25 @@ ui <- fluidPage(
                         
               )
               
+    )
+    ,
+    bsModal("lung_bsmodal", "Select lung Disease", "show_lung_disease", size = "large",
+            fluidPage(id = "treePanel",
+                      fluidRow(column(
+                        12,
+                        wellPanel(
+                          id = "tPanel2",
+                          style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
+                          collapsibleTreeOutput("lung_disease_tree", height = "75vh", width =
+                                                  '4000px')
+                        )
+                      )),
+                      fluidRow(column(2, 'Disease selected:'), 
+                               column(6, align = "left", textOutput("lung_selected")),
+                               column(2, align = 'right'), actionButton("lung_add_disease", label='Add disease'))
+                      
+            )
+            
     )
     
     )
@@ -542,7 +562,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   
   
   dt_gyn_tree <- getDiseaseTreeData(con, 'C4913')
-  
+  dt_lung_tree <- getDiseaseTreeData(con, 'C4878')
   
   DBI::dbDisconnect(con)
   output$gyn_disease_tree <- renderCollapsibleTree({
@@ -559,6 +579,21 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       #  width = '2000px',
       #  height = '700px'
     )})
+  output$lung_disease_tree <- renderCollapsibleTree({
+    hh_collapsibleTreeNetwork( 
+      dt_lung_tree,
+      collapsed = TRUE,
+      linkLength = 450,
+      zoomable = FALSE,
+      inputId = "lung_selected_node",
+      nodeSize = 'nodeSize',
+      #nodeSize = 14,
+      aggFun = 'identity',
+      fontSize = 14 #,
+      #  width = '2000px',
+      #  height = '700px'
+    )})
+  
   
   updateSelectizeInput(session,
                        'maintype_typer',
@@ -1159,9 +1194,34 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     print("----------")
   })
   
+  observeEvent(input$lung_selected_node, ignoreNULL = FALSE, {
+    print("node selected")
+    print(input$lung_selected_node)
+    # browser()
+    output$lung_selected <- renderText(input$lung_selected_node[[length(input$lung_selected_node)]] )
+    # browser()
+    print("----------")
+  })
+  
+  
   observeEvent(input$gyn_add_disease, {
     print("add gyn disease")
     new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
+    print(paste("new disease = ", new_disease))
+    add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
+    session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+    df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+    #browser()
+    DBI::dbDisconnect(session_conn)
+    sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
+    print(sessionInfo$disease_df)
+    
+    
+  }
+  )
+  observeEvent(input$lung_add_disease, {
+    print("add lung disease")
+    new_disease <- input$lung_selected_node[[length(input$lung_selected_node)]]
     print(paste("new disease = ", new_disease))
     add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
