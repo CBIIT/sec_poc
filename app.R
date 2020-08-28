@@ -103,6 +103,24 @@ ui <- fluidPage(
           max = 120,
           step = 1
         ),
+        pickerInput(
+          inputId = "performance_status",
+          label = "Performance Status",
+          choices = c(
+            "Unspecified" = "C159685",
+            "0: Asymptomatic" = "C105722",
+            "1: Symptomatic, but fully ambulatory" = "C105723",
+            "2: Symptomatic, in bed less than 50% of day" = "C105725",
+            "3: Symptomatic, in bed more than 50% of day, but not bed-ridden" = "C105726",
+            "4: Bed-ridden" = "C105727"
+          ),
+          selected =  "Unspecified",
+          multiple = FALSE,
+          options = list(width = "72px"),
+          choicesOpt = NULL,
+          width = 'auto',
+          inline = FALSE
+        ),
         radioGroupButtons(
           inputId = "gender",
           label = "Sex",
@@ -677,6 +695,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     updateNumericInput(session, "patient_age", value = NA)
     updateRadioGroupButtons(session, "hiv", selected = 'Unspecified')
     updateRadioGroupButtons(session, "gender", selected = 'Unspecified')
+    updatePickerInput(session, "performance_status", selected = "C159685")
     sessionInfo$disease_df <- sessionInfo$disease_df[0,]
     
   }
@@ -706,6 +725,15 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     #sel[nrow(sel) + 1, ] = c("C8953", "YES")
     
    # browser()
+    
+    
+    print(paste("performance status", input$performance_status))
+    
+    if(length(input$performance_status) > 0) {
+      print("adding performance status")
+      sel[nrow(sel) + 1,] = c(input$performance_status, "YES")
+    }
+    
     if (length(input$disease_typer) > 0) {
       for (row in 1:length(input$disease_typer)) {
         sel[nrow(sel) + 1,] = c(input$disease_typer[row], "YES")
