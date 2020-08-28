@@ -65,7 +65,7 @@ ui <- fluidPage(
   tags$head(tags$style(HTML('
 
                         .modal-lg {
-                        width: 100vw; height: 90vh;
+                        width: 95vw; height: 95vh;
 
                         }
                       '))),
@@ -313,26 +313,27 @@ ui <- fluidPage(
         
       )
       , 
-      bsModal("modalExample", "Select Disease", "show_gyn_disease", size = "large",
+      bsModal("gyn_bsmodal", "Select Disease", "show_gyn_disease", size = "large",
               fluidPage(id = "treePanel",
                         fluidRow(column(
                           12,
                           wellPanel(
                             id = "tPanel",
-                            style = "overflow-y:auto;  max-height: 800vh; overflow-x:auto; max-width: 900vw",
-                            collapsibleTreeOutput("disease_tree"#, height = "80vh", width = "90vw"
-                                                   )
+                            style = "overflow-y:scroll;  max-height: 750vh; height: 75vh; overflow-x:scroll; max-width: 4000px",
+                            collapsibleTreeOutput("disease_tree", height = "75vh", width =
+                                                    '4000px')
                           )
                         )),
                         fluidRow(textOutput("gyn_selected"))
                         
               )
-              )
+              
     )
-  )
+    
+    )
 )
 
-
+)
 
 
 server <- function(input, output, session) {
