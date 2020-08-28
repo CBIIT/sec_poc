@@ -113,7 +113,7 @@ ui <- fluidPage(
           # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
         ),
         
-        actionButton("gyn_disease_button", "Gyn diseases"),
+      
         actionButton("show_gyn_disease", "Gyn"),
         uiOutput("disease_buttons"),
         selectizeInput("maintype_typer", label = "Maintypes", NULL , multiple = TRUE),
@@ -182,42 +182,7 @@ ui <- fluidPage(
                  inline = FALSE
                )
           ),        
-        # column(
-        #   1,
-        #   style = 'padding-left:0px; padding-right:10px; ',
-        #   dropdownButton(
-        #     #tags$h3("List of Input"),
-        #     inputId = "participant_attributes_dropdown",
-        #     circle = FALSE,
-        #     label = "Participant Attributes",
-        #     checkboxGroupInput(
-        #       "match_types_to_show_col",
-        #       label = "",
-        #       inline = FALSE,
-        #       choices = c(
-        #         "Disease" = "disease_matches == TRUE",
-        #         "Gender" = "gender_matches == TRUE",
-        #         "Age" = "age_matches == TRUE",
-        #         #    "HGB" = "hgb_matches == TRUE",
-        #         "PLT" = " ( plt_matches == TRUE | is.na(plt_matches) ) ",
-        #         "WBC" = " (  wbc_matches == TRUE | is.na(wbc_matches) )  ",
-        #         "Performance Status" = " (perf_matches == TRUE | is.na(perf_matches) ) ",
-        #         "Immunotherapy (exclusion)" = " ( immunotherapy_matches == FALSE | is.na(immunotherapy_matches) ) ",
-        #         #     "Biomarkers" = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) ) | ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )  "
-        #         "Biomarkers (exclusion) " = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) )   ",
-        #         "Biomarkers (inclusion) " = " ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )   " ,
-        #         "Chemotherapy (exclusion) " = " ( chemotherapy_exc_matches == FALSE | is.na(chemotherapy_exc_matches) )   "
-        #         ,
-        #         "HIV Status (exclusion) " = " ( hiv_exc_matches == FALSE | is.na(hiv_exc_matches) ) "
-        #         #,
-        #         #"Chemotherapy (inclusion) " = " ( chemotherapy_inc_matches == TRUE | is.na(chemotherapy_inc_matches) )   "
-        #         
-        #       )
-        #       
-        #     )
-        #   )
-        # )
-        # ,
+
         
         column(
           2,
@@ -320,7 +285,7 @@ ui <- fluidPage(
                           wellPanel(
                             id = "tPanel",
                             style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
-                            collapsibleTreeOutput("disease_tree", height = "75vh", width =
+                            collapsibleTreeOutput("gyn_disease_tree", height = "75vh", width =
                                                     '4000px')
                           )
                         )),
@@ -546,13 +511,13 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   
   
   DBI::dbDisconnect(con)
-  output$disease_tree <- renderCollapsibleTree({
+  output$gyn_disease_tree <- renderCollapsibleTree({
     hh_collapsibleTreeNetwork( 
       dt_gyn_tree,
       collapsed = TRUE,
       linkLength = 450,
       zoomable = FALSE,
-      inputId = "selected_node",
+      inputId = "gyn_selected_node",
       nodeSize = 'nodeSize',
       #nodeSize = 14,
       aggFun = 'identity',
@@ -1135,47 +1100,21 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                
   )
   
-  observeEvent(input$gyn_disease_button,
-               {
-                 print("gyn button")
-                 ev_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-                 dt_df <- getDiseaseTreeData(ev_conn, 'C4913')
-                 DBI::dbDisconnect(ev_conn)
-                 output$disease_tree <- renderCollapsibleTree({
-                   hh_collapsibleTreeNetwork( 
-                     dt_df,
-                     collapsed = TRUE,
-                     linkLength = 450,
-                     zoomable = FALSE,
-                     inputId = "selected_node",
-                     nodeSize = 'nodeSize',
-                     #nodeSize = 14,
-                     aggFun = 'identity',
-                     fontSize = 14 #,
-                     #  width = '2000px',
-                     #  height = '700px'
-                   )})
-                
-                # browser()
-                 showModal(diseaseTreeModal(failed = FALSE, msg = '',  
-                                            init_code = 'C4913', input_df = dt_df)
-                          
-                           )
-                 
-                 
-               })
   
-  observeEvent(input$selected_node, ignoreNULL = FALSE, {
+  
+  observeEvent(input$gyn_selected_node, ignoreNULL = FALSE, {
     print("node selected")
-    print(input$selected_node)
+    print(input$gyn_selected_node)
    # browser()
-    output$gyn_selected <- renderText(input$selected_node[[length(input$selected_node)]] )
+    output$gyn_selected <- renderText(input$gyn_selected_node[[length(input$gyn_selected_node)]] )
     # browser()
     print("----------")
   })
   
   observeEvent(input$gyn_add_disease, {
     print("add gyn disease")
+    new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
+    print(paste("new disease = ", new_disease))
   }
   )
   

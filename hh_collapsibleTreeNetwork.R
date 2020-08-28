@@ -155,7 +155,8 @@ hh_collapsibleTreeNetwork <- function(df, inputId = NULL, attribute = "leafCount
     attribute = attribute,
     linkLength = linkLength,
     fontSize = fontSize,
-    tooltip = tooltip,
+    #tooltip = tooltip,
+    tooltip = NULL,
     collapsed = collapsed,
     zoomable = zoomable,
     margin = list(
