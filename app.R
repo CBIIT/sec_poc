@@ -134,6 +134,13 @@ ui <- fluidPage(
           # max = 120,
           #step = 1
         ),
+        bsTooltip(
+          "patient_wbc",
+          'Enter the WBC in /uL -- e.g. 6000',
+          placement = "bottom",
+          trigger = "hover",
+          options = NULL
+        ),
         numericInput(
           "patient_plt",
           "Platelets (/uL)",
@@ -141,6 +148,13 @@ ui <- fluidPage(
           #min = 0,
           # max = 120,
           #step = 1
+        ),
+        bsTooltip(
+          "patient_plt",
+          'Enter the platlets in /uL -- e.g. 100000',
+          placement = "bottom",
+          trigger = "hover",
+          options = NULL
         ),
         selectizeInput("maintype_typer", label = "Maintypes", NULL , multiple = TRUE),
         selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
@@ -633,6 +647,16 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       
   #  }
     #browser()
+    
+    if(!is.na(input$patient_plt)) {
+      print(paste("we have a platelet count ", input$patient_plt))
+      sel[nrow(sel) + 1,] = c("C51951",toString(input$patient_plt))
+    }
+    if(!is.na(input$patient_wbc)) {
+      print(paste("we have a wbc ", input$patient_plt))
+      sel[nrow(sel) + 1,] = c("C51948",toString(input$patient_plt))
+    }
+    
     sel_codes <- sel$Code
     possible_disease_codes_df <-
       sel[which(sel$Value == 'YES'),]  # NOTE USE TRANSITIVE CLOSURE TO MAKE SURE IF I NEED TO
@@ -1139,7 +1163,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     print("add gyn disease")
     new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Desc from ncit where pref_name = ?"
+    add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
     #browser()
