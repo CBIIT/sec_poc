@@ -69,7 +69,7 @@ ui <- fluidPage(
 
                         }
                       '))),
-  titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;")),
+  titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;"), windowTitle = "Structured Eligibility Criteria Trial Search"),
   sidebarLayout(
     div(
       id = "Sidebar", # width = 3,
@@ -602,6 +602,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   dt_gyn_tree <- getDiseaseTreeData(con, 'C4913')
   dt_lung_tree <- getDiseaseTreeData(con, 'C4878')
   dt_solid_tree <- getDiseaseTreeData(con, 'C9292')
+  
   
   DBI::dbDisconnect(con)
   output$gyn_disease_tree <- renderCollapsibleTree({
