@@ -313,18 +313,20 @@ ui <- fluidPage(
         
       )
       , 
-      bsModal("gyn_bsmodal", "Select Disease", "show_gyn_disease", size = "large",
+      bsModal("gyn_bsmodal", "Select GYN Disease", "show_gyn_disease", size = "large",
               fluidPage(id = "treePanel",
                         fluidRow(column(
                           12,
                           wellPanel(
                             id = "tPanel",
-                            style = "overflow-y:scroll;  max-height: 750vh; height: 75vh; overflow-x:scroll; max-width: 4000px",
+                            style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
                             collapsibleTreeOutput("disease_tree", height = "75vh", width =
                                                     '4000px')
                           )
                         )),
-                        fluidRow(textOutput("gyn_selected"))
+                        fluidRow(column(2, 'Disease selected:'), 
+                                 column(6, align = "left", textOutput("gyn_selected")),
+                                 column(2, align = 'right'), actionButton("gyn_add_disease", label='Add disease'))
                         
               )
               
@@ -1171,6 +1173,11 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     # browser()
     print("----------")
   })
+  
+  observeEvent(input$gyn_add_disease, {
+    print("add gyn disease")
+  }
+  )
   
   # This gets called whenever filtering has changed 
   
