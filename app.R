@@ -54,6 +54,21 @@ source('transform_perf_status.R')
 
 ui <- fluidPage(
   useShinyjs(),
+  
+  #
+  # Wire up the close button on the biomarker modal to fire a shiny event 
+  # so the data can be processed 
+  #
+  
+  tags$script('
+  $( document ).ready(function() {
+    $("#biomarker_bsmodal").on("hidden.bs.modal", function (event) {
+    x = new Date().toLocaleString();
+    // window.alert("biomarker  modal was closed at " + x);
+    Shiny.onInputChange("biomarker_bsmodal_close",x);
+  });
+  })
+  '),
   tags$head(tags$style(
     HTML("hr {border-top: 1px solid #000000;}")
   )),
@@ -69,7 +84,10 @@ ui <- fluidPage(
 
                         }
                       '))),
-  titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;"), windowTitle = "Structured Eligibility Criteria Trial Search"),
+ titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;"), windowTitle = "Structured Eligibility Criteria Trial Search"),
+ # titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;"        ), span(downloadButton("downloadData", "Download Match Data", style =
+#                                                                                                          'padding:4px; font-size:80%')),  windowTitle = "Structured Eligibility Criteria Trial Search"),
+  
   sidebarLayout(
     div(
       id = "Sidebar", # width = 3,
@@ -145,6 +163,8 @@ ui <- fluidPage(
         actionButton("show_lung_disease", "Lung"),
         actionButton("show_solid_disease", "Solid"),
         DTOutput("diseases"),
+        actionButton("show_biomarkers", "Biomarkers"),
+    #    DTOutput('biomarkers'),
      
         numericInput(
           "patient_wbc",
@@ -180,10 +200,8 @@ ui <- fluidPage(
     #    selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
                 
         
-       # selectizeInput("misc_typer", label = "Misc", NULL, multiple = TRUE),
+        selectizeInput("misc_typer", label = "NCIt Search", NULL, multiple = TRUE),
         
-        
-       
         actionButton("search_and_match", "SEARCH AND MATCH")
       )
     ),
@@ -330,6 +348,15 @@ ui <- fluidPage(
         )
         
       )
+      ,
+      fluidRow(
+        column(
+          width = 2,
+          offset = 0,
+          downloadButton("downloadData", "Download Match Data", style =
+                           'padding:4px; font-size:80%')
+        )
+      )
       , 
       bsModal("gyn_bsmodal", "Select GYN Disease", "show_gyn_disease", size = "large",
               fluidPage(id = "treePanel",
@@ -387,10 +414,52 @@ ui <- fluidPage(
             )
             
     )
-    
+    ,
+    bsModal("biomarker_bsmodal", "Select biomarkers", "show_biomarkers", size = "large",
+            fluidPage(sidebarLayout(
+              
+              sidebarPanel(
+                radioGroupButtons(
+                  inputId = "egfr",
+                  label = "EGFR",
+                  choices = c("Positive", "Negative", "Unspecified"),
+                  selected = "Unspecified",
+                  justified = FALSE,
+                  status = "primary"
+                  # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                ),
+                radioGroupButtons(
+                  inputId = "alk",
+                  label = "ALK",
+                  choices = c("Positive", "Negative", "Unspecified"),
+                  selected = "Unspecified",
+                  justified = FALSE,
+                  status = "primary"
+                  # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                ),
+                radioGroupButtons(
+                  inputId = "ros1",
+                  label = "ROS1",
+                  choices = c("Positive", "Negative", "Unspecified"),
+                  selected = "Unspecified",
+                  justified = FALSE,
+                  status = "primary"
+                  # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                )
+              ),
+              
+              mainPanel(
+                uiOutput(outputId="biomarker_controls")  
+                #selectizeInput("biomarker_list", label = "Biomarker List", NULL, multiple = TRUE),
+              )
+            )
+
+            
+
+    )
     )
 )
-
+)
 )
 
 
@@ -438,6 +507,26 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       group by preferred_name
       order by count(preferred_name) desc"
     )
+  
+  
+  df_biomarker_list_s <-
+    dbGetQuery(
+      con,
+      "with domain_set as (
+        select tc.descendant as code  from ncit_tc tc where tc.parent = 'C36391'
+      )      
+select ds.code, n.pref_name as biomarker from domain_set ds join ncit n 
+on ds.code = n.code and (n.concept_status <> 'Obsolete_Concept' or n.concept_status is null)
+order by n.pref_name"
+    )
+
+  # To get around the wacko server side bug, render this thing here as a normal static selectize but with the biomarker dataframe from the server side   
+  output$biomarker_controls <- renderUI({
+    tagList(
+      selectizeInput("biomarker_list", label = "Biomarker List", choices = df_biomarker_list_s$biomarker, selected = NULL, multiple = TRUE)
+    )
+  })
+  #-----
   
   crit_sql <-
     "select
@@ -663,6 +752,13 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
                        'misc_typer',
                        choices = df_misc_choices$pref_name ,
                        server = TRUE)
+  
+  
+
+#  updateSelectizeInput(session,
+ #                      'biomarker_list',
+ #                      choices = df_biomarker_list_s$biomarker ,
+#                       server = TRUE)
   
   
   observeEvent(input$toggleSidebar, {
@@ -1288,6 +1384,10 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     print("----------")
   })
   
+  observeEvent(input$biomarker_bsmodal_close, {
+    print("biomarker modal closed")
+  }
+  )
   
   observeEvent(input$gyn_add_disease, {
     print("add gyn disease")
@@ -1466,5 +1566,15 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   
   }
 )
+  
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste('fctc_boolean_match_csv_', Sys.Date(), '.csv', sep = "")
+    },
+    content = function(file) {
+      write.csv(sessionInfo$df_matches_to_show, file, row.names = FALSE)
+    }
+  )
+  
 }
 shinyApp(ui, server)
