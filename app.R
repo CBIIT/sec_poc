@@ -813,7 +813,7 @@ order by n.pref_name"
   }
   ) 
   
-  observeEvent(input$search_and_match, {
+  observeEvent(input$search_and_match, label = 'search and match', {
     print("search and match")
     print(paste("age : ", input$patient_age))
     print("diseases : ")
@@ -850,8 +850,7 @@ order by n.pref_name"
     }
 
       
-    
-
+    withProgress(message = 'Matching Clinical Trials',  detail = 'Creating data' ,value = 0.0 , {
     
     if(!is.na(input$patient_age)) {
       print("we have an age")
@@ -920,6 +919,7 @@ order by n.pref_name"
     csv_codes <- paste(sel_codes2, collapse = ",")
     print(csv_codes)
     
+    setProgress(value = 0.1,  detail = 'Matching on disease')
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     
     #
@@ -931,6 +931,8 @@ order by n.pref_name"
       df_crit$clean_nct_id %in% disease_df$nct_id  # will set T/F for each row
     
     # Get the VA studies
+    setProgress(value = 0.2,  detail = 'Examing VA sites')
+    
     va_df <- get_api_studies_with_va_sites()
     df_crit$va_match <- df_crit$clean_nct_id %in% va_df$nct_id
     
@@ -938,6 +940,8 @@ order by n.pref_name"
     nih_cc_df <- get_api_studies_for_postal_code('20892')
     df_crit$nih_cc_match <-
       df_crit$clean_nct_id %in% nih_cc_df$nct_id
+    
+    setProgress(value = 0.3,  detail = 'Computing patient maintypes')
     
     # Get the patient maintypes
     patient_maintypes_df <-
@@ -947,6 +951,7 @@ order by n.pref_name"
       paste("'", patient_maintypes_df$maintype, "'", sep = "")
     c2 <- paste(s2, collapse = ",")
     
+    setProgress(value = 0.4,  detail = 'Computing trial maintypes')
     
     maintype_studies_all_sql <-
       paste(
@@ -988,6 +993,8 @@ order by n.pref_name"
   #                message = 'Computing Matches',
   #                'Evaluating patient data')
     }
+    
+    setProgress(value = 0.5,  detail = 'Creating match matrix')
     
     #browser()
     print("creating the full match dataframe")
@@ -1048,6 +1055,8 @@ order by n.pref_name"
         stringsAsFactors = FALSE
       )
     
+    setProgress(value = 0.6,  detail = 'Creating criteria matches')
+    
     df_matches$immunotherapy_matches <-
       lapply(df_matches$immunotherapy_criteria,
              function(x)
@@ -1080,6 +1089,7 @@ order by n.pref_name"
                eval_prior_therapy_app(csv_codes, x, session_conn,
                                       eval_env =
                                         patient_data_env))
+    setProgress(value = 0.7,  detail = 'Creating criteria matches')
     
     df_matches$age_matches <-
       lapply(df_matches$age_criteria,
@@ -1105,6 +1115,7 @@ order by n.pref_name"
       lapply(df_matches$wbc_criteria,
              function(x)
                eval_criteria(x, eval_env = patient_data_env))
+    setProgress(value = 0.8,  detail = 'Creating criteria matches')
     
     df_matches$perf_matches <-
       #        lapply(df_matches$perf_criteria,
@@ -1131,6 +1142,7 @@ order by n.pref_name"
     sessionInfo$df_matches <- df_matches
     print("creating table to display")
 
+    setProgress(value = 0.9,  detail = 'Creating display')
     
     
     sessionInfo$df_matches_to_show <- sessionInfo$df_matches
@@ -1400,31 +1412,32 @@ order by n.pref_name"
     sessionInfo$run_count <- sessionInfo$run_count+1 
     click("toggleSidebar")
     
-  },
-  label = 'search and match'
+    }
+    )
+  }
   )
   
  
   
   
-  observeEvent(input$disease_selected,
-               {
-                 print("disease selected button pressed from modal")
-                 disease_name <- input$selected_node[[length(input$selected_node)]]
-                 print(disease_name)
-                 if(is.null(sessionInfo$disease_buttons)) {
-                   print('first disease button')
-                   sessionInfo$disease_buttons <-  c(disease_name)
-                 } else {
-                   print("already have some buttons")
-                   append(sessionInfo$disease_buttons, disease_name) 
-                 }
-                 print(sessionInfo$disease_buttons)
-                 removeModal()
-               }
-               
-  )
-  
+  # observeEvent(input$disease_selected,
+  #              {
+  #                print("disease selected button pressed from modal")
+  #                disease_name <- input$selected_node[[length(input$selected_node)]]
+  #                print(disease_name)
+  #                if(is.null(sessionInfo$disease_buttons)) {
+  #                  print('first disease button')
+  #                  sessionInfo$disease_buttons <-  c(disease_name)
+  #                } else {
+  #                  print("already have some buttons")
+  #                  append(sessionInfo$disease_buttons, disease_name) 
+  #                }
+  #                print(sessionInfo$disease_buttons)
+  #                removeModal()
+  #              }
+  #              
+  # )
+  # 
   
   
   observeEvent(input$gyn_selected_node, ignoreNULL = FALSE, {
