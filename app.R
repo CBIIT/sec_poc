@@ -20,6 +20,7 @@ library(shinyBS)
 library(collapsibleTree)
 library(stringi)
 library(sjmisc)
+library(shinyFeedback)
 source('hh_collapsibleTreeNetwork.R')
 source('getDiseaseTreeData.R')
 source('paste3.R')
@@ -54,7 +55,7 @@ source('transform_perf_status.R')
 
 ui <- fluidPage(
   useShinyjs(),
-  
+  useShinyFeedback(),
   #
   # Wire up the close button on the biomarker modal to fire a shiny event 
   # so the data can be processed 
@@ -107,12 +108,14 @@ ui <- fluidPage(
         ),
         hr(),
         textInput(
-          'postal_code',
+          'patient_zipcode',
           label = 'Geolocation',
           value = "",
-          width = NULL,
+         
           placeholder = 'Enter five digit zip code'
+         # width = '7em'
         ),
+        verbatimTextOutput("city_state"),
         numericInput(
           "patient_age",
           "Age (years):",
@@ -471,7 +474,10 @@ server <- function(input, output, session) {
     df_matches = NULL,
     sidebar_shown = TRUE,
     disease_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases")))),
-    biomarker_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers"))))
+    biomarker_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers")))),
+    distance_df = NA,
+    latitude = NA,
+    longitude = NA
     
     )
   counter <- reactiveValues(countervalue = 0)
@@ -525,7 +531,7 @@ order by n.pref_name"
   # To get around the wacko server side bug, render this thing here as a normal static selectize but with the biomarker dataframe from the server side   
   output$biomarker_controls <- renderUI({
     tagList(
-      selectizeInput("biomarker_list", label = "Biomarker List", choices = df_biomarker_list_s$biomarker, selected = NULL, multiple = TRUE)
+      selectizeInput("biomarker_list", label = "Biomarker Search", choices = df_biomarker_list_s$biomarker, selected = NULL, multiple = TRUE)
     )
   })
   #-----
@@ -787,8 +793,11 @@ order by n.pref_name"
     
   })
   
+  #
+  # Clears all of the inputs 
+  #
   observeEvent(input$clear_all , {
-    print("clear all")
+    updateTextInput(session, "patient_zipcode", value = NA)
     updateNumericInput(session, "patient_wbc", value = NA)
     updateNumericInput(session, "patient_plt", value = NA)
     updateNumericInput(session, "patient_age", value = NA)
@@ -797,6 +806,9 @@ order by n.pref_name"
     updatePickerInput(session, "performance_status", selected = "C159685")
     sessionInfo$disease_df <- sessionInfo$disease_df[0,]
     sessionInfo$biomarker_df <-  sessionInfo$biomarker_df[0,]
+    output$city_state <- NULL
+    sessionInfo$latitude <- NA
+    sessionInfo$longitude <- NA
     
   }
   ) 
@@ -807,13 +819,39 @@ order by n.pref_name"
     print("diseases : ")
     print(input$disease_typer)
     print(paste("gender : ", input$gender))
-    click("toggleSidebar")
-    
+   
     #
     # Make a new dataframe for the patient data 
     #
     sel <- data.frame(matrix(ncol = 2, nrow = 0))
     colnames(sel) <-  c("Code", "Value")
+    
+    # First check for a valid zipcode
+    
+    if (!is.null(input$patient_zipcode) && input$patient_zipcode != '') {
+      
+      has_five_digit_zip <- length(grep("^[[:digit:]]{5}$", c(input$patient_zipcode))) != 0
+      print(paste("has_five_digit_zip=", has_five_digit_zip))
+     # browser()
+      feedbackDanger("patient_zipcode", !has_five_digit_zip, "Please enter a five digit zipcode")
+      req(has_five_digit_zip, cancelOutput = TRUE)
+      print("good zipcode so far ")
+      geodata <- get_lat_long_for_zipcode(input$patient_zipcode)
+      good_geodata <- length(geodata) == 4
+      feedbackDanger("patient_zipcode", !good_geodata, "This is not a valid zipcode")
+      req(good_geodata, cancelOutput = TRUE)
+      # Now we have good zipcode data
+      output$city_state <- renderText(paste(geodata[3], geodata[4]))
+      sessionInfo$latitude <- geodata[1]
+      sessionInfo$longitude <- geodata[2]
+    } else {
+      sessionInfo$latitude <- NA
+      sessionInfo$longitude <- NA
+    }
+
+      
+    
+
     
     if(!is.na(input$patient_age)) {
       print("we have an age")
@@ -1168,7 +1206,22 @@ order by n.pref_name"
                                   'WBC Expression','Performance Status Criteria',
                                   'Performance Status Expression')
     columns_with_tooltips <- c("Disease Names")
-    
+    criteria_columns <- c(
+      'Disease Codes',
+      'Lead Disease Codes',
+      'Biomarker Inclusion',
+      'Biomarker Exclusion',
+      'Chemotherapy Exclusion',
+      'Immunotherapy Exclusion Criteria',
+      'HIV Exclusion Criteria',
+      'Gender',
+      'Min Age',
+      'Max Age',
+      'PLT Criteria',
+      'WBC Criteria',
+      'Performance Status Criteria'
+      
+    )
 
     new_match_dt <-
       datatable(
@@ -1338,6 +1391,7 @@ order by n.pref_name"
     )
     # browser()
     sessionInfo$run_count <- sessionInfo$run_count+1 
+    click("toggleSidebar")
     
   },
   label = 'search and match'
@@ -1397,53 +1451,90 @@ order by n.pref_name"
     # Clear the biomarker dataframe
     
     print("biomarker modal closed")
-    sessionInfo$biomarker_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers"))))
+    sessionInfo$biomarker_df = data.frame(matrix(
+      ncol = 3,
+      nrow = 0,
+      dimnames = list(NULL, c("Code", "Value" , "Biomarkers"))
+    ))
     print(input$egfr)
-    if(input$egfr == "Positive") {
-      t <- data.frame(Code ="C134501", Value = "YES", Biomarkers = "EGFR Positive")
+    if (input$egfr == "Positive") {
+      t <-
+        data.frame(Code = "C134501",
+                   Value = "YES",
+                   Biomarkers = "EGFR Positive")
       sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
-      t <- data.frame(Code ="C98357", Value = "YES", Biomarkers = "EGFR Gene Mutation")
+      t <-
+        data.frame(Code = "C98357",
+                   Value = "YES",
+                   Biomarkers = "EGFR Gene Mutation")
       sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
     } else if (input$egfr == "Negative") {
-      t <- data.frame(Code ="C150501", Value = "YES", Biomarkers = "EGFR Negative")
-      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
-    }
-
-    print(input$alk)
-    if(input$alk == "Positive") {
-      t <- data.frame(Code ="C128831", Value = "YES", Biomarkers = "ALK Positive")
-      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
-      t <- data.frame(Code ="C81945", Value = "YES", Biomarkers = "ALK Gene Mutation")
-      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
-    } else if (input$alk == "Negative") {
-      t <- data.frame(Code ="C133707", Value = "YES", Biomarkers = "ALK Negative")
+      t <-
+        data.frame(Code = "C150501",
+                   Value = "YES",
+                   Biomarkers = "EGFR Negative")
       sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
     }
     
-   
+    print(input$alk)
+    if (input$alk == "Positive") {
+      t <-
+        data.frame(Code = "C128831",
+                   Value = "YES",
+                   Biomarkers = "ALK Positive")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+      t <-
+        data.frame(Code = "C81945",
+                   Value = "YES",
+                   Biomarkers = "ALK Gene Mutation")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    } else if (input$alk == "Negative") {
+      t <-
+        data.frame(Code = "C133707",
+                   Value = "YES",
+                   Biomarkers = "ALK Negative")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    }
+    
+    
     
     print(input$ros1)
-    if(input$ros1 == "Positive") {
-      t <- data.frame(Code ="C155991", Value = "YES", Biomarkers = "ROS1 Positive")
-      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
-      t <- data.frame(Code ="C130952", Value = "YES", Biomarkers = "ROS1 Gene Mutation")
-      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+    if (input$ros1 == "Positive") {
+      t <-
+        data.frame(Code = "C155991",
+                   Value = "YES",
+                   Biomarkers = "ROS1 Positive")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+      t <-
+        data.frame(Code = "C130952",
+                   Value = "YES",
+                   Biomarkers = "ROS1 Gene Mutation")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
     } else if (input$ros1 == "Negative") {
-      t <- data.frame(Code ="C153498", Value = "YES", Biomarkers = "ROS1 Negative")
-      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+      t <-
+        data.frame(Code = "C153498",
+                   Value = "YES",
+                   Biomarkers = "ROS1 Negative")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
     }
     
-    # new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
-    # print(paste("new disease = ", new_disease))
-    # add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
-    # session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-    # df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
-    # #browser()
-    # DBI::dbDisconnect(session_conn)
-    # sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
+    print(input$biomarker_list)
+    if (length(input$biomarker_list) > 0) {
+      add_disease_sql <-
+        "select code as Code , 'YES' as Value, pref_name as Biomarkers from ncit where pref_name = ?"
+      session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+      for (row in 1:length(input$biomarker_list)) {
+        new_disease <- input$biomarker_list[row]
+        df_new_disease <-
+          dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+        #browser(0)
+        sessionInfo$biomarker_df <-
+          rbind(sessionInfo$biomarker_df, df_new_disease)
+      }
+      DBI::dbDisconnect(session_conn)
+    }
     print(sessionInfo$biomarker_df)
-  }
-  )
+  })
   
   observeEvent(input$gyn_add_disease, {
     print("add gyn disease")
@@ -1556,6 +1647,29 @@ order by n.pref_name"
   } )
   
   
+  #
+  # Handle the changing on the distance parameter by the user
+  #
+  observeEvent(input$distance_in_miles, ignoreNULL = FALSE, {
+    print(paste('distance_in_miles=', input$distance_in_miles))
+    if (is.na(input$distance_in_miles) |
+        input$distance_in_miles == '') {
+      print("miles is NA")
+      sessionInfo$distance_in_miles <- NA
+      sessionInfo$distance_df <- NA
+    } else if(!is.na(sessionInfo$latitude) & !is.na(sessionInfo$longitude)) {
+      print("computing distance_df")
+      distance_df <-
+        get_api_studies_for_location_and_distance(sessionInfo$latitude,
+                                                  sessionInfo$longitude,
+                                                  input$distance_in_miles)
+    #  browser()
+      sessionInfo$distance_df <- distance_df
+      sessionInfo$distance_in_miles <- input$distance_in_miles
+
+    }
+  })
+  
   
   # This gets called whenever filtering has changed 
   
@@ -1618,6 +1732,25 @@ order by n.pref_name"
         sessionInfo$df_matches_to_show <- sessionInfo$df_matches
       }
       
+      #
+      # Now match against the distance dataframe, if it exists
+      #
+      
+      td <- sessionInfo$distance_df
+      di <- sessionInfo$distance_in_miles
+      #browser()
+      if (!is.null(nrow(td)) && nrow(td) > 0) {
+        df_m <- sessionInfo$df_matches_to_show
+        df_miles <- sessionInfo$distance_df
+        t3 <-
+          sqldf('select df_m.* from df_m join df_miles on df_m.clean_nct_id = df_miles.nct_id')
+        sessionInfo$df_matches_to_show <- t3
+        
+      } else if (!is.na(sessionInfo$distance_in_miles)) {
+        df_m <- sessionInfo$df_matches_to_show
+        t3 <- sqldf('select df_m.* from df_m where 1=0')
+        sessionInfo$df_matches_to_show <- t3
+      }
       # 
       # }
       # 
