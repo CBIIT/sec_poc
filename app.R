@@ -477,7 +477,8 @@ server <- function(input, output, session) {
     biomarker_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers")))),
     distance_df = NA,
     latitude = NA,
-    longitude = NA
+    longitude = NA,
+    ncit_search_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers"))))
     
     )
   counter <- reactiveValues(countervalue = 0)
@@ -500,12 +501,16 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       as.vector(df_disease_choice_data[["code"]]),as.vector(df_disease_choice_data[["preferred_name"]]))
   
   #browser()
-  df_misc_choices <-
+  df_misc_choice_data <-
     dbGetQuery(
       con ,
-      "select pref_name from ncit where concept_status <> 'Obsolete_Concept' or concept_status is null order by parents, pref_name
+      "select code, pref_name from ncit where concept_status <> 'Obsolete_Concept' or concept_status is null order by parents, pref_name
       "
     )
+ 
+  
+  df_misc_choices <- setNames(
+    as.vector(df_misc_choice_data[["code"]]),as.vector(df_misc_choice_data[["pref_name"]]))
   
   df_maintypes <-
     dbGetQuery(
@@ -758,7 +763,7 @@ order by n.pref_name"
                        server = TRUE)
   updateSelectizeInput(session,
                        'misc_typer',
-                       choices = df_misc_choices$pref_name ,
+                       choices = df_misc_choices ,
                        server = TRUE)
   
   
@@ -876,6 +881,13 @@ order by n.pref_name"
         sel[nrow(sel) + 1,] = c(input$disease_typer[row], "YES")
       }
     }
+    
+    if (length(input$misc_typer) > 0) {
+      for (row in 1:length(input$misc_typer)) {
+        sel[nrow(sel) + 1,] = c(input$misc_typer[row], "YES")
+      }
+    }
+    
     
     # Add in any disease and biomarkers that may have been input
     
