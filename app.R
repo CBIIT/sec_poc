@@ -1207,8 +1207,6 @@ order by n.pref_name"
                                   'Performance Status Expression')
     columns_with_tooltips <- c("Disease Names")
     criteria_columns <- c(
-      'Disease Codes',
-      'Lead Disease Codes',
       'Biomarker Inclusion',
       'Biomarker Exclusion',
       'Chemotherapy Exclusion',
@@ -1284,15 +1282,23 @@ order by n.pref_name"
         class = 'cell-border stripe compact wrap hover',
         # class = 'cell-border stripe compact nowrap hover',
         
-        #extensions = c('FixedColumns', 'Buttons'),
-        extensions = c('FixedColumns'),
+        extensions = c('FixedColumns', 'Buttons'),
+        #extensions = c('FixedColumns'),
         
         
         options = list(
           lengthMenu = c(50, 100, 500),
           processing = TRUE,
           dom =  '<"top"f<"clear">>t<"bottom"Blip <"clear">>',
-         
+          buttons = list(
+            list(
+              extend = 'columnToggle',
+              text = 'Show Criteria' ,
+              columns = match(criteria_columns, names(sessionInfo$df_matches_to_show))
+            )
+            # ,
+            # 'excel'
+          ),
           #    dom = 'ft',
           searching = TRUE,
           autoWidth = TRUE,
@@ -1321,6 +1327,7 @@ order by n.pref_name"
             # 17,18,19 are chemo inclusion, ignore for now
           #  list(width = '150px', targets = c(10)),
             list(width = '300px', targets = c(2,8)),
+            list(width = '200px', targets = match(criteria_columns, names(sessionInfo$df_matches_to_show))),
             
         list(className = 'dt-center', targets = c(3, 6:ncol(sessionInfo$df_matches_to_show))),
             # Columns with hover tooltips
