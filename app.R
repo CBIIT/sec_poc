@@ -796,6 +796,7 @@ order by n.pref_name"
     updateRadioGroupButtons(session, "gender", selected = 'Unspecified')
     updatePickerInput(session, "performance_status", selected = "C159685")
     sessionInfo$disease_df <- sessionInfo$disease_df[0,]
+    sessionInfo$biomarker_df <-  sessionInfo$biomarker_df[0,]
     
   }
   ) 
@@ -838,6 +839,8 @@ order by n.pref_name"
         sel[nrow(sel) + 1,] = c(input$disease_typer[row], "YES")
       }
     }
+    
+    # Add in any disease and biomarkers that may have been input
     
     if(nrow(sessionInfo$disease_df) > 0 ) {
       sel <- rbind(sel, sessionInfo$disease_df[c("Code", "Value")])
@@ -1406,6 +1409,30 @@ order by n.pref_name"
       sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
     }
 
+    print(input$alk)
+    if(input$alk == "Positive") {
+      t <- data.frame(Code ="C128831", Value = "YES", Biomarkers = "ALK Positive")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+      t <- data.frame(Code ="C81945", Value = "YES", Biomarkers = "ALK Gene Mutation")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+    } else if (input$alk == "Negative") {
+      t <- data.frame(Code ="C133707", Value = "YES", Biomarkers = "ALK Negative")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+    }
+    
+   
+    
+    print(input$ros1)
+    if(input$ros1 == "Positive") {
+      t <- data.frame(Code ="C155991", Value = "YES", Biomarkers = "ROS1 Positive")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+      t <- data.frame(Code ="C130952", Value = "YES", Biomarkers = "ROS1 Gene Mutation")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+    } else if (input$ros1 == "Negative") {
+      t <- data.frame(Code ="C153498", Value = "YES", Biomarkers = "ROS1 Negative")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+    }
+    
     # new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
     # print(paste("new disease = ", new_disease))
     # add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
