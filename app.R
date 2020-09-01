@@ -1690,6 +1690,8 @@ order by n.pref_name"
       sessionInfo$distance_in_miles <- NA
       sessionInfo$distance_df <- NA
     } else if(!is.na(sessionInfo$latitude) & !is.na(sessionInfo$longitude)) {
+      withProgress(value= 0.5, message = "Computing geolocation matches",
+        {
       print("computing distance_df")
       distance_df <-
         get_api_studies_for_location_and_distance(sessionInfo$latitude,
@@ -1698,7 +1700,8 @@ order by n.pref_name"
     #  browser()
       sessionInfo$distance_df <- distance_df
       sessionInfo$distance_in_miles <- input$distance_in_miles
-
+        }
+      )
     }
   })
   
