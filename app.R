@@ -814,7 +814,7 @@ order by n.pref_name"
     output$city_state <- NULL
     sessionInfo$latitude <- NA
     sessionInfo$longitude <- NA
-    
+    updateSelectizeInput(session, "misc_typer", selected = NA)
   }
   ) 
   
