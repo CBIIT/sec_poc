@@ -164,7 +164,7 @@ ui <- fluidPage(
         actionButton("show_solid_disease", "Solid"),
         DTOutput("diseases"),
         actionButton("show_biomarkers", "Biomarkers"),
-    #    DTOutput('biomarkers'),
+        DTOutput('biomarkers'),
      
         numericInput(
           "patient_wbc",
@@ -470,7 +470,9 @@ server <- function(input, output, session) {
     df_matches_to_show = NULL,
     df_matches = NULL,
     sidebar_shown = TRUE,
-    disease_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases"))))
+    disease_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases")))),
+    biomarker_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers"))))
+    
     )
   counter <- reactiveValues(countervalue = 0)
   
@@ -839,6 +841,10 @@ order by n.pref_name"
     
     if(nrow(sessionInfo$disease_df) > 0 ) {
       sel <- rbind(sel, sessionInfo$disease_df[c("Code", "Value")])
+    }
+    
+    if(nrow(sessionInfo$biomarker_df) > 0 ) {
+      sel <- rbind(sel, sessionInfo$biomarker_df[c("Code", "Value")])
     }
     
     if (input$gender == 'Male') {
@@ -1385,7 +1391,30 @@ order by n.pref_name"
   })
   
   observeEvent(input$biomarker_bsmodal_close, {
+    # Clear the biomarker dataframe
+    
     print("biomarker modal closed")
+    sessionInfo$biomarker_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers"))))
+    print(input$egfr)
+    if(input$egfr == "Positive") {
+      t <- data.frame(Code ="C134501", Value = "YES", Biomarkers = "EGFR Positive")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+      t <- data.frame(Code ="C98357", Value = "YES", Biomarkers = "EGFR Gene Mutation")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+    } else if (input$egfr == "Negative") {
+      t <- data.frame(Code ="C150501", Value = "YES", Biomarkers = "EGFR Negative")
+      sessionInfo$biomarker_df = rbind(sessionInfo$biomarker_df, t)
+    }
+
+    # new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
+    # print(paste("new disease = ", new_disease))
+    # add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
+    # session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+    # df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+    # #browser()
+    # DBI::dbDisconnect(session_conn)
+    # sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
+    print(sessionInfo$biomarker_df)
   }
   )
   
@@ -1465,9 +1494,41 @@ order by n.pref_name"
     )
   )  %>% DT::formatStyle(columns = c(0), fontSize = '75%')
   output$diseases <- DT::renderDT(show_disease_dt)
-  }
+  } )
 
-  )
+  
+  observe( {
+    show_biomarker_dt <- datatable(
+      sessionInfo$biomarker_df,
+      class = 'cell-border stripe compact wrap ',
+      rownames = FALSE,
+      selection = "single",
+      options = list(
+        escape = FALSE,
+        searching = FALSE,
+        paging = FALSE,
+        info = FALSE,
+        #scrollX = TRUE,
+        #scrolly = '200px',
+        pageLength = 999,
+        scrollY = "100px",
+        lengthMenu = list(c(600, -1), c("600", "All")),
+        style = "height:100px; overflow-y: scroll; overflow-x:scroll;padding:10px;",
+        columnDefs = list(
+          list(visible = FALSE, targets = c(0,1))
+          # ,
+          # list(
+          #   targets = c(1),
+          #   render = JS("function(data){return data.replace(/\\n/g, '<br />');}")
+          # )
+          
+        )
+      )
+    )  %>% DT::formatStyle(columns = c(0), fontSize = '75%')
+    output$biomarkers <- DT::renderDT(show_biomarker_dt)
+  } )
+  
+  
   
   # This gets called whenever filtering has changed 
   
