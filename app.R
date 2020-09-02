@@ -449,6 +449,17 @@ ui <- fluidPage(
                   status = "primary"
                   # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
                 )
+                ,
+           
+                radioGroupButtons(
+                  inputId = "her2_neu",
+                  label = "HER2/Neu",
+                  choices = c("Positive", "Negative", "Unspecified"),
+                  selected = "Unspecified",
+                  justified = FALSE,
+                  status = "primary"
+                )
+                
               ),
               
               mainPanel(
@@ -1547,6 +1558,20 @@ order by n.pref_name"
         data.frame(Code = "C153498",
                    Value = "YES",
                    Biomarkers = "ROS1 Negative")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    }
+    
+    if (input$her2_neu == "Positive") {
+      t <-
+        data.frame(Code = "C68748",
+                   Value = "YES",
+                   Biomarkers = "HER2/Neu Positive")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    } else if (input$ros1 == "Negative") {
+      t <-
+        data.frame(Code = "C68749",
+                   Value = "YES",
+                   Biomarkers = "HER2/Neu Negative")
       sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
     }
     
