@@ -873,6 +873,8 @@ order by n.pref_name"
     sessionInfo$latitude <- NA
     sessionInfo$longitude <- NA
     updateSelectizeInput(session, "misc_typer", selected = NA)
+    updateSelectizeInput(session, "interventions", selected = NA)
+    
   }
   ) 
   
