@@ -96,6 +96,7 @@ ui <- fluidPage(
   #    tags$head(tags$style(".modal-body{ min-height:700px}")),
       sidebarPanel(
         tags$style(".well {background-color:#F0F8FF;}"),
+        style = "overflow-y:scroll; max-height: 90vh; position:relative;",
         width=3,
         fluidRow(
           column(8, align = 'left', h4("Search Criteria")),
@@ -203,13 +204,59 @@ ui <- fluidPage(
     #    selectizeInput("disease_typer", label = "Diseases", NULL, multiple = TRUE),
                 
         
-        selectizeInput("misc_typer", label = "NCIt Search", NULL, multiple = TRUE),
         
+    #----
+    
+    selectizeInput('interventions', 'Interventions', choices = '', 
+                   multiple = TRUE, 
+                   selected = NA, 
+                   options = list(
+                     valueField = 'name',
+                     labelField = 'name',
+                     searchField = 'name',
+                     loadThrottle = '500',
+                     persist = FALSE,
+                     options = list(),
+                     create = FALSE,
+                     
+                     load = I("
+                              function(query, callback) {
+                              if (!query.length) return callback();
+                              $.ajax({
+                              url: 'https://clinicaltrialsapi.cancer.gov/v1/interventions?',
+                              type: 'POST',
+                              data: {
+                              name: query,
+                              size : 30 //,
+                              //type : 'maintype'
+                              },
+                              dataType: 'json',
+                              error: function() {
+                              callback();
+                              },
+                              success: function (data) {
+                              //   get the terms key and map the data to get the name item for each disease
+                              // 
+                              console.log(JSON.stringify(data));
+                              callback(data.terms.map(function (item) {
+                              // alert(item);
+                              return {name: item.name};
+                              }));
+                              }
+                              
+                              
+                              });
+                              }"
+      )
+    ))
+    ,
+    selectizeInput("misc_typer", label = "NCIt Search", NULL, multiple = TRUE),
+    
         actionButton("search_and_match", "SEARCH AND MATCH")
       )
-    ),
+    )
     
-    
+    ,
     mainPanel(
       id = "Main",
       #actionButton("toggleSidebar", "<-")
@@ -829,6 +876,10 @@ order by n.pref_name"
   }
   ) 
   
+  observeEvent(input$intervention_search , {
+    print("intervention search")
+  }
+               )
   observeEvent(input$search_and_match, label = 'search and match', {
     print("search and match")
     print(paste("age : ", input$patient_age))
