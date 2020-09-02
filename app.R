@@ -476,7 +476,6 @@ ui <- fluidPage(
                   selected = "Unspecified",
                   justified = FALSE,
                   status = "primary"
-                  # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
                 ),
                 radioGroupButtons(
                   inputId = "alk",
@@ -485,7 +484,6 @@ ui <- fluidPage(
                   selected = "Unspecified",
                   justified = FALSE,
                   status = "primary"
-                  # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
                 ),
                 radioGroupButtons(
                   inputId = "ros1",
@@ -494,10 +492,38 @@ ui <- fluidPage(
                   selected = "Unspecified",
                   justified = FALSE,
                   status = "primary"
-                  # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                )
+                ,  # you are here 
+                radioGroupButtons(
+                  inputId = "nras",
+                  label = "NRAS",
+                  choices = c("Positive", "Negative", "Unspecified"),
+                  selected = "Unspecified",
+                  justified = FALSE,
+                  status = "primary"
+                
                 )
                 ,
-           
+                radioGroupButtons(
+                  inputId = "kras",
+                  label = "KRAS",
+                  choices = c("Positive", "Negative", "Unspecified"),
+                  selected = "Unspecified",
+                  justified = FALSE,
+                  status = "primary"
+                  
+                )
+                ,
+                radioGroupButtons(
+                  inputId = "hras",
+                  label = "HRAS",
+                  choices = c("Positive", "Negative", "Unspecified"),
+                  selected = "Unspecified",
+                  justified = FALSE,
+                  status = "primary"
+                  
+                )
+                ,
                 radioGroupButtons(
                   inputId = "her2_neu",
                   label = "HER2/Neu",
@@ -769,7 +795,7 @@ order by n.pref_name"
     hh_collapsibleTreeNetwork( 
       dt_gyn_tree,
       collapsed = TRUE,
-      linkLength = 450,
+      linkLength = 500,
       zoomable = FALSE,
       inputId = "gyn_selected_node",
       nodeSize = 'nodeSize',
@@ -783,7 +809,7 @@ order by n.pref_name"
     hh_collapsibleTreeNetwork( 
       dt_lung_tree,
       collapsed = TRUE,
-      linkLength = 450,
+      linkLength = 500,
       zoomable = FALSE,
       inputId = "lung_selected_node",
       nodeSize = 'nodeSize',
@@ -952,7 +978,7 @@ order by n.pref_name"
       }
     }
     
-    browser()
+   # browser()
     if(length(input$interventions) > 0) {
       for (row in 1:length(input$interventions)) {
         iv <- input$interventions[row]
@@ -1633,6 +1659,66 @@ order by n.pref_name"
         data.frame(Code = "C68749",
                    Value = "YES",
                    Biomarkers = "HER2/Neu Negative")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    }
+    
+    print(input$nras)
+    if (input$nras == "Positive") {
+      t <-
+        data.frame(Code = "C171618",
+                   Value = "YES",
+                   Biomarkers = "NRAS Positive")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+      t <-
+        data.frame(Code = "C41381",
+                   Value = "YES",
+                   Biomarkers = "NRAS Gene Mutation")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    } else if (input$nras == "Negative") {
+      t <-
+        data.frame(Code = "C142837",
+                   Value = "YES",
+                   Biomarkers = "NRAS Negative")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    }
+    
+    print(input$kras)
+    if (input$kras == "Positive") {
+      t <-
+        data.frame(Code = "C142134",
+                   Value = "YES",
+                   Biomarkers = "KRAS Positive")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+      t <-
+        data.frame(Code = "C41361",
+                   Value = "YES",
+                   Biomarkers = "KRAS Gene Mutation")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    } else if (input$kras == "Negative") {
+      t <-
+        data.frame(Code = "C142879",
+                   Value = "YES",
+                   Biomarkers = "KRAS Negative")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    }
+    
+    print(input$hras)
+    if (input$hras == "Positive") {
+      t <-
+        data.frame(Code = "C171617",
+                   Value = "YES",
+                   Biomarkers = "HRAS Positive")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+      t <-
+        data.frame(Code = "C45934",
+                   Value = "YES",
+                   Biomarkers = "HRAS Gene Mutation")
+      sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
+    } else if (input$hras == "Negative") {
+      t <-
+        data.frame(Code = "C160373",
+                   Value = "YES",
+                   Biomarkers = "HRAS Gene Mutation Negative")
       sessionInfo$biomarker_df <- rbind(sessionInfo$biomarker_df, t)
     }
     
