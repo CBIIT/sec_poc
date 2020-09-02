@@ -28,7 +28,7 @@ source('get_lat_long_for_zipcode.R')
 
 source('disease_tree_modal.R')
 source('check_if_any.R')
-
+source('get_ncit_code_for_intervention.R')
 #
 #
 dbinfo <- config::get()
@@ -950,7 +950,15 @@ order by n.pref_name"
       }
     }
     
-    
+    browser()
+    if(length(input$interventions) > 0) {
+      for (row in 1:length(input$interventions)) {
+        iv <- input$interventions[row]
+        c_code <- get_ncit_code_for_intervention(iv)
+        print(paste('intervention', iv, c_code))
+        sel[nrow(sel) + 1,] = c(c_code, "YES")
+      }
+    }
     # Add in any disease and biomarkers that may have been input
     
     if(nrow(sessionInfo$disease_df) > 0 ) {
