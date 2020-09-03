@@ -414,9 +414,9 @@ ui <- fluidPage(
                           12,
                           wellPanel(
                             id = "tPanel",
-                            style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
-                            collapsibleTreeOutput("gyn_disease_tree", height = "75vh", width =
-                                                    '4000px')
+                            style = "overflow-y:scroll;  max-height: 90vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
+                            collapsibleTreeOutput("gyn_disease_tree", height = "90vh", width =
+                                                    '4500px')
                           )
                         )),
                         fluidRow(column(2, 'Disease selected:'), 
@@ -435,7 +435,7 @@ ui <- fluidPage(
                           id = "tPanel2",
                           style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
                           collapsibleTreeOutput("lung_disease_tree", height = "75vh", width =
-                                                  '4000px')
+                                                  '4500px')
                         )
                       )),
                       fluidRow(column(2, 'Disease selected:'), 
@@ -802,8 +802,9 @@ order by n.pref_name"
       #nodeSize = 14,
       aggFun = 'identity',
       fontSize = 14 #,
+      #,
       #  width = '2000px',
-      #  height = '700px'
+      #  height = '1700px'
     )})
   output$lung_disease_tree <- renderCollapsibleTree({
     hh_collapsibleTreeNetwork( 
@@ -1550,29 +1551,44 @@ order by n.pref_name"
   # 
   
   
-  observeEvent(input$gyn_selected_node, ignoreNULL = FALSE, {
-    print("node selected")
+  observeEvent(input$gyn_selected_node, ignoreNULL = TRUE, {
+    print("gyn node selected")
+    #browser()
     print(input$gyn_selected_node)
    # browser()
-    output$gyn_selected <- renderText(input$gyn_selected_node[[length(input$gyn_selected_node)]] )
+    if(length(input$gyn_selected_node) > 0) {
+      output$gyn_selected <- renderText(input$gyn_selected_node[[length(input$gyn_selected_node)]] )
+    } else {
+      output$gyn_selected <- renderText('Malignant Female Reproductive System Neoplasm')
+    }
+    
     # browser()
     print("----------")
   })
   
-  observeEvent(input$lung_selected_node, ignoreNULL = FALSE, {
-    print("node selected")
-    print(input$lung_selected_node)
+  observeEvent(input$lung_selected_node, ignoreNULL = TRUE, {
+    print("lung node selected")
+   # print(input$lung_selected_node)
     # browser()
-    output$lung_selected <- renderText(input$lung_selected_node[[length(input$lung_selected_node)]] )
+    if(length(input$lung_selected_node) > 0) {
+      output$lung_selected <- renderText(input$lung_selected_node[[length(input$lung_selected_node)]] )
+    } else {
+      output$lung_selected <- renderText('Lung Carcinoma')
+    }  
     # browser()
     print("----------")
   })
   
-  observeEvent(input$solid_selected_node, ignoreNULL = FALSE, {
+  observeEvent(input$solid_selected_node, ignoreNULL = TRUE, {
     print("node selected")
-    print(input$solid_selected_node)
+  
+    #print(input$solid_selected_node)
     # browser()
-    output$solid_selected <- renderText(input$solid_selected_node[[length(input$solid_selected_node)]] )
+    if(length(input$solid_selected_node) > 0) {
+      output$solid_selected <- renderText(input$solid_selected_node[[length(input$solid_selected_node)]] )
+    } else {
+      output$solid_selected <- renderText('Solid Neoplasm')
+    }
     # browser()
     print("----------")
   })
@@ -1742,7 +1758,12 @@ order by n.pref_name"
   
   observeEvent(input$gyn_add_disease, {
     print("add gyn disease")
-    new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
+    if(length(input$gyn_selected_node) > 0) {
+      new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
+    } else {
+      new_disease <- 'Malignant Female Reproductive System Neoplasm'
+    }
+    
     print(paste("new disease = ", new_disease))
     add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
@@ -1757,7 +1778,12 @@ order by n.pref_name"
   )
   observeEvent(input$lung_add_disease, {
     print("add lung disease")
-    new_disease <- input$lung_selected_node[[length(input$lung_selected_node)]]
+    if(length(input$lung_selected_node) > 0) {
+      new_disease <- input$lung_selected_node[[length(input$lung_selected_node)]]
+    } else {
+      new_disease <- 'Lung Carcinoma'
+    }
+    
     print(paste("new disease = ", new_disease))
     add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
@@ -1773,7 +1799,11 @@ order by n.pref_name"
   
   observeEvent(input$solid_add_disease, {
     print("add solid disease")
-    new_disease <- input$solid_selected_node[[length(input$solid_selected_node)]]
+    if(length(input$solid_selected_node) > 0) {
+      new_disease <- input$solid_selected_node[[length(input$solid_selected_node)]]
+    } else {
+      new_disease <- 'Solid Neoplasm'
+    }
     print(paste("new disease = ", new_disease))
     add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
