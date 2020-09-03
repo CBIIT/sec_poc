@@ -206,50 +206,10 @@ ui <- fluidPage(
         
         
     #----
+    #(outputId="intervention_controls")  ,
+    selectizeInput("prior_therapy", label = "Prior Therapy", NULL, multiple = TRUE),
     
-    selectizeInput('interventions', 'Interventions', choices = '', 
-                   multiple = TRUE, 
-                   selected = NA, 
-                   options = list(
-                     valueField = 'name',
-                     labelField = 'name',
-                     searchField = 'name',
-                     loadThrottle = '500',
-                     persist = FALSE,
-                     options = list(),
-                     create = FALSE,
-                     
-                     load = I("
-                              function(query, callback) {
-                              if (!query.length) return callback();
-                              $.ajax({
-                              url: 'https://clinicaltrialsapi.cancer.gov/v1/interventions?',
-                              type: 'POST',
-                              data: {
-                              name: query,
-                              size : 30 //,
-                              //type : 'maintype'
-                              },
-                              dataType: 'json',
-                              error: function() {
-                              callback();
-                              },
-                              success: function (data) {
-                              //   get the terms key and map the data to get the name item for each disease
-                              // 
-                              console.log(JSON.stringify(data));
-                              callback(data.terms.map(function (item) {
-                              // alert(item);
-                              return {name: item.name};
-                              }));
-                              }
-                              
-                              
-                              });
-                              }"
-      )
-    ))
-    ,
+    
     selectizeInput("misc_typer", label = "NCIt Search", NULL, multiple = TRUE),
     
         actionButton("search_and_match", "SEARCH AND MATCH")
@@ -591,10 +551,21 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       "select code, pref_name from ncit where concept_status <> 'Obsolete_Concept' or concept_status is null order by parents, pref_name
       "
     )
- 
-  
   df_misc_choices <- setNames(
     as.vector(df_misc_choice_data[["code"]]),as.vector(df_misc_choice_data[["pref_name"]]))
+  
+  df_prior_therapy_data <-
+    dbGetQuery(
+      con,
+      "with domain_set as (
+        select tc.descendant as code  from ncit_tc tc where tc.parent in ('C16203', 'C1908')
+      )      
+select ds.code, n.pref_name  from domain_set ds join ncit n 
+on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
+order by n.pref_name"
+    )
+  df_prior_therapy_choices <- setNames(
+    as.vector(df_prior_therapy_data[["code"]]),as.vector(df_prior_therapy_data[["pref_name"]]))
   
   df_maintypes <-
     dbGetQuery(
@@ -613,10 +584,12 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
         select tc.descendant as code  from ncit_tc tc where tc.parent = 'C36391'
       )      
 select ds.code, n.pref_name as biomarker from domain_set ds join ncit n 
-on ds.code = n.code and (n.concept_status <> 'Obsolete_Concept' or n.concept_status is null)
+on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
 order by n.pref_name"
     )
 
+  
+  
   # To get around the wacko server side bug, render this thing here as a normal static selectize but with the biomarker dataframe from the server side   
   output$biomarker_controls <- renderUI({
     tagList(
@@ -624,6 +597,8 @@ order by n.pref_name"
     )
   })
   #-----
+
+  
   
   crit_sql <-
     "select
@@ -851,6 +826,11 @@ order by n.pref_name"
                        choices = df_misc_choices ,
                        server = TRUE)
   
+  updateSelectizeInput(session,
+                       'prior_therapy',
+                       choices = df_prior_therapy_choices ,
+                       server = TRUE)
+  
   
 
 #  updateSelectizeInput(session,
@@ -900,7 +880,7 @@ order by n.pref_name"
     sessionInfo$latitude <- NA
     sessionInfo$longitude <- NA
     updateSelectizeInput(session, "misc_typer", selected = NA)
-    updateSelectizeInput(session, "interventions", selected = NA)
+    updateSelectizeInput(session, "prior_therapy", selected = NA)
     
   }
   ) 
@@ -979,13 +959,9 @@ order by n.pref_name"
       }
     }
     
-   # browser()
-    if(length(input$interventions) > 0) {
-      for (row in 1:length(input$interventions)) {
-        iv <- input$interventions[row]
-        c_code <- get_ncit_code_for_intervention(iv)
-        print(paste('intervention', iv, c_code))
-        sel[nrow(sel) + 1,] = c(c_code, "YES")
+    if (length(input$prior_therapy) > 0) {
+      for (row in 1:length(input$prior_therapy)) {
+        sel[nrow(sel) + 1,] = c(input$prior_therapy[row], "YES")
       }
     }
     # Add in any disease and biomarkers that may have been input
