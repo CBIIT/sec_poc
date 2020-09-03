@@ -20,6 +20,7 @@ library(shinyBS)
 library(collapsibleTree)
 library(stringi)
 library(sjmisc)
+library(lubridate)
 library(shinyFeedback)
 source('hh_collapsibleTreeNetwork.R')
 source('getDiseaseTreeData.R')
@@ -29,6 +30,7 @@ source('get_lat_long_for_zipcode.R')
 source('disease_tree_modal.R')
 source('check_if_any.R')
 source('get_ncit_code_for_intervention.R')
+source('get_api_studies_with_rvd_gte.R')
 #
 #
 dbinfo <- config::get()
@@ -522,10 +524,17 @@ server <- function(input, output, session) {
     distance_df = NA,
     latitude = NA,
     longitude = NA,
-    ncit_search_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers"))))
+    ncit_search_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers")))),
+    rvd_df = NA
     
     )
   counter <- reactiveValues(countervalue = 0)
+  
+  
+  
+  target_lvd <- ymd(today()) - years(2)
+  rvd_df <- get_api_studies_with_rvd_gte(target_lvd)
+ # browser()
   
   con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
   
@@ -1964,9 +1973,21 @@ order by n.pref_name"
         t3 <- sqldf('select df_m.* from df_m where 1=0')
         sessionInfo$df_matches_to_show <- t3
       }
-      # 
-      # }
-      # 
+      
+     
+      #
+      # Now add in the filter against RVD
+      #
+      #trvd <- sessionInfo$rvd_df
+      trvd <- rvd_df
+      #browser()
+       if(!is.null(nrow(trvd)) && nrow(trvd) > 0 ) {
+         df_m <- sessionInfo$df_matches_to_show
+         
+         t4 <-  sqldf('select df_m.* from df_m join trvd on df_m.clean_nct_id = trvd.nct_id')
+         sessionInfo$df_matches_to_show <- t4
+       }
+      
     }
     else {
       print("no data, nothing to do")
