@@ -1016,8 +1016,8 @@ order by n.pref_name"
       sel[nrow(sel) + 1,] = c("C51951",toString(input$patient_plt))
     }
     if(!is.na(input$patient_wbc)) {
-      print(paste("we have a wbc ", input$patient_plt))
-      sel[nrow(sel) + 1,] = c("C51948",toString(input$patient_plt))
+      print(paste("we have a wbc ", input$patient_wbc))
+      sel[nrow(sel) + 1,] = c("C51948",toString(input$patient_wbc))
     }
     
     sel_codes <- sel$Code
