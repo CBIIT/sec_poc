@@ -533,10 +533,24 @@ server <- function(input, output, session) {
   
   
   target_lvd <- ymd(today()) - years(2)
-  rvd_df <- get_api_studies_with_rvd_gte(target_lvd)
- # browser()
+ #  s1 <- Sys.time()
+ #  rvd_df <- get_api_studies_with_rvd_gte(target_lvd)
+ #  s2 <- Sys.time()
+ #  print(paste("rvd time ", s2-s1))
+ #  print(paste('nrow', nrow(rvd_df)))
+ # # browser()
   
   con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+  
+  # s1 <- Sys.time()
+  # 
+   rvd_df <- dbGetQuery(con, paste("select nct_id from trials where record_verification_date >= '", target_lvd , "'", sep=""))
+   print(paste('nrows', nrow(rvd_df)))
+   
+  # browser()
+  # s2 <- Sys.time()
+  # print(paste("rvd time ", s2-s1))
+  # 
   
   df_disease_choice_data <-
     dbGetQuery(
@@ -1884,9 +1898,10 @@ order by n.pref_name"
         get_api_studies_for_location_and_distance(sessionInfo$latitude,
                                                   sessionInfo$longitude,
                                                   input$distance_in_miles)
-    #  browser()
+     
       sessionInfo$distance_df <- distance_df
       sessionInfo$distance_in_miles <- input$distance_in_miles
+ 
         }
       )
     }
@@ -1962,11 +1977,16 @@ order by n.pref_name"
       di <- sessionInfo$distance_in_miles
       #browser()
       if (!is.null(nrow(td)) && nrow(td) > 0) {
+        print(paste("miles to filter by ", di))
+        print(paste('original length - ', nrow(sessionInfo$df_matches_to_show) ))
+        
         df_m <- sessionInfo$df_matches_to_show
         df_miles <- sessionInfo$distance_df
         t3 <-
           sqldf('select df_m.* from df_m join df_miles on df_m.clean_nct_id = df_miles.nct_id')
         sessionInfo$df_matches_to_show <- t3
+        print(paste('after lrvd filter length - ', nrow(sessionInfo$df_matches_to_show) ))
+        
         
       } else if (!is.na(sessionInfo$distance_in_miles)) {
         df_m <- sessionInfo$df_matches_to_show
@@ -1979,13 +1999,19 @@ order by n.pref_name"
       # Now add in the filter against RVD
       #
       #trvd <- sessionInfo$rvd_df
+
+      
       trvd <- rvd_df
-      #browser()
+     # browser()
        if(!is.null(nrow(trvd)) && nrow(trvd) > 0 ) {
+         print(paste('original length - ', nrow(sessionInfo$df_matches_to_show) ))
+         
          df_m <- sessionInfo$df_matches_to_show
          
          t4 <-  sqldf('select df_m.* from df_m join trvd on df_m.clean_nct_id = trvd.nct_id')
          sessionInfo$df_matches_to_show <- t4
+         print(paste('after lrvd filter length - ', nrow(sessionInfo$df_matches_to_show) ))
+         
        }
       
     }
@@ -2007,6 +2033,7 @@ order by n.pref_name"
   c(input$match_types_picker,
     input$disease_type
     ,
+    sessionInfo$distance_in_miles,
     input$phases,
     input$sites,
     counter$countervalue

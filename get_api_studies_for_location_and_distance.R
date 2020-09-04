@@ -14,6 +14,7 @@ get_api_studies_for_location_and_distance  <- function(lat, long, num_miles) {
         sites.org_coordinates_lat = lat,
         sites.org_coordinates_lon = long,
         sites.org_coordinates_dist = paste(num_miles,'mi', sep=''),
+        sites.recruitment_status = c('active','approved','enrolling_by_invitation','temporarily_closed_to_accrual'), 
         include = list('nct_id'),
         size = 50,
         from = start
@@ -36,6 +37,7 @@ get_api_studies_for_location_and_distance  <- function(lat, long, num_miles) {
           sites.org_coordinates_lat = lat,
           sites.org_coordinates_lon = long,
           sites.org_coordinates_dist = paste(num_miles,'mi',sep=''),
+          sites.recruitment_status = c('active','approved','enrolling_by_invitation','temporarily_closed_to_accrual'), 
           include = list('nct_id'),
           size = 50,
           from = start
