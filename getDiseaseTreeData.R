@@ -23,8 +23,8 @@ getDiseaseTreeData <- function(con,ncit_code) {
   from parent_descendant pd
   join ncit n1 on pd.parent = n1.code 
   join ncit n2 on pd.descendant = n2.code 
-  where exists (select dd.nci_thesaurus_concept_id from distinct_trial_diseases dd where dd.nci_thesaurus_concept_id = n1.code or dd.nci_thesaurus_concept_id = n2.code)
-   
+     where exists (select dd.nci_thesaurus_concept_id from distinct_trial_diseases dd where dd.nci_thesaurus_concept_id = n2.code )
+
   )
   ,
   all_nodes as (
