@@ -245,7 +245,7 @@ background-color: #FFCCCC;
                  choices = c(
                    "Disease" = "disease_matches == TRUE",
                    "Gender" = "gender_matches == TRUE",
-                   "Age" = "age_matches == TRUE",
+                   "Age" = " (age_matches == TRUE | is.na(age_matches) ) ",
                    #    "HGB" = "hgb_matches == TRUE",
                    "PLT" = " ( plt_matches == TRUE | is.na(plt_matches) ) ",
                    "WBC" = " (  wbc_matches == TRUE | is.na(wbc_matches) )  ",
