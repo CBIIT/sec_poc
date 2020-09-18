@@ -75,6 +75,10 @@ ui <- fluidPage(
   tags$head(tags$style(
     HTML("hr {border-top: 1px solid #000000;}")
   )),
+  tags$style(HTML("
+input:invalid {
+background-color: #FFCCCC;
+}")),
   
   #
   # set the shiny bsmodal to be as large as it can be.
@@ -175,8 +179,8 @@ ui <- fluidPage(
         numericInput(
           "patient_wbc",
           "WBC (/uL)",
-          NULL
-          #min = 0,
+           min = 0,
+          value = NA
           # max = 120,
           #step = 1
         ),
@@ -190,8 +194,8 @@ ui <- fluidPage(
         numericInput(
           "patient_plt",
           "Platelets (/uL)",
-          NULL
-          #min = 0,
+          value = NA,
+          min = 0
           # max = 120,
           #step = 1
         ),
@@ -337,8 +341,8 @@ ui <- fluidPage(
               label = "Distance (mi)",
               '',
               min = 1,
-              max = 9999,
-              step = 10 
+              max = 999999
+             # step = 10 
               #,
               #width = '100px'
             )
@@ -783,10 +787,11 @@ order by n.pref_name"
   
   
   
-  dt_gyn_tree <- getDiseaseTreeData(con, 'C4913')
-  dt_lung_tree <- getDiseaseTreeData(con, 'C4878')
-  dt_solid_tree <- getDiseaseTreeData(con, 'C9292')
+  dt_gyn_tree <- getDiseaseTreeData(con, 'C4913', use_ctrp_display_name = TRUE)
+  dt_lung_tree <- getDiseaseTreeData(con, 'C4878',use_ctrp_display_name = TRUE)
+  dt_solid_tree <- getDiseaseTreeData(con, 'C9292',use_ctrp_display_name = TRUE)
   
+  #browser()
   
   DBI::dbDisconnect(con)
   output$gyn_disease_tree <- renderCollapsibleTree({
@@ -1572,7 +1577,7 @@ order by n.pref_name"
     if(length(input$lung_selected_node) > 0) {
       output$lung_selected <- renderText(input$lung_selected_node[[length(input$lung_selected_node)]] )
     } else {
-      output$lung_selected <- renderText('Lung Carcinoma')
+      output$lung_selected <- renderText('Lung Cancer')
     }  
     # browser()
     print("----------")
@@ -1586,7 +1591,7 @@ order by n.pref_name"
     if(length(input$solid_selected_node) > 0) {
       output$solid_selected <- renderText(input$solid_selected_node[[length(input$solid_selected_node)]] )
     } else {
-      output$solid_selected <- renderText('Solid Neoplasm')
+      output$solid_selected <- renderText('Solid Tumor')
     }
     # browser()
     print("----------")
@@ -1764,7 +1769,7 @@ order by n.pref_name"
     }
     
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
+    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
     #browser()
@@ -1780,11 +1785,11 @@ order by n.pref_name"
     if(length(input$lung_selected_node) > 0) {
       new_disease <- input$lung_selected_node[[length(input$lung_selected_node)]]
     } else {
-      new_disease <- 'Lung Carcinoma'
+      new_disease <- 'Lung Cancer'
     }
     
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
+    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
     #browser()
@@ -1801,10 +1806,10 @@ order by n.pref_name"
     if(length(input$solid_selected_node) > 0) {
       new_disease <- input$solid_selected_node[[length(input$solid_selected_node)]]
     } else {
-      new_disease <- 'Solid Neoplasm'
+      new_disease <- 'Solid Tumor'
     }
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select code as Code , 'YES' as Value, pref_name as Diseases from ncit where pref_name = ?"
+    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
     #browser()
@@ -1940,7 +1945,7 @@ order by n.pref_name"
       }
     }
     
-    sites_search <- paste(input$sites, collapse = " & ")
+    sites_search <- paste(input$sites, collapse = " | ")
     if (filterer == "") {
       if (!is_empty(sites_search)) {
         filterer <- sites_search
