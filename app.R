@@ -436,7 +436,9 @@ background-color: #FFCCCC;
                       fluidRow( 
                         column( 4,
                         selectizeInput("maintype_typer", label = "Primary Cancer Type/Condition ", 
-                                       NULL, multiple = FALSE))
+                                       NULL,  selected = NULL , multiple = FALSE
+                                       )
+                        )
                         ,
                         column(4, 
                         selectizeInput("subtype_typer", label = "Subtype", 
@@ -616,7 +618,8 @@ order by n.pref_name"
   df_maintypes <-
     dbGetQuery(
       con,
-      "select preferred_name, count(preferred_name) as disease_count
+      "select NULL as preferred_name, 9999999 as disease_count union 
+      select preferred_name, count(preferred_name) as disease_count
       from trial_diseases ds where ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%'
       group by preferred_name
       order by count(preferred_name) desc"
@@ -639,7 +642,7 @@ order by n.pref_name"
   # To get around the wacko server side bug, render this thing here as a normal static selectize but with the biomarker dataframe from the server side   
   output$biomarker_controls <- renderUI({
     tagList(
-      selectizeInput("biomarker_list", label = "Biomarker Search", choices = df_biomarker_list_s$biomarker, selected = NULL, multiple = TRUE)
+      selectizeInput("biomarker_list", label = "Biomarker Search", choices = df_biomarker_list_s$biomarker, selected = NULL, multiple = TRUE) # HH you are here
     )
   })
   #-----
@@ -865,9 +868,9 @@ order by n.pref_name"
   
   updateSelectizeInput(session,
                        'disease_typer',
-                       #choices = df_disease_choices$preferred_name ,
                        choices = df_disease_choices,
                        server = TRUE)
+  
   updateSelectizeInput(session,
                        'misc_typer',
                        choices = df_misc_choices ,
@@ -935,13 +938,20 @@ order by n.pref_name"
   observeEvent(input$intervention_search , {
     print("intervention search")
   }
-  )    
-  observeEvent(input$maintype_typer,
-               {
-                 print("maintype_typer")
-                 
-                 
-               })
+  )
+  
+  observeEvent(input$maintype_typer, ignoreNULL = FALSE, {
+    print("maintype_typer")
+    if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
+      print('enabled subtype_type')
+      shinyjs::enable("subtype_typer")
+      
+    } else {
+      shinyjs::disable("subtype_typer")
+      
+    }
+  })
+  
   observeEvent(input$search_and_match, label = 'search and match', {
     print("search and match")
     print(paste("age : ", input$patient_age))
