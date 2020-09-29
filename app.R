@@ -168,7 +168,7 @@ background-color: #FFCCCC;
           status = "primary"
           # checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
         ),
-        
+        actionButton("show_cancer", "Cancer"),
         actionButton("show_gyn_disease", "Gyn"),
         actionButton("show_lung_disease", "Lung"),
         actionButton("show_solid_disease", "Solid"),
@@ -431,6 +431,24 @@ background-color: #FFCCCC;
             
     )
     ,
+    bsModal("cancer_bsmodal", "Select Disease", "show_cancer", size = "large",
+            fluidPage(id = "cancer_bs_modal_page",  #You are here
+                      fluidRow( 
+                        column( 4,
+                        selectizeInput("maintype_typer", label = "Primary Cancer Type/Condition ", 
+                                       NULL, multiple = FALSE))
+                        ,
+                        column(4, 
+                        selectizeInput("subtype_typer", label = "Subtype", 
+                                       NULL, multiple = TRUE))
+                        
+                        
+            )
+            
+    )
+    )
+    
+    ,
     bsModal("biomarker_bsmodal", "Select biomarkers", "show_biomarkers", size = "large",
             fluidPage(sidebarLayout(
               
@@ -533,6 +551,7 @@ server <- function(input, output, session) {
     
     )
   counter <- reactiveValues(countervalue = 0)
+  shinyjs::disable("subtype_typer")
   
   
   
@@ -916,7 +935,13 @@ order by n.pref_name"
   observeEvent(input$intervention_search , {
     print("intervention search")
   }
-               )
+  )    
+  observeEvent(input$maintype_typer,
+               {
+                 print("maintype_typer")
+                 
+                 
+               })
   observeEvent(input$search_and_match, label = 'search and match', {
     print("search and match")
     print(paste("age : ", input$patient_age))
