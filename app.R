@@ -1002,15 +1002,30 @@ order by n.pref_name"
                             choices = df_stages$display_name ,
                             server = TRUE)
       
-    } else {
+    } else  if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
+         shinyjs::enable("stage_typer")
+        session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+        
+        df_stages <- get_stage_for_types(input$maintype_typer, session_con)
+        DBI::dbDisconnect(session_con)
+        
+        updateSelectizeInput(session,
+                             'stage_typer',
+                             choices = df_stages$display_name ,
+                             server = TRUE)
+        
+      } else {
         shinyjs::disable("stage_typer")
         updateSelectizeInput(session,
-                           'stage_typer',
-                           choices = data.frame(matrix(ncol=1,nrow=0, dimnames=list(NULL, c("display_name"))))
-                           ,
-                           server = TRUE)
+                             'stage_typer',
+                             choices = data.frame(matrix(ncol=1,nrow=0, dimnames=list(NULL, c("display_name"))))
+                             ,
+                             server = TRUE)
+        
+      }
+
       
-    }
+    
   })
   
   observeEvent(input$search_and_match, label = 'search and match', {

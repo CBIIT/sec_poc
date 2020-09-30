@@ -25,7 +25,7 @@ get_subtypes_for_maintypes  <- function(ctrp_disease_string, con) {
       con,
       "with subtypes as (
  select  nci_thesaurus_concept_id, display_name from distinct_trial_diseases where disease_type 
- in ('subtype', 'grade-subtype','grade-stage-subtype') 
+ in ('subtype', 'grade-subtype','grade-stage-subtype', 'maintype-subtype') 
  )
 ,
 descendants as 
