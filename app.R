@@ -614,18 +614,15 @@ order by n.pref_name"
     )
   df_prior_therapy_choices <- setNames(
     as.vector(df_prior_therapy_data[["code"]]),as.vector(df_prior_therapy_data[["pref_name"]]))
-  
   df_maintypes <-
     dbGetQuery(
       con,
-      "select NULL as preferred_name, 9999999 as disease_count union 
-      select preferred_name, count(preferred_name) as disease_count
-      from trial_diseases ds where ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%'
-      group by preferred_name
-      order by count(preferred_name) desc"
+      " select NULL as display_name union 
+      select display_name 
+      from distinct_trial_diseases ds where ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%'
+      order by display_name"
     )
-  
-  
+
   df_biomarker_list_s <-
     dbGetQuery(
       con,
@@ -863,7 +860,7 @@ order by n.pref_name"
   
   updateSelectizeInput(session,
                        'maintype_typer',
-                       choices = df_maintypes$preferred_name ,
+                       choices = df_maintypes$display_name ,
                        server = TRUE)
   
   updateSelectizeInput(session,
