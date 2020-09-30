@@ -32,6 +32,7 @@ source('check_if_any.R')
 source('get_ncit_code_for_intervention.R')
 source('get_api_studies_with_rvd_gte.R')
 source('get_subtypes_for_maintypes.R')
+source('get_stage_for_types.R')
 #
 #
 dbinfo <- config::get()
@@ -444,6 +445,10 @@ background-color: #FFCCCC;
                         column(4, 
                         selectizeInput("subtype_typer", label = "Subtype", 
                                        NULL, multiple = TRUE))
+                        ,
+                        column(4, 
+                               selectizeInput("stage_typer", label = "Stage", 
+                                              NULL, multiple = TRUE))
                         
                         
             )
@@ -943,14 +948,67 @@ order by n.pref_name"
     if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
       print('enabled subtype_type')
       shinyjs::enable("subtype_typer")
+      shinyjs::enable("stage_typer")
       session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       
       df_new_subtypes <- get_subtypes_for_maintypes(input$maintype_typer, session_con)
-      DBI::dbDisconnect(session_con)
+      df_stages <- get_stage_for_types(input$maintype_typer, session_con)
       
+      DBI::dbDisconnect(session_con)
+     
+      updateSelectizeInput(session,
+                           'subtype_typer',
+                           choices = df_new_subtypes$display_name ,
+                           server = TRUE)
+      
+      updateSelectizeInput(session,
+                           'stage_typer',
+                           choices = df_stages$display_name ,
+                           server = TRUE)
       
     } else {
+      df_new_subtypes <- 
       shinyjs::disable("subtype_typer")
+      shinyjs::disable("stage_typer")
+      
+      updateSelectizeInput(session,
+                           'subtype_typer',
+      choices = data.frame(matrix(ncol=1,nrow=0, dimnames=list(NULL, c("display_name"))))
+      ,
+      server = TRUE)
+      
+      
+      updateSelectizeInput(session,
+                           'stage_typer',
+                           choices = data.frame(matrix(ncol=1,nrow=0, dimnames=list(NULL, c("display_name"))))
+                           ,
+                           server = TRUE)
+    }
+  })
+  
+  observeEvent(input$subtype_typer, ignoreNULL = FALSE, {
+    print("subtype_typer")
+    #browser()
+    if(length(input$subtype_typer) > 0  ){
+      print('enabled stage_typer')
+      shinyjs::enable("stage_typer")
+       session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+       
+       df_stages <- get_stage_for_types(input$subtype_typer[1], session_con)
+       DBI::dbDisconnect(session_con)
+       
+       updateSelectizeInput(session,
+                            'stage_typer',
+                            choices = df_stages$display_name ,
+                            server = TRUE)
+      
+    } else {
+        shinyjs::disable("stage_typer")
+        updateSelectizeInput(session,
+                           'stage_typer',
+                           choices = data.frame(matrix(ncol=1,nrow=0, dimnames=list(NULL, c("display_name"))))
+                           ,
+                           server = TRUE)
       
     }
   })
