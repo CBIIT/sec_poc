@@ -31,6 +31,7 @@ source('disease_tree_modal.R')
 source('check_if_any.R')
 source('get_ncit_code_for_intervention.R')
 source('get_api_studies_with_rvd_gte.R')
+source('get_subtypes_for_maintypes.R')
 #
 #
 dbinfo <- config::get()
@@ -942,6 +943,11 @@ order by n.pref_name"
     if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
       print('enabled subtype_type')
       shinyjs::enable("subtype_typer")
+      session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+      
+      df_new_subtypes <- get_subtypes_for_maintypes(input$maintype_typer, session_con)
+      DBI::dbDisconnect(session_con)
+      
       
     } else {
       shinyjs::disable("subtype_typer")
