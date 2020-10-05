@@ -449,10 +449,13 @@ background-color: #FFCCCC;
                         column(4, 
                                selectizeInput("stage_typer", label = "Stage", 
                                               NULL, multiple = TRUE))
-                        
-                        
             )
+            ,
+            fluidRow(
+                     column(width=1,offset = 10,  align = 'right', 
+                     actionButton("cancer_add_disease", label='Add disease'))
             
+            )
     )
     )
     
@@ -994,9 +997,11 @@ order by n.pref_name"
       shinyjs::enable("stage_typer")
        session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
        
-       df_stages <- get_stage_for_types(input$subtype_typer[1], session_con)
-       DBI::dbDisconnect(session_con)
+       #df_stages <- get_stage_for_types(input$subtype_typer[1], session_con)
+       df_stages <- get_stage_for_types(input$subtype_typer, session_con)
        
+       DBI::dbDisconnect(session_con)
+  
        updateSelectizeInput(session,
                             'stage_typer',
                             choices = df_stages$display_name ,
@@ -1932,6 +1937,66 @@ order by n.pref_name"
   }
   )
   
+  observeEvent(input$cancer_add_disease, {
+    print("cancer_add_disease")
+    
+    #See if we have subtypes, if so use them, otherwise see if we have a maintype/subtype 
+    # and use that
+    if(length(input$subtype_typer) > 0  ){
+      #
+      # There are subtypes selected -- use those and do not use the selected maintype
+      #
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+      session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+      for (row in 1:length(input$subtype_typer)) {
+        new_disease <- input$subtype_typer[row]
+        df_new_disease <-
+          dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+        #browser()
+        sessionInfo$disease_df <-
+          rbind( sessionInfo$disease_df, df_new_disease)
+      }
+     
+      DBI::dbDisconnect(session_conn)
+      
+    } else if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
+      # No subtype, get the maintype and add that in.
+      print(paste("add maintype as disease - ", input$maintype_typer))
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+      session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+      new_disease <- input$maintype_typer
+      df_new_disease <-
+        dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+      sessionInfo$disease_df <-
+        rbind( sessionInfo$disease_df, df_new_disease)
+      DBI::dbDisconnect(session_conn)
+      
+      
+    }
+    
+    #
+    #Now see if we have stage diseases 
+    #
+    #See if we have subtypes, if so use them, otherwise see if we have a maintype/subtype 
+    # and use that
+    if(length(input$stage_typer) > 0  ){
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+      session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+      for (row in 1:length(input$stage_typer)) {
+        new_disease <- input$stage_typer[row]
+        df_new_disease <-
+          dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+        #browser()
+        sessionInfo$disease_df <-
+          rbind( sessionInfo$disease_df, df_new_disease)
+      }
+      
+      DBI::dbDisconnect(session_conn)
+    }
+    
+  }
+  )
+  
   observe( {
   show_disease_dt <- datatable(
     sessionInfo$disease_df,
@@ -2059,11 +2124,12 @@ order by n.pref_name"
     sites_search <- paste(input$sites, collapse = " | ")
     if (filterer == "") {
       if (!is_empty(sites_search)) {
-        filterer <- sites_search
+        filterer <- paste(" ( " , sites_search , " ) ")
       }
     } else {
       if (!is_empty(sites_search)) {
-        filterer <- paste(filterer, sites_search, sep = " & ")
+        p2 <- paste(" ( " , sites_search , " ) ")
+        filterer <- paste(filterer, p2, sep = " & ")
       }
     }
     

@@ -11,6 +11,7 @@ get_api_studies_for_disease  <- function(ncit_code) {
         current_trial_status = 'active',
         primary_purpose.primary_purpose_code = c('treatment','screening'),
         diseases.nci_thesaurus_concept_id = ncit_code,
+        sites.recruitment_status = 'ACTIVE',
         include = list('nct_id'),
         size = 50,
         from = start
@@ -19,7 +20,6 @@ get_api_studies_for_disease  <- function(ncit_code) {
     )
   pdata <- content(d)
   total_to_return <- pdata$total
-  
   df <- rbindlist(pdata$trials)
   num_returned <- nrow(df)
   start <- num_returned
@@ -31,6 +31,7 @@ get_api_studies_for_disease  <- function(ncit_code) {
           current_trial_status = 'active',
           primary_purpose.primary_purpose_code = c('treatment', 'screening'),
           diseases.nci_thesaurus_concept_id = ncit_code,
+          sites.recruitment_status = 'ACTIVE',
           include = list('nct_id'),
           size = 50,
           from = start
