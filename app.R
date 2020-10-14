@@ -305,9 +305,6 @@ background-color: #FFCCCC;
         )   
             ,
             
-          
-        
-        
         column(
           2,
           #style='padding-left:5px; padding-right:10px; ',
@@ -327,8 +324,6 @@ background-color: #FFCCCC;
               width = 'auto',
               inline = FALSE
             )
-            
-            
             
           )
         ,
@@ -351,12 +346,37 @@ background-color: #FFCCCC;
             
             
             
-          )
-          
-          
+        )
         
         
       ),
+      fluidRow(
+      column(
+        2,
+        #style='padding-left:5px; padding-right:10px; ',
+        
+        #offset = 1,
+        
+        pickerInput
+        (
+          "study_source",
+          label = "Study Source",
+          choices = c("Externally Peer Reviewed" = "  ( study_source == 'Externally Peer Reviewed' )  ",
+                      "Industrial" = " ( study_source == 'Industrial' ) ",
+                      "Institutional" = " ( study_source == 'Institutional' ) ",
+                      "National" = " ( study_source == 'National' ) "
+          ),
+          selected = NULL,
+          multiple = TRUE,
+          options = list(),
+          choicesOpt = NULL,
+          width = 'auto',
+          inline = FALSE
+        )
+        
+      )
+      )
+      ,
       fluidRow(
         column(
           width = 12,
@@ -374,6 +394,8 @@ background-color: #FFCCCC;
           downloadButton("downloadData", "Download Match Data", style =
                            'padding:4px; font-size:80%')
         )
+        ,
+        
       )
       , 
       bsModal("gyn_bsmodal", "Select GYN Disease", "show_gyn_disease", size = "large",
@@ -661,7 +683,7 @@ order by n.pref_name"
   nct_id as clean_nct_id, age_expression, disease_names, diseases, gender, gender_expression, max_age_in_years, min_age_in_years,
   'not yet' as hgb_description, 'FALSE' as hgb_criteria,
   disease_names_lead, diseases_lead ,
-  brief_title, phase
+  brief_title, phase, study_source 
   from trials"
   df_crit <- dbGetQuery(con, crit_sql)
   
@@ -1236,6 +1258,7 @@ order by n.pref_name"
         'nct_id' = df_crit$nct_id,
         'brief_title' = df_crit$brief_title,
         'phase' = df_crit$phase,
+        'study_source' = df_crit$study_source, 
         'num_trues' = NA,
         'disease_codes' = df_crit$diseases,
         'disease_names' = df_crit$disease_names,
@@ -1384,6 +1407,7 @@ order by n.pref_name"
       'NCT ID',
       'Title',
       'Phase',
+      'Study Source',
       '# Matches',
       'Disease Codes',
       'Disease Names',
@@ -1471,6 +1495,7 @@ order by n.pref_name"
           'NCT ID',
           'Title',
           'Phase',
+          'Study Source',
           '# Matches',
           'Disease Codes',
           'Disease Names',
@@ -1569,10 +1594,10 @@ order by n.pref_name"
             ),
             # 17,18,19 are chemo inclusion, ignore for now
           #  list(width = '150px', targets = c(10)),
-            list(width = '300px', targets = c(2,8)),
+            list(width = '300px', targets = c(2,9)),
             list(width = '200px', targets = match(criteria_columns, names(sessionInfo$df_matches_to_show))),
             
-        list(className = 'dt-center', targets = c(3, 6:ncol(sessionInfo$df_matches_to_show))),
+        list(className = 'dt-center', targets = c(3, 7:ncol(sessionInfo$df_matches_to_show))),
             # Columns with hover tooltips
             
             list(
@@ -1633,7 +1658,7 @@ order by n.pref_name"
           
         )
        )  
-      ) %>% DT::formatStyle(columns = c(2,6,8), fontSize = '75%')
+      ) %>% DT::formatStyle(columns = c(2,4,7,9), fontSize = '75%')
  
  
     output$df_matches_data = DT::renderDT(new_match_dt, server = TRUE)
@@ -2095,7 +2120,9 @@ order by n.pref_name"
     print("get_filterer")
     match_types_string <- paste(input$match_types_picker, collapse = " & ")
     phase_string <- paste(input$phases, collapse = " | ")
-    filterer <- match_types_string
+    study_source_string <- paste(input$study_source, collapse = " | ")
+    
+    #filterer <- match_types_string
     print(paste("match_types_string = ", match_types_string))
     print(paste("phase_string = ", phase_string))
     
@@ -2106,8 +2133,13 @@ order by n.pref_name"
       phase_string <- paste("(", phase_string, ")")
     }
     
+    if (study_source_string != ''){
+      study_source_string <- paste("(", study_source_string, ")")
+    }
+    
     filterer <- ""
     
+
     if(match_types_string != '') {
       if(phase_string != '') {
         filterer <- paste(match_types_string," & ", phase_string) 
@@ -2130,6 +2162,17 @@ order by n.pref_name"
       if (!is_empty(sites_search)) {
         p2 <- paste(" ( " , sites_search , " ) ")
         filterer <- paste(filterer, p2, sep = " & ")
+      }
+    }
+    
+    if (filterer == "") {
+      if (!is_empty(study_source_string)) {
+        filterer <- study_source_string
+      }
+    } else {
+      if (!is_empty(study_source_string)) {
+        
+        filterer <- paste(filterer, study_source_string , sep = " & ")
       }
     }
     
@@ -2218,6 +2261,7 @@ order by n.pref_name"
     sessionInfo$distance_in_miles,
     input$phases,
     input$sites,
+    input$study_source,
     counter$countervalue
   )
 ,
