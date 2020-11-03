@@ -33,6 +33,7 @@ source('get_ncit_code_for_intervention.R')
 source('get_api_studies_with_rvd_gte.R')
 source('get_subtypes_for_maintypes.R')
 source('get_stage_for_types.R')
+source('get_org_families.R')
 #
 #
 dbinfo <- config::get()
@@ -361,10 +362,11 @@ background-color: #FFCCCC;
         (
           "study_source",
           label = "Study Source",
-          choices = c("Externally Peer Reviewed" = "  ( study_source == 'Externally Peer Reviewed' )  ",
-                      "Industrial" = " ( study_source == 'Industrial' ) ",
-                      "Institutional" = " ( study_source == 'Institutional' ) ",
-                      "National" = " ( study_source == 'National' ) "
+
+          choices = c( "National" = " ( study_source == 'National' )" ,
+                       "Institutional" = " ( study_source == 'Institutional' ) ",
+                       "Externally Peer Reviewed" = "  ( study_source == 'Externally Peer Reviewed' )  ",
+                       "Industrial" = " ( study_source == 'Industrial' ) "
           ),
           selected = NULL,
           multiple = TRUE,
@@ -375,6 +377,11 @@ background-color: #FFCCCC;
         )
         
       )
+      ,
+      column(5,
+             offset = 2,
+             style='padding-left:10px; padding-right:10px; ',
+             selectizeInput("site_picker", label = "Cancer Center", NULL, multiple = TRUE))
       )
       ,
       fluidRow(
@@ -607,7 +614,16 @@ server <- function(input, output, session) {
   # s2 <- Sys.time()
   # print(paste("rvd time ", s2-s1))
   # 
-  
+   
+  df_site_name_data <- 
+    dbGetQuery(con, 
+               "with all_sites as (
+select distinct org_name as site_name from trial_sites
+UNION
+select distinct org_family as site_name from trial_sites
+)
+select site_name from all_sites order by site_name")
+
   df_disease_choice_data <-
     dbGetQuery(
       con,
@@ -910,6 +926,11 @@ order by n.pref_name"
                        choices = df_prior_therapy_choices ,
                        server = TRUE)
   
+  
+  updateSelectizeInput(session,
+                       'site_picker',
+                       choices = get_org_families() ,
+                       server = TRUE)
   
 
 #  updateSelectizeInput(session,
