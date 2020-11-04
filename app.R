@@ -612,19 +612,6 @@ server <- function(input, output, session) {
    rvd_df <- dbGetQuery(con, paste("select nct_id from trials where record_verification_date >= '", target_lvd , "'", sep=""))
    print(paste('nrows', nrow(rvd_df)))
    
-  # browser()
-  # s2 <- Sys.time()
-  # print(paste("rvd time ", s2-s1))
-  # 
-   
-  df_site_name_data <- 
-    dbGetQuery(con, 
-               "with all_sites as (
-select distinct org_name as site_name from trial_sites
-UNION
-select distinct org_family as site_name from trial_sites
-)
-select site_name from all_sites order by site_name")
 
   df_disease_choice_data <-
     dbGetQuery(
