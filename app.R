@@ -34,6 +34,7 @@ source('get_api_studies_with_rvd_gte.R')
 source('get_subtypes_for_maintypes.R')
 source('get_stage_for_types.R')
 source('get_org_families.R')
+source('get_api_studies_for_cancer_centers.R')
 #
 #
 dbinfo <- config::get()
@@ -381,7 +382,7 @@ background-color: #FFCCCC;
       column(5,
              offset = 2,
              style='padding-left:10px; padding-right:10px; ',
-             selectizeInput("site_picker", label = "Cancer Center", NULL, multiple = TRUE))
+             selectizeInput("cancer_center_picker", label = "Cancer Center", NULL, multiple = TRUE))
       )
       ,
       fluidRow(
@@ -587,7 +588,8 @@ server <- function(input, output, session) {
     latitude = NA,
     longitude = NA,
     ncit_search_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers")))),
-    rvd_df = NA
+    rvd_df = NA,
+    cancer_center_df = NA
     
     )
   counter <- reactiveValues(countervalue = 0)
@@ -928,7 +930,7 @@ order by n.pref_name"
   
   
   updateSelectizeInput(session,
-                       'site_picker',
+                       'cancer_center_picker',
                        choices = get_org_families() ,
                        server = TRUE)
   
@@ -2107,6 +2109,29 @@ order by n.pref_name"
     output$biomarkers <- DT::renderDT(show_biomarker_dt)
   } )
   
+  # 
+  # Handle the cancer center intput
+  #
+  
+  observeEvent(input$cancer_center_picker, ignoreNULL = FALSE, {
+    print("cancer center -- ")
+    print(paste(' --> ', input$cancer_center_picker))
+    if (length(input$cancer_center_picker) > 0) {
+      withProgress(value = 0.5, message = "Computing cancer center matches",
+                   {
+                     print("we have a cancer center")
+                     for (row in 1:length(input$cancer_center_picker)) {
+                       print(paste("row ", row , " is ", input$cancer_center_picker[row]))
+                     }
+                     sessionInfo$cancer_center_df <-
+                       get_api_studies_for_cancer_centers(input$cancer_center_picker)
+                   })
+    } else {
+      sessionInfo$cancer_center_df <- NA
+      
+      
+    }
+  })
   
   #
   # Handle the changing on the distance parameter by the user
@@ -2241,7 +2266,19 @@ order by n.pref_name"
         sessionInfo$df_matches_to_show <- t3
       }
       
-     
+      #
+      # Now filter against the cancer center dataframe, if we have data there
+      #
+        if (!is.null(nrow(sessionInfo$cancer_center_df)) && nrow(sessionInfo$cancer_center_df) > 0) {
+  
+          print("filtering against the cancer center df")
+          df_m <- sessionInfo$df_matches_to_show
+          df_cancer_center <- sessionInfo$cancer_center_df
+          t3 <- sqldf('select df_m.* from df_m join df_cancer_center on df_m.clean_nct_id = df_cancer_center.nct_id')
+          sessionInfo$df_matches_to_show <- t3
+        }
+      
+      
       #
       # Now add in the filter against RVD
       #
@@ -2281,6 +2318,7 @@ order by n.pref_name"
     input$disease_type
     ,
     sessionInfo$distance_in_miles,
+    sessionInfo$cancer_center_df,
     input$phases,
     input$sites,
     input$study_source,
