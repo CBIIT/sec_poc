@@ -1,5 +1,6 @@
 library(httr)
 library(jsonlite)
+library(stringr)
 
 #
 # R Function to get the list of org families to display
