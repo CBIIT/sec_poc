@@ -58,3 +58,17 @@ nct_id varchar(100),
 nci_thesaurus_concept_id text,
 constraint trial_maintypes_pk primary key (nct_id, nci_thesaurus_concept_id)
 );
+
+drop table if exists trial_sites;
+
+create table trial_sites(
+nct_id varchar(100),
+org_name text,
+org_family text,
+org_status text,
+org_to_family_relationship text
+);
+create index trial_sites_nct_idx on trial_sites(nct_id);
+create index trial_sites_nct_name_idx on trial_sites(nct_id, org_name);
+create index trial_sites_nct_fam_idx on trial_sites(nct_id, org_family);
+
