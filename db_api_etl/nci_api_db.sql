@@ -72,3 +72,28 @@ create index trial_sites_nct_idx on trial_sites(nct_id);
 create index trial_sites_nct_name_idx on trial_sites(nct_id, org_name);
 create index trial_sites_nct_fam_idx on trial_sites(nct_id, org_family);
 
+drop table if exists criteria_types;
+create table criteria_types(
+criteria_type_id  integer primary key,
+criteria_type_title text not null,
+criteria_type_desc text not null,
+criteria_type_active varchar(1) check (criteria_type_active = 'Y' or criteria_type_active = 'N')
+);
+
+drop table if exists study_criteria ;
+create table study_criteria (
+nct_id varchar(100),
+criteria_type_id integer,
+study_criteria_orig_text text,
+study_criteria_refined_text text not null,
+study_criteria_expression text not null,
+update_date date,
+update_by text,
+primary key(nct_id, criteria_type_id),
+foreign key(criteria_type_id) references criteria_types(criteria_type_id)
+);
+
+
+
+
+

@@ -612,6 +612,7 @@ server <- function(input, output, session) {
    rvd_df <- dbGetQuery(con, paste("select nct_id from trials where record_verification_date >= '", target_lvd , "'", sep=""))
    print(paste('nrows', nrow(rvd_df)))
    
+   df_number_sites <- dbGetQuery(con, "select count(nct_id) as number_sites, nct_id from trial_sites where org_status = 'ACTIVE' group by nct_id")
 
   df_disease_choice_data <-
     dbGetQuery(
@@ -683,13 +684,17 @@ order by n.pref_name"
   
   
   crit_sql <-
-    "select
-  '<a href=https://www.cancer.gov/about-cancer/treatment/clinical-trials/search/v?id=' ||  nct_id || '&r=1 target=\"_blank\">' || nct_id || '</a>' as nct_id,
-  nct_id as clean_nct_id, age_expression, disease_names, diseases, gender, gender_expression, max_age_in_years, min_age_in_years,
+    "with site_counts as (
+select count(nct_id) as number_sites, nct_id from trial_sites where org_status = 'ACTIVE' group by nct_id
+)
+    select
+  '<a href=https://www.cancer.gov/about-cancer/treatment/clinical-trials/search/v?id=' ||  t.nct_id || '&r=1 target=\"_blank\">' || t.nct_id || '</a>' as nct_id,
+  t.nct_id as clean_nct_id, age_expression, disease_names, diseases, gender, gender_expression, max_age_in_years, min_age_in_years,
   'not yet' as hgb_description, 'FALSE' as hgb_criteria,
   disease_names_lead, diseases_lead ,
-  brief_title, phase, study_source , case study_source when 'National' then 1 when 'Institutional' then 2 when 'Externally Peer Reviewed' then 3 when 'Industrial' then 4 end study_source_sort_key 
-  from trials"
+  brief_title, phase, study_source , case study_source when 'National' then 1 when 'Institutional' then 2 when 'Externally Peer Reviewed' then 3 when 'Industrial' then 4 end study_source_sort_key ,
+  sc.number_sites 
+  from trials t join site_counts sc on t.nct_id = sc.nct_id "
   df_crit <- dbGetQuery(con, crit_sql)
   
   plt_sql <- "select nct_id,
@@ -839,7 +844,7 @@ order by n.pref_name"
       all.x = TRUE
     )
   
-  df_crit <- df_crit[order(df_crit$study_source_sort_key),]
+  df_crit <- df_crit[order(df_crit$study_source_sort_key, -df_crit$number_sites),]
   
   
   

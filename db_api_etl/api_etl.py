@@ -49,6 +49,7 @@ cur.execute('delete from trials')
 cur.execute('delete from maintypes')
 cur.execute('delete from trial_maintypes')
 cur.execute('delete from distinct_trial_diseases')
+cur.execute('delete from trial_sites')
 con.commit()
 
 # First get the maintypes, then get the study data needed.
@@ -63,6 +64,9 @@ for t in j['terms']:
     maintypes.append(t['codes'])
 
 cur.executemany('insert into maintypes(nci_thesaurus_concept_id) values (?)', maintypes)
+
+today_date = datetime.date.today()
+two_years_ago = today_date.replace(year = today_date.year - 2)
 
 size = 1
 start = 0
@@ -81,13 +85,16 @@ include_items = ['nct_id',
                  'screening',
                  'primary_purpose_code',
                  'study_source',
-                 'record_verification_date'
+                 'record_verification_date',
+                 'sites'
                  ]
 data = {'current_trial_status': 'active',
         'primary_purpose.primary_purpose_code': ['treatment', 'screening'],
         'sites.recruitment_status': 'ACTIVE',
         'size': size,
-        'from': 0}
+        'from': 0
+        ,
+        'record_verification_date_gte': two_years_ago.isoformat()}
 
 data['include'] = include_items
 
@@ -111,7 +118,14 @@ while run:
     j = r.json()
     # print(j)
     print('received ', len(j['trials']), ' records')
+
+
+
     for trial in j['trials']:
+        for s in trial['sites']:
+            cur.execute('insert into trial_sites(nct_id, org_name, org_family, org_status, org_to_family_relationship) values (?,?,?,?,?)',
+                        [trial['nct_id'], s['org_name'], s['org_family'], s['org_status'], s['org_to_family_relationship']])
+
         # print(trial['nct_id'])
         if trial['eligibility']['structured']['gender'] == 'BOTH':
             gender_expression = 'TRUE'
