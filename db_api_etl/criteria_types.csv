@@ -1,0 +1,3 @@
+criteria_type_id, criteria_type_code, criteria_type_title,criteria_type_desc, criteria_type_active
+1, biomarker_exc, Biomarker Exclusion, Biomarker Exclusion,Y
+2, biomarker_inc, Biomarker Inclusion, Biomarker Inclusion,Y
