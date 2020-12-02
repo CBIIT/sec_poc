@@ -1,3 +1,9 @@
-criteria_type_id, criteria_type_code, criteria_type_title,criteria_type_desc, criteria_type_active
-1, biomarker_exc, Biomarker Exclusion, Biomarker Exclusion,Y
-2, biomarker_inc, Biomarker Inclusion, Biomarker Inclusion,Y
+criteria_type_id,criteria_type_code,criteria_type_title,criteria_type_desc,criteria_type_active,criteria_type_sense
+1,biomarker_exc,Biomarker Exclusion,Biomarker Exclusion,Y,Exclusion
+2,biomarker_inc,Biomarker Inclusion,Biomarker Inclusion,Y,Inclusion
+3,immunotherapy_exc,Immunotherapy Exclusion,Immunotherapy Exclusion,Y,Exclusion
+4,chemotherapy_exc,Chemotherapy Exclusion,Chemotherapy Exclusion,Y,Exclusion
+5,hiv_exc,HIV Exclusion,HIV Exclusion,Y,Exclusion
+6,plt,PLT,Platelets,Y,Inclusion
+7,wbc,WBC,White Blood Count,Y,Inclusion
+8,perf,Performance Status,Performance Status,Y,Inclusion
