@@ -5,11 +5,11 @@ transform_prior_therapy  <- function(therapy_string, csv_codes) {
           ,  "),
     therapy_string
     )
-  new_string <- gsub('&', ' && ',
-                     gsub('|', '||',
-                          gsub("=", " == ", new_string, fixed = TRUE)
-                          , fixed = TRUE),
-                     fixed = TRUE)
+ # new_string <- gsub('&', ' && ',
+#                     gsub('|', '||',
+#                          gsub("=", " == ", new_string, fixed = TRUE)
+#                          , fixed = TRUE),
+#                     fixed = TRUE)
  # print(paste('orig = ', therapy_string))
  # print(paste('new = ', new_string))
   return(new_string)

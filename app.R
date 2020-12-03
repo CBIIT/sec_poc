@@ -697,156 +697,53 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   from trials t join site_counts sc on t.nct_id = sc.nct_id "
   df_crit <- dbGetQuery(con, crit_sql)
   
-  plt_sql <- "select nct_id,
-  curated_description as plt_description from refined_platelets
-  where curated_description not like '%institutional%'
-  "
+  # HH Cutting here for dynamic criteria 
   
-  df_plt <- dbGetQuery(con, plt_sql)
-  df_plt$plt_criteria <- fix_blood_results(df_plt$plt_description)
+  crit_types <- dbGetQuery(con, "select criteria_type_id, criteria_type_code, criteria_type_title, criteria_type_active from criteria_types  where criteria_type_active = 'Y' order by criteria_type_id ")
   
-  wbc_sql <-
-    "select nct_id, clean_inclusion_wbc_criteria as wbc_description from refined_wbc_report"
-  df_wbc <- dbGetQuery(con, wbc_sql)
-  df_wbc$wbc_criteria <- fix_blood_results(df_wbc$wbc_description)
+  for (row in 1:nrow(crit_types)) {
+    criteria_type_id <- crit_types[row, 'criteria_type_id']
+    criteria_type_code  <- crit_types[row, 'criteria_type_code']
+    criteria_type_title <- crit_types[row, 'criteria_type_title']
+    
+    # get the criteria by type
+    
+    #  "select nct_id, biomarker_ncit_code as biomarker_exc_ncit_code, name, name_2, name_3, name_4, name_5, name_6, name_7 from biomarker_exc "
+    # df_crit <-
+    #   merge(
+    #     df_crit,
+    #     df_biomarker_inc,
+    #     by.x = 'clean_nct_id',
+    #     by.y = 'nct_id',
+    #     all.x = TRUE
+    #   )
+    
+    cdf <- dbGetQuery(con, "select nct_id, trial_criteria_refined_text, trial_criteria_expression from trial_criteria where criteria_type_id = ? ",
+                      params = c(criteria_type_id))
+    
+    # Now rename to the columns in cdr based upon the abbr.
+    
+    
+    
+    names(cdf)[names(cdf) == "trial_criteria_refined_text"] <- paste(criteria_type_code, "_refined_text", sep = "")
+    names(cdf)[names(cdf) == "trial_criteria_expression"] <- paste(criteria_type_code, "_expression", sep = "")
+    
+    
+    df_crit <-
+      merge(
+        df_crit,
+        cdf,
+        by.x = 'clean_nct_id',
+        by.y = 'nct_id',
+        all.x = TRUE
+      )
+  }
   
-  perf_sql <-
-    "select nct_id,curated_inclusion_performance_statement as perf_description,
-  cast(NULL as text) perf_criteria
-  
-  from refined_performance_report"
-  df_perf <- dbGetQuery(con, perf_sql)
-  
-  df_perf_new <- parse_dataframe(df_perf['perf_description'])
-  df_perf_new <- subset(df_perf_new, select = c(perf_criteria))
-  df_perf$perf_criteria <- df_perf_new$perf_criteria
-  
-  
-  df_biomarker_exc_sql <-
-    "select nct_id, biomarker_ncit_code as biomarker_exc_ncit_code, name, name_2, name_3, name_4, name_5, name_6, name_7 from biomarker_exc "
-  df_biomarker_exc <- dbGetQuery(con, df_biomarker_exc_sql)
-  df_biomarker_exc$biomarker_exc_description <-
-    paste3(
-      df_biomarker_exc$name,
-      df_biomarker_exc$name_2,
-      df_biomarker_exc$name_3,
-      df_biomarker_exc$name_4,
-      df_biomarker_exc$name_5,
-      df_biomarker_exc$name_6,
-      df_biomarker_exc$name_7,
-      sep = "; "
-    )
-  
-  df_biomarker_inc_sql <-
-    "select nct_id, biomarker_ncit_code as biomarker_inc_ncit_code, name as biomarker_inc_description
-  from biomarker_inc where biomarker_ncit_code is not null"
-  df_biomarker_inc <- dbGetQuery(con, df_biomarker_inc_sql)
-  
-  
-  #browser()
-  
-  imm_sql <-
-    "select nct_id, immunotherapy_ncit_codes__text as imm_description ,
-  immunotherapy_ncit_codes__clean as imm_criteria
-  from lung_prior_therapy
-  where immunotherapy_ncit_codes__clean is not null and  inc_exc_indicator_immuno = 0 "
-  
-  df_imm <- dbGetQuery(con, imm_sql)
-  
-  
-  #
-  # Prior therapy / chemotherapy
-  #
-  
-  chemo_exc_sql <-
-    "select nct_id, chemotherapy_ncit_codes__text as chemotherapy_exc_text , chemotherapy_ncit_codes__clean as chemotherapy_exc_code from lung_prior_therapy_chemo
-  where chemotherapy_ncit_codes__clean is not null and inc_exc_indicator = 0"
-  chemo_inc_sql <-
-    "select nct_id, chemotherapy_ncit_codes__text as chemotherapy_inc_text,
-  chemotherapy_ncit_codes__clean as chemotherapy_inc_code from lung_prior_therapy_chemo
-  where chemotherapy_ncit_codes__clean is not null and inc_exc_indicator = 1"
-  df_chemo_exc <- dbGetQuery(con, chemo_exc_sql)
-  df_chemo_inc <- dbGetQuery(con, chemo_inc_sql)
-  
-  
-  hiv_exc_sql <-
-    "select nct_id, hiv_ncit_codes__text as hiv_exc_text, hiv_ncit_codes__clean as hiv_exc_code from hiv_exclusion"
-  df_hiv_exc <- dbGetQuery(con, hiv_exc_sql)
-  
-  #browser()
-  
-  df_crit <-
-    merge(df_crit,
-          df_plt,
-          by.x = 'clean_nct_id',
-          by.y = 'nct_id' ,
-          all.x = TRUE)
-  df_crit <-
-    merge(df_crit,
-          df_wbc,
-          by.x = 'clean_nct_id',
-          by.y = 'nct_id' ,
-          all.x = TRUE)
-  
-  df_crit <-
-    merge(df_crit,
-          df_perf,
-          by.x = 'clean_nct_id',
-          by.y = 'nct_id',
-          all.x = TRUE)
-  
-  df_crit <-
-    merge(df_crit,
-          df_imm,
-          by.x = 'clean_nct_id',
-          by.y = 'nct_id',
-          all.x = TRUE)
-  
-  df_crit <-
-    merge(
-      df_crit,
-      df_biomarker_inc,
-      by.x = 'clean_nct_id',
-      by.y = 'nct_id',
-      all.x = TRUE
-    )
-  df_crit <-
-    merge(
-      df_crit,
-      df_biomarker_exc,
-      by.x = 'clean_nct_id',
-      by.y = 'nct_id',
-      all.x = TRUE
-    )
-  df_crit <-
-    merge(
-      df_crit,
-      df_chemo_exc,
-      by.x = 'clean_nct_id',
-      by.y = 'nct_id',
-      all.x = TRUE
-    )
-  df_crit <-
-    merge(
-      df_crit,
-      df_chemo_inc,
-      by.x = 'clean_nct_id',
-      by.y = 'nct_id',
-      all.x = TRUE
-    )
-  
-  df_crit <-
-    merge(
-      df_crit,
-      df_hiv_exc,
-      by.x = 'clean_nct_id',
-      by.y = 'nct_id',
-      all.x = TRUE
-    )
+  # end of cut
   
   df_crit <- df_crit[order(df_crit$study_source_sort_key, -df_crit$number_sites),]
   
-  
+  #browser()
   
   dt_gyn_tree <- getDiseaseTreeData(con, 'C4913', use_ctrp_display_name = TRUE)
   dt_lung_tree <- getDiseaseTreeData(con, 'C4878',use_ctrp_display_name = TRUE)
@@ -1281,25 +1178,30 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         'disease_codes_lead' = df_crit$diseases_lead,
         'disease_names_lead' = df_crit$disease_names_lead,
         'disease_matches' = df_crit$api_disease_match,
-        'lead_disease_matches' = df_crit$lead_disease_match,
-        'biomarker_inc_description' = df_crit$biomarker_inc_description,
-        'biomarker_inc_ncit_code' = df_crit$biomarker_inc_ncit_code,
+        'lead_disease_matches' = df_crit$lead_disease_match,  
+        'biomarker_inc_description' = df_crit$biomarker_inc_refined_text,# Start changing here 
+        'biomarker_inc_ncit_code' = df_crit$biomarker_inc_expression,
         'biomarker_inc_matches' = NA,
-        'biomarker_exc_description' = df_crit$biomarker_exc_description,
-        'biomarker_exc_ncit_code' = df_crit$biomarker_exc_ncit_code,
-        'biomarker_exc_matches' = NA,
-        'chemotherapy_inc_description' = df_crit$chemotherapy_inc_text,
-        'chemotherapy_inc_criteria' = df_crit$chemotherapy_inc_code,
+        'biomarker_exc_description' = df_crit$biomarker_exc_refined_text,
+        'biomarker_exc_ncit_code' = df_crit$biomarker_exc_expression,
+        'biomarker_exc_matches' = NA,  
+         # NOTE GET RID OF CHEMO INC 
+        'chemotherapy_inc_description' = NA,
+        'chemotherapy_inc_criteria' = NA,
         'chemotherapy_inc_matches' = NA,
-        'chemotherapy_exc_description' = df_crit$chemotherapy_exc_text,
-        'chemotherapy_exc_criteria' = df_crit$chemotherapy_exc_code,
+         # 
+        'chemotherapy_exc_description' = df_crit$chemotherapy_exc_refined_text,
+        'chemotherapy_exc_criteria' = df_crit$chemotherapy_exc_expression,
         'chemotherapy_exc_matches' = NA,
-        'immunotherapy_description' =  df_crit$imm_description,
-        'immunotherapy_criteria' = df_crit$imm_criteria,
+        'immunotherapy_description' =  df_crit$immunotherapy_exc_refined_text,
+        'immunotherapy_criteria' = df_crit$immunotherapy_exc_expression,
         'immunotherapy_matches' = NA,
-        'hiv_description' = df_crit$hiv_exc_text,
-        'hiv_criteria' = df_crit$hiv_exc_code,
+        'hiv_description' = df_crit$hiv_exc_refined_text,
+        'hiv_criteria' = df_crit$hiv_exc_expression,
         'hiv_exc_matches' = NA,
+        
+         # End of first batch 
+        
         'va_matches' = df_crit$va_match,
         'nih_cc_matches' = df_crit$nih_cc_match,
         'gender' = df_crit$gender,
@@ -1309,22 +1211,29 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         'max_age_in_years' = df_crit$max_age_in_years,
         'age_criteria' = df_crit$age_expression,
         'age_matches' = NA,
-        'hgb_description' = df_crit$hgb_description,
-        'hgb_criteria' = df_crit$hgb_criteria,
+        
+         # second batch 
+         # skip HGB - TODO: delete this 
+        'hgb_description' = NA,
+        'hgb_criteria' = NA,
         'hgb_matches' = NA,
-        'plt_description' = df_crit$plt_description,
-        'plt_criteria' = df_crit$plt_criteria,
+         #
+        'plt_description' = df_crit$plt_refined_text,
+        'plt_criteria' = df_crit$plt_expression,
         'plt_matches' = NA,
-        'wbc_description' = df_crit$wbc_description,
-        'wbc_criteria' = df_crit$wbc_criteria,
+        'wbc_description' = df_crit$wbc_refined_text,
+        'wbc_criteria' = df_crit$wbc_expression,
         'wbc_matches' = NA,
-        'perf_description' = df_crit$perf_description,
-        'perf_criteria' = df_crit$perf_criteria,
+        'perf_description' = df_crit$perf_refined_text,
+        'perf_criteria' = df_crit$perf_expression,
         'perf_matches' = NA,
+         # 
         'clean_nct_id' = df_crit$clean_nct_id,
         stringsAsFactors = FALSE
       )
     
+    # Once these are working -- roll them up in a master loop 
+   # browser()
     setProgress(value = 0.6,  detail = 'Creating criteria matches')
     
     df_matches$immunotherapy_matches <-
@@ -1333,7 +1242,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                eval_prior_therapy_app(csv_codes, x, session_conn,
                                       eval_env =
                                         patient_data_env))
-    
+   # browser()
     df_matches$biomarker_inc_matches <-
       lapply(df_matches$biomarker_inc_ncit_code,
              function(x)
@@ -1346,12 +1255,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                eval_prior_therapy_app(csv_codes, x, session_conn,
                                       eval_env =
                                         patient_data_env))
-    df_matches$chemotherapy_inc_matches <-
-      lapply(df_matches$chemotherapy_inc_criteria,
-             function(x)
-               eval_prior_therapy_app(csv_codes, x, session_conn,
-                                      eval_env =
-                                        patient_data_env))
+    df_matches$chemotherapy_inc_matches <- NA  # Get rid of this one 
     
     df_matches$chemotherapy_exc_matches <-
       lapply(df_matches$chemotherapy_exc_criteria,
@@ -1360,6 +1264,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                                       eval_env =
                                         patient_data_env))
     setProgress(value = 0.7,  detail = 'Creating criteria matches')
+    
     
     df_matches$age_matches <-
       lapply(df_matches$age_criteria,
@@ -1371,10 +1276,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
              function(x)
                eval_criteria(x, eval_env = patient_data_env))
     
-    df_matches$hgb_matches <-
-      lapply(df_matches$hgb_criteria,
-             function(x)
-               eval_criteria(x, eval_env = patient_data_env))
+    df_matches$hgb_matches <- NA # Get rid of this one
     
     df_matches$plt_matches <-
       lapply(df_matches$plt_criteria,
@@ -1407,6 +1309,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     
     # Magic call to fix up the dataframe after the lapply calls which creates lists....
     df_matches <- as.data.frame(lapply(df_matches, unlist))
+    
     print(Sys.time())
     DBI::dbDisconnect(session_conn)
     sessionInfo$df_matches <- df_matches

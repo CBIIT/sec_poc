@@ -25,13 +25,13 @@ eval_prior_therapy_app  <-
       NA
     } else {
       tryCatch({
-        # print(paste('eval_prior_therapy_app - found crit', x))
-        # browser()
+       #  print(paste('eval_prior_therapy_app - found crit', x))
+       #  browser()
        # tt <<- transform_prior_therapy(x,
       #                                 csv_codes)
         tt <<- FUN(x,
                                        csv_codes)
-       #  print(paste('eval of tt ', tt))
+     #  print(paste('eval of tt ', tt))
         eval(parse(text = tt), envir = eval_env)
         
       },
