@@ -80,7 +80,8 @@ transform_prior_therapy_conv  <- function(therapy_string) {
 
 con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
 df_biomarker_exc_sql <-
-  "select nct_id, biomarker_ncit_code as biomarker_exc_ncit_code, name, name_2, name_3, name_4, name_5, name_6, name_7 from biomarker_exc "
+  "select nct_id, biomarker_ncit_code as biomarker_exc_ncit_code, name, name_2, name_3, name_4, name_5, name_6, name_7 
+from biomarker_exc where nct_id is not null"
 df_biomarker_exc <- dbGetQuery(con, df_biomarker_exc_sql)
 df_biomarker_exc$biomarker_exc_description <-
   paste3(
@@ -154,7 +155,7 @@ imm_exc_sql <-
   "select nct_id, immunotherapy_ncit_codes__text as imm_description ,
   immunotherapy_ncit_codes__clean as imm_criteria
   from lung_prior_therapy
-  where immunotherapy_ncit_codes__clean is not null and  inc_exc_indicator_immuno = 0 "
+  where immunotherapy_ncit_codes__clean is not null and  inc_exc_indicator_immuno = 0 and nct_id is not null"
 
 df_imm_exc <- dbGetQuery(con, imm_exc_sql)
 
@@ -176,7 +177,7 @@ new_imm_exc_df <- data.frame( "nct_id" = df_imm_exc$nct_id,
 
 chemo_exc_sql <-
   "select nct_id, chemotherapy_ncit_codes__text as chemotherapy_exc_text , chemotherapy_ncit_codes__clean as chemotherapy_exc_code from lung_prior_therapy_chemo
-  where chemotherapy_ncit_codes__clean is not null and inc_exc_indicator = 0"
+  where chemotherapy_ncit_codes__clean is not null and inc_exc_indicator = 0 and nct_id is not null"
 
 df_chemo_exc <- dbGetQuery(con, chemo_exc_sql)
 df_chemo_exc$chemo_exc_criteria_fixed <-
@@ -195,7 +196,7 @@ new_chemo_exc_df <- data.frame( "nct_id" = df_chemo_exc$nct_id,
                               stringsAsFactors = FALSE)
 
 hiv_exc_sql <-
-  "select nct_id, hiv_ncit_codes__text as hiv_exc_text, hiv_ncit_codes__clean as hiv_exc_code from hiv_exclusion"
+  "select nct_id, hiv_ncit_codes__text as hiv_exc_text, hiv_ncit_codes__clean as hiv_exc_code from hiv_exclusion where nct_id is not null"
 df_hiv_exc <- dbGetQuery(con, hiv_exc_sql)
 df_hiv_exc$hiv_exc_criteria_fixed <-
   lapply(df_hiv_exc$hiv_exc_code,
@@ -239,7 +240,7 @@ perf_sql <-
   "select nct_id,curated_inclusion_performance_statement as perf_description, original_performance_statement as trial_criteria_orig_text,
   cast(NULL as text) perf_criteria
   
-  from refined_performance_report"
+  from refined_performance_report where nct_id is not null"
 df_perf <- dbGetQuery(con, perf_sql)
 
 df_perf_new <- parse_dataframe(df_perf['perf_description'])
