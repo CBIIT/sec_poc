@@ -109,7 +109,7 @@ ret <- dbExecute(con, "delete from criteria_types")
 # ))
 
 ret <- dbWriteTable(con,"criteria_types"  , "db_api_etl/criteria_types.csv", overwrite = TRUE)
-ret <- dbExecute(con, "update criteria_types set criteria_type_active =  replace(criteria_type_active, CHAR(13), '')" )
+ret <- dbExecute(con, "update criteria_types set criteria_type_sense =  replace(criteria_type_sense, CHAR(13), '')" )
 
 df_biomarker_exc$biomarker_exc_fixed <-
   lapply(df_biomarker_exc$biomarker_exc_ncit_code,

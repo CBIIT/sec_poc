@@ -708,15 +708,6 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     
     # get the criteria by type
     
-    #  "select nct_id, biomarker_ncit_code as biomarker_exc_ncit_code, name, name_2, name_3, name_4, name_5, name_6, name_7 from biomarker_exc "
-    # df_crit <-
-    #   merge(
-    #     df_crit,
-    #     df_biomarker_inc,
-    #     by.x = 'clean_nct_id',
-    #     by.y = 'nct_id',
-    #     all.x = TRUE
-    #   )
     
     cdf <- dbGetQuery(con, "select nct_id, trial_criteria_refined_text, trial_criteria_expression from trial_criteria where criteria_type_id = ? ",
                       params = c(criteria_type_id))
@@ -724,10 +715,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     # Now rename to the columns in cdr based upon the abbr.
     
     
-    
     names(cdf)[names(cdf) == "trial_criteria_refined_text"] <- paste(criteria_type_code, "_refined_text", sep = "")
     names(cdf)[names(cdf) == "trial_criteria_expression"] <- paste(criteria_type_code, "_expression", sep = "")
     
+    # Now merge these columns into the df_crit dataframe with new names 
     
     df_crit <-
       merge(
@@ -740,6 +731,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   }
   
   # end of cut
+  
+  # sort the dataframe by study source ascending and then by number of sites descending 
   
   df_crit <- df_crit[order(df_crit$study_source_sort_key, -df_crit$number_sites),]
   
@@ -967,6 +960,9 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
     
   })
+  
+  # 
+  # Search and match button event handler 
   
   observeEvent(input$search_and_match, label = 'search and match', {
     print("search and match")
