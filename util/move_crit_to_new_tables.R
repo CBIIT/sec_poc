@@ -79,6 +79,24 @@ transform_prior_therapy_conv  <- function(therapy_string) {
 ## Program to normalize and transform the existing study criteria statements to a normal form.
 
 con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+
+
+ret <- dbExecute(con, 'delete from trial_criteria')
+ret <- dbExecute(con, "delete from criteria_types")
+# crit_type_df = data.frame(matrix(
+#   ncol = 3,
+#   nrow = 0,
+#   dimnames = list(NULL, c("criteria_type_id", "criteria_type_code" , "criteria_type_title", "criteria_type_desc", "criteria_type_active"))
+# ))
+crit_types_df <- read.csv("db_api_etl/criteria_types.csv")
+
+
+ret <- dbWriteTable(con,"criteria_types"  , crit_types_df, overwrite = FALSE, append=TRUE)
+
+#ret <- dbExecute(con, "update criteria_types set criteria_type_sense =  replace(criteria_type_sense, CHAR(13), '')" )
+
+#----
+
 df_biomarker_exc_sql <-
   "select nct_id, biomarker_ncit_code as biomarker_exc_ncit_code, name, name_2, name_3, name_4, name_5, name_6, name_7 
 from biomarker_exc where nct_id is not null"
@@ -94,22 +112,6 @@ df_biomarker_exc$biomarker_exc_description <-
     df_biomarker_exc$name_7,
     sep = "; "
   )
-
-
-
-
-
-
-
-ret <- dbExecute(con, "delete from criteria_types")
-# crit_type_df = data.frame(matrix(
-#   ncol = 3,
-#   nrow = 0,
-#   dimnames = list(NULL, c("criteria_type_id", "criteria_type_code" , "criteria_type_title", "criteria_type_desc", "criteria_type_active"))
-# ))
-
-ret <- dbWriteTable(con,"criteria_types"  , "db_api_etl/criteria_types.csv", overwrite = TRUE)
-ret <- dbExecute(con, "update criteria_types set criteria_type_sense =  replace(criteria_type_sense, CHAR(13), '')" )
 
 df_biomarker_exc$biomarker_exc_fixed <-
   lapply(df_biomarker_exc$biomarker_exc_ncit_code,
@@ -258,7 +260,7 @@ df_perf_2$update_by <- 'hickmanhb'
 #
 # get subsets of the dataframes to write out the required fields of the generalized criteria tables.
 #
-ret <- dbWriteTable(con, 'trial_criteria', new_biomarker_exc_df, overwrite = TRUE)
+ret <- dbWriteTable(con, 'trial_criteria', new_biomarker_exc_df, overwrite = FALSE, append = TRUE)
 ret <- dbWriteTable(con, 'trial_criteria', new_biomarker_inc_df, overwrite = FALSE, append = TRUE)
 ret <- dbWriteTable(con, 'trial_criteria', new_imm_exc_df, overwrite = FALSE, append = TRUE)
 ret <- dbWriteTable(con, 'trial_criteria', new_chemo_exc_df, overwrite = FALSE, append = TRUE)

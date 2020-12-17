@@ -74,7 +74,7 @@ create index trial_sites_nct_fam_idx on trial_sites(nct_id, org_family);
 
 drop table if exists criteria_types;
 create table criteria_types(
-criteria_type_id  integer primary key,
+criteria_type_id  INTEGER PRIMARY KEY AUTOINCREMENT,
 criteria_type_code text not null,
 criteria_type_title text not null,
 criteria_type_desc text not null,
