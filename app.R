@@ -2023,7 +2023,6 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         print(new_codes)
         sessionInfo$crosswalk_df <- rbind(sessionInfo$crosswalk_df, new_codes)
       } else {
-        shinyalert("Non NCI Code", "No equivalent NCI codes found" , type = "info")
         createAlert(session, 'crosswalk_modal_alert', title = "", content = "No equivalent NCI codes found")
       }
       
