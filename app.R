@@ -223,7 +223,7 @@ background-color: #FFCCCC;
     
     selectizeInput("misc_typer", label = "NCIt Search", NULL, multiple = TRUE),
     actionButton("show_crosswalk", "Add non-NCI codes"),
-    
+    DTOutput('crosswalk_codes'),
         actionButton("search_and_match", "SEARCH AND MATCH")
       )
     )
@@ -908,6 +908,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     updatePickerInput(session, "performance_status", selected = "C159685")
     sessionInfo$disease_df <- sessionInfo$disease_df[0,]
     sessionInfo$biomarker_df <-  sessionInfo$biomarker_df[0,]
+    sessionInfo$crosswalk_df <- sessionInfo$crosswalk_df[0,]
     output$city_state <- NULL
     sessionInfo$latitude <- NA
     sessionInfo$longitude <- NA
@@ -1095,6 +1096,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     
     if(nrow(sessionInfo$biomarker_df) > 0 ) {
       sel <- rbind(sel, sessionInfo$biomarker_df[c("Code", "Value")])
+    }
+    
+    # Add in crosswalk codes 
+    if(nrow(sessionInfo$crosswalk_df) > 0 ) {
+      sel <- rbind(sel, sessionInfo$crosswalk_df[c("Code", "Value")])
     }
     
     if (input$gender == 'Male') {
@@ -1998,18 +2004,63 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
       # check UMLS crosswalk if nothing is returned locally
       
-      new_codes <- get_umls_crosswalk(input$crosswalk_ontology, input$crosswalk_code, tgt)
-     # browser()
+      withProgress(message = "Looking up codes", value = 0, {
+        if(input$crosswalk_ontology == 'ICD10CM') {
+          session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+          icd10_sql <- "select evs_c_code as Code, 'YES' as Value, evs_preferred_name as Description from icd10 where code_system = 'ICD10' and disease_code = ? and evs_c_code is not null"
+          new_codes <-
+            dbGetQuery(session_conn, icd10_sql,  params = c(input$crosswalk_code))
+          DBI::dbDisconnect(session_conn)
+          if(nrow(new_codes) == 0) {
+            new_codes <- get_umls_crosswalk(input$crosswalk_ontology, input$crosswalk_code, tgt)
+          }
+        } else {
+          new_codes <- get_umls_crosswalk(input$crosswalk_ontology, input$crosswalk_code, tgt)
+        }
+      })
+      # browser()
       if(!is.null(new_codes)) {
         print(new_codes)
+        sessionInfo$crosswalk_df <- rbind(sessionInfo$crosswalk_df, new_codes)
       } else {
         shinyalert("Non NCI Code", "No equivalent NCI codes found" , type = "info")
         createAlert(session, 'crosswalk_modal_alert', title = "", content = "No equivalent NCI codes found")
-        
       }
+      
       
     }
   })
+  
+  observe( {
+    show_crosswalk_dt <- datatable(
+      sessionInfo$crosswalk_df,
+      class = 'cell-border stripe compact wrap ',
+      rownames = FALSE,
+      selection = "single",
+      options = list(
+        escape = FALSE,
+        searching = FALSE,
+        paging = FALSE,
+        info = FALSE,
+        #scrollX = TRUE,
+        #scrolly = '200px',
+        pageLength = 999,
+        scrollY = "100px",
+        lengthMenu = list(c(600, -1), c("600", "All")),
+        style = "height:100px; overflow-y: scroll; overflow-x:scroll;padding:10px;",
+        columnDefs = list(
+          list(visible = FALSE, targets = c(0,1))
+          # ,
+          # list(
+          #   targets = c(1),
+          #   render = JS("function(data){return data.replace(/\\n/g, '<br />');}")
+          # )
+          
+        )
+      )
+    )  %>% DT::formatStyle(columns = c(0), fontSize = '75%')
+    output$crosswalk_codes <- DT::renderDT(show_crosswalk_dt)
+  } )
   
   
   observe( {
