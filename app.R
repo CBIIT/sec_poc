@@ -22,6 +22,7 @@ library(stringi)
 library(sjmisc)
 library(lubridate)
 library(shinyFeedback)
+library(shinyalert)
 source('hh_collapsibleTreeNetwork.R')
 source('getDiseaseTreeData.R')
 source('paste3.R')
@@ -98,9 +99,7 @@ background-color: #FFCCCC;
                         }
                       '))),
  titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;"), windowTitle = "Structured Eligibility Criteria Trial Search"),
- # titlePanel(title = div(img(src = "SEC-logo.png"), style = "text-align: center;"        ), span(downloadButton("downloadData", "Download Match Data", style =
-#                                                                                                          'padding:4px; font-size:80%')),  windowTitle = "Structured Eligibility Criteria Trial Search"),
-  
+ 
   sidebarLayout(
     div(
       id = "Sidebar", # width = 3,
@@ -223,6 +222,7 @@ background-color: #FFCCCC;
     
     
     selectizeInput("misc_typer", label = "NCIt Search", NULL, multiple = TRUE),
+    actionButton("show_crosswalk", "Add non-NCI codes"),
     
         actionButton("search_and_match", "SEARCH AND MATCH")
       )
@@ -490,7 +490,20 @@ background-color: #FFCCCC;
             )
     )
     )
-    
+    ,
+    bsModal('crosswalk_bsmodal', "Enter non-NCI codes", "show_crosswalk", size = "small",
+            fluidPage(id="crosswalk_bsmodal_page", 
+                      bsAlert('crosswalk_modal_alert'),
+                      fluidRow(radioButtons("crosswalk_ontology","Ontology ",
+                        choices = c("ICD10CM" = "ICD10CM", "LOINC" = "LNC", "SNOMEDCT" = "SNOMEDCT US",
+                                    "RXNORM" = "RXNORM"),
+
+                      )
+                      ),
+                      fluidRow(textInput("crosswalk_code","Code")),
+                      fluidRow(actionButton("find_crosswalk_codes", "Add Code"))
+                      )
+            )
     ,
     bsModal("biomarker_bsmodal", "Select biomarkers", "show_biomarkers", size = "large",
             fluidPage(sidebarLayout(
@@ -591,7 +604,8 @@ server <- function(input, output, session) {
     longitude = NA,
     ncit_search_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers")))),
     rvd_df = NA,
-    cancer_center_df = NA
+    cancer_center_df = NA,
+    crosswalk_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Description"))))
 
     )
   
@@ -1970,6 +1984,33 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     
   }
   )
+  
+  # Add crosswalk codes, if any 
+  
+  observeEvent(input$find_crosswalk_codes, {
+    print("add crosswalk codes")
+    #closeAlert(session,'crosswalk_modal_alert' )
+    print(input$crosswalk_ontology)
+    if(input$crosswalk_code != "") {
+      # we have a code - 
+      print(input$crosswalk_code)
+      # If ICD10CM, check local table
+      
+      # check UMLS crosswalk if nothing is returned locally
+      
+      new_codes <- get_umls_crosswalk(input$crosswalk_ontology, input$crosswalk_code, tgt)
+     # browser()
+      if(!is.null(new_codes)) {
+        print(new_codes)
+      } else {
+        shinyalert("Non NCI Code", "No equivalent NCI codes found" , type = "info")
+        createAlert(session, 'crosswalk_modal_alert', title = "", content = "No equivalent NCI codes found")
+        
+      }
+      
+    }
+  })
+  
   
   observe( {
   show_disease_dt <- datatable(

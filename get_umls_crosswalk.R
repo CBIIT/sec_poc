@@ -40,16 +40,23 @@ get_umls_crosswalk  <- function(umls_ontology, ontology_code, tgt) {
     #
     # Then we have some codes sent back to us from the crosswalk
     #
-    ret_list <- list()
+    ret_df <- data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Description"))))
     crosswalk_ret <- content(d)
     crosswalk_results <- crosswalk_ret$result
     for(i in 1:length(crosswalk_results)) {
+      #browser()
       print(crosswalk_results[[i]]$ui)
       if (crosswalk_results[[i]]$ui != 'TCGA') {
-        ret_list <- append(ret_list, crosswalk_results[[i]]$ui)
+        t <-
+          data.frame(Code = crosswalk_results[[i]]$ui,
+                     Value = "YES",
+                     Description = crosswalk_results[[i]]$name)
+        ret_df <- rbind(ret_df, t)
+
       }
     }
-    return(ret_list)
+    print(ret_df)
+    return(ret_df)
   }
   
   return(NULL)
