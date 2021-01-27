@@ -495,7 +495,7 @@ background-color: #FFCCCC;
             fluidPage(id="crosswalk_bsmodal_page", 
                       bsAlert('crosswalk_modal_alert'),
                       fluidRow(radioButtons("crosswalk_ontology","Ontology ",
-                        choices = c("ICD10CM" = "ICD10CM", "LOINC" = "LNC", "SNOMEDCT" = "SNOMEDCT US",
+                        choices = c("ICD10CM" = "ICD10CM", "LOINC" = "LNC", "SNOMEDCT" = "SNOMEDCT_US",
                                     "RXNORM" = "RXNORM"),
 
                       )
