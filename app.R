@@ -35,6 +35,8 @@ source('get_subtypes_for_maintypes.R')
 source('get_stage_for_types.R')
 source('get_org_families.R')
 source('get_api_studies_for_cancer_centers.R')
+
+source('get_umls_crosswalk.R')
 #
 #
 dbinfo <- config::get()
@@ -590,8 +592,40 @@ server <- function(input, output, session) {
     ncit_search_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers")))),
     rvd_df = NA,
     cancer_center_df = NA
-    
+
     )
+  
+  tgt <- NA
+  
+  # get a TGT from UMLS
+  
+  if (dbinfo$enable_umls) {
+    print("enabling UMLS calls")
+    d <-  POST(
+      'https://utslogin.nlm.nih.gov/cas/v1/api-key',
+      body = list(
+        apikey = dbinfo$api_key
+        
+      )
+      ,
+      accept_json()
+      ,
+      encode = "form"
+    )
+    
+    if (d$status_code == 201) {
+      text_data <- content(d, "text")
+      print("getting tgt")
+      left <- str_locate(text_data, 'https')
+      right <- str_locate(text_data, '\" method')
+      tgt <- substr(text_data, left[1], right[1]-1)
+      print(paste('tgt = ', tgt))
+      
+    } else {
+      shinyalert("UMLS Error", paste("UMLS Crosswalk is not available at this time.-- ", d$status_code) , type = "error")
+    }
+    
+  }
   counter <- reactiveValues(countervalue = 0)
   shinyjs::disable("subtype_typer")
   
