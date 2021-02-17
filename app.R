@@ -248,26 +248,27 @@ background-color: #FFCCCC;
                pickerInput(
                  "match_types_picker",
                  label = 'Participant Attributes',
-                 choices = c(
-                   "Disease" = "disease_matches == TRUE",
-                   "Gender" = "gender_matches == TRUE",
-                   "Age" = " (age_matches == TRUE | is.na(age_matches) ) ",
-                   #    "HGB" = "hgb_matches == TRUE",
-                   "PLT" = " ( plt_matches == TRUE | is.na(plt_matches) ) ",
-                   "WBC" = " (  wbc_matches == TRUE | is.na(wbc_matches) )  ",
-                   "Performance Status" = " (perf_matches == TRUE | is.na(perf_matches) ) ",
-                   "Immunotherapy (exclusion)" = " ( immunotherapy_matches == FALSE | is.na(immunotherapy_matches) ) ",
-                   #     "Biomarkers" = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) ) | ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )  "
-                   "Biomarkers (exclusion) " = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) )   ",
-                   "Biomarkers (inclusion) " = " ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )   " ,
-                   "Chemotherapy (exclusion) " = " ( chemotherapy_exc_matches == FALSE | is.na(chemotherapy_exc_matches) )   "
-                   ,
-                   "HIV Status (exclusion) " = " ( hiv_exc_matches == FALSE | is.na(hiv_exc_matches) ) "
-                   #,
-                   #"Chemotherapy (inclusion) " = " ( chemotherapy_inc_matches == TRUE | is.na(chemotherapy_inc_matches) )   "
-                   
-                 ),
-                 selected = "disease_matches == TRUE",
+                 choice = NULL,
+                 # choices = c(
+                 #   "Disease" = "disease_matches == TRUE",
+                 #   "Gender" = "gender_matches == TRUE",
+                 #   "Age" = " (age_matches == TRUE | is.na(age_matches) ) ",
+                 #   #    "HGB" = "hgb_matches == TRUE",
+                 #   "PLT" = " ( plt_matches == TRUE | is.na(plt_matches) ) ",
+                 #   "WBC" = " (  wbc_matches == TRUE | is.na(wbc_matches) )  ",
+                 #   "Performance Status" = " (perf_matches == TRUE | is.na(perf_matches) ) ",
+                 #   "Immunotherapy (exclusion)" = " ( immunotherapy_matches == FALSE | is.na(immunotherapy_matches) ) ",
+                 #   #     "Biomarkers" = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) ) | ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )  "
+                 #   "Biomarkers (exclusion) " = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) )   ",
+                 #   "Biomarkers (inclusion) " = " ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )   " ,
+                 #   "Chemotherapy (exclusion) " = " ( chemotherapy_exc_matches == FALSE | is.na(chemotherapy_exc_matches) )   "
+                 #   ,
+                 #   "HIV Status (exclusion) " = " ( hiv_exc_matches == FALSE | is.na(hiv_exc_matches) ) "
+                 #   #,
+                 #   #"Chemotherapy (inclusion) " = " ( chemotherapy_inc_matches == TRUE | is.na(chemotherapy_inc_matches) )   "
+                 #   
+                 # ),
+                 #selected = "disease_matches == TRUE",
                  multiple = TRUE,
                  options = pickerOptions(actionsBox = TRUE),
                  choicesOpt = NULL,
@@ -729,7 +730,45 @@ order by n.pref_name"
   })
   #-----
 
+  #
+  ## Get the info for the patient attributes picker input
+  #
   
+  df_criteria_picker_data <-
+    dbGetQuery(
+      con,
+      
+      "with all_crit_types as (
+        select 'disease_matches == TRUE'  as criteria_match_code , 'Diseases' as criteria_type_title, -10 as criteria_column_index
+        UNION
+        select 'gender_matches == TRUE'  as criteria_match_code , 'Gender' as criteria_type_title, -5 as criteria_column_index
+        union
+        select ' (age_matches == TRUE | is.na(age_matches) ) '  as criteria_match_code , 'Age' as criteria_type_title, -1 as criteria_column_index
+        union
+        
+        select 
+		case criteria_type_sense
+		   when 'Inclusion' then ' ( ' || criteria_type_code || '_matches == TRUE | is.na(' || criteria_type_code || '_matches) )   '
+		   when 'Exclusion' then ' ( ' || criteria_type_code || '_matches == FALSE | is.na(' || criteria_type_code || '_matches) )   '
+		end as criteria_match_code ,	
+     	criteria_type_title, criteria_column_index from criteria_types 
+        where criteria_type_active = 'Y' 
+      )
+      select criteria_match_code, criteria_type_title from all_crit_types order by criteria_column_index"
+    )
+  
+  criteria_picker_vec <- setNames(
+    as.vector(df_criteria_picker_data[["criteria_match_code"]]),as.vector(df_criteria_picker_data[["criteria_type_title"]]))
+  
+  ###
+  updatePickerInput(
+    session,
+    "match_types_picker",
+   
+    choices = criteria_picker_vec,
+    selected = c('disease_matches == TRUE')
+  )
+ # browser()
   
   crit_sql <-
     "with site_counts as (
@@ -1229,90 +1268,80 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         'disease_names_lead' = df_crit$disease_names_lead,
         'disease_matches' = df_crit$api_disease_match,
         'lead_disease_matches' = df_crit$lead_disease_match,  
-        'biomarker_inc_description' = df_crit$biomarker_inc_refined_text,# Start changing here 
-        'biomarker_inc_ncit_code' = df_crit$biomarker_inc_expression,
-        'biomarker_inc_matches' = NA,
-        'biomarker_exc_description' = df_crit$biomarker_exc_refined_text,
-        'biomarker_exc_ncit_code' = df_crit$biomarker_exc_expression,
-        'biomarker_exc_matches' = NA,  
-         # NOTE GET RID OF CHEMO INC 
-        'chemotherapy_inc_description' = NA,
-        'chemotherapy_inc_criteria' = NA,
-        'chemotherapy_inc_matches' = NA,
-         # 
-        'chemotherapy_exc_description' = df_crit$chemotherapy_exc_refined_text,
-        'chemotherapy_exc_criteria' = df_crit$chemotherapy_exc_expression,
-        'chemotherapy_exc_matches' = NA,
-        'immunotherapy_description' =  df_crit$immunotherapy_exc_refined_text,
-        'immunotherapy_criteria' = df_crit$immunotherapy_exc_expression,
-        'immunotherapy_matches' = NA,
-        'hiv_description' = df_crit$hiv_exc_refined_text,
-        'hiv_criteria' = df_crit$hiv_exc_expression,
-        'hiv_exc_matches' = NA,
+        stringsAsFactors = FALSE)
+
+    
+
+    group1_sql  <- "select criteria_type_code, criteria_type_title from criteria_types  
+where criteria_type_active = 'Y' and criteria_column_index < 2000
+order by criteria_column_index "
+    df_group1 <- dbGetQuery(session_conn, group1_sql)
+    
+    group2_sql  <- "select criteria_type_code, criteria_type_title from criteria_types  
+where criteria_type_active = 'Y' and criteria_column_index >= 2000
+order by criteria_column_index "
+    df_group2 <- dbGetQuery(session_conn, group2_sql)
+    
+
+    #
+    # Now get the refined text and descriptions for the dynamic criteria groups -- and for the
+    # Static criteria as well
+    #
+    
+    for (row in 1:nrow(df_group1)) {
+      base_string <- df_group1[row,'criteria_type_code']
+      df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]
+      df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
+     
+      df_matches$foo <-
+        lapply(df_matches[,paste(base_string,'_expression',sep='')],
+               function(x)
+                 eval_prior_therapy_app(csv_codes, x, session_conn,
+                                        eval_env =
+                                          patient_data_env))
+      
+      
+      names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
+      
+    }
+  
+    df_matches$va_matches <- df_crit$va_match
+    df_matches$nih_cc_matches <- df_crit$nih_cc_match
+    df_matches$gender <- df_crit$gender
+    df_matches$gender_criteria <- df_crit$gender_expression
+    df_matches$gender_matches <- NA
+    df_matches$min_age_in_years <- df_crit$min_age_in_years
+    df_matches$max_age_in_years <-  df_crit$max_age_in_years
+    df_matches$age_criteria <- df_crit$age_expression
+    df_matches$age_matches <- NA
+    
         
-         # End of first batch 
-        
-        'va_matches' = df_crit$va_match,
-        'nih_cc_matches' = df_crit$nih_cc_match,
-        'gender' = df_crit$gender,
-        'gender_criteria' = df_crit$gender_expression,
-        'gender_matches' = NA,
-        'min_age_in_years ' = df_crit$min_age_in_years,
-        'max_age_in_years' = df_crit$max_age_in_years,
-        'age_criteria' = df_crit$age_expression,
-        'age_matches' = NA,
-        
-         # second batch 
-         # skip HGB - TODO: delete this 
-        'hgb_description' = NA,
-        'hgb_criteria' = NA,
-        'hgb_matches' = NA,
-         #
-        'plt_description' = df_crit$plt_refined_text,
-        'plt_criteria' = df_crit$plt_expression,
-        'plt_matches' = NA,
-        'wbc_description' = df_crit$wbc_refined_text,
-        'wbc_criteria' = df_crit$wbc_expression,
-        'wbc_matches' = NA,
-        'perf_description' = df_crit$perf_refined_text,
-        'perf_criteria' = df_crit$perf_expression,
-        'perf_matches' = NA,
-         # 
-        'clean_nct_id' = df_crit$clean_nct_id,
-        stringsAsFactors = FALSE
-      )
+    for (row in 1:nrow(df_group2)) {
+      base_string <- df_group2[row,'criteria_type_code']
+      df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]
+      df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
+    #  df_matches[,paste(base_string,'_matches',sep='')] <- NA 
+      df_matches$foo <-
+        lapply(df_matches[,paste(base_string,'_expression',sep='')],
+               function(x)
+                 eval_prior_therapy_app(csv_codes, x, session_conn,
+                                        eval_env =
+                                          patient_data_env))
+      
+      
+      names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
+    }
+    df_matches$clean_nct_id <- df_crit$clean_nct_id
+   # browser()
+
     
     # Once these are working -- roll them up in a master loop 
    # browser()
     setProgress(value = 0.6,  detail = 'Creating criteria matches')
     
-    df_matches$immunotherapy_matches <-
-      lapply(df_matches$immunotherapy_criteria,
-             function(x)
-               eval_prior_therapy_app(csv_codes, x, session_conn,
-                                      eval_env =
-                                        patient_data_env))
-   # browser()
-    df_matches$biomarker_inc_matches <-
-      lapply(df_matches$biomarker_inc_ncit_code,
-             function(x)
-               eval_prior_therapy_app(csv_codes, x, session_conn,
-                                      eval_env =
-                                        patient_data_env))
-    df_matches$biomarker_exc_matches <-
-      lapply(df_matches$biomarker_exc_ncit_code,
-             function(x)
-               eval_prior_therapy_app(csv_codes, x, session_conn,
-                                      eval_env =
-                                        patient_data_env))
-    df_matches$chemotherapy_inc_matches <- NA  # Get rid of this one 
+ 
     
-    df_matches$chemotherapy_exc_matches <-
-      lapply(df_matches$chemotherapy_exc_criteria,
-             function(x)
-               eval_prior_therapy_app(csv_codes, x, session_conn,
-                                      eval_env =
-                                        patient_data_env))
+
     setProgress(value = 0.7,  detail = 'Creating criteria matches')
     
     
@@ -1326,40 +1355,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
              function(x)
                eval_criteria(x, eval_env = patient_data_env))
     
-    df_matches$hgb_matches <- NA # Get rid of this one
-    
-    df_matches$plt_matches <-
-      lapply(df_matches$plt_criteria,
-             function(x)
-               eval_criteria(x, eval_env = patient_data_env))
-    
-    df_matches$wbc_matches <-
-      lapply(df_matches$wbc_criteria,
-             function(x)
-               eval_criteria(x, eval_env = patient_data_env))
-    setProgress(value = 0.8,  detail = 'Creating criteria matches')
-    
-    df_matches$perf_matches <-
-      #        lapply(df_matches$perf_criteria,
-      #               function(x)
-      #                 eval_criteria(x, eval_env = patient_data_env))
-      lapply(df_matches$perf_criteria,
-             function(x)
-               eval_prior_therapy_app(csv_codes, x, session_conn,
-                                      eval_env =
-                                        patient_data_env,
-                                      FUN = transform_perf_status))
-    
-    df_matches$hiv_exc_matches <-
-      lapply(df_matches$hiv_criteria,
-             function(x)
-               eval_prior_therapy_app(csv_codes, x, session_conn,
-                                      eval_env =
-                                        patient_data_env))
-    
+
     # Magic call to fix up the dataframe after the lapply calls which creates lists....
     df_matches <- as.data.frame(lapply(df_matches, unlist))
-    
+
+    browser()    
     print(Sys.time())
     DBI::dbDisconnect(session_conn)
     sessionInfo$df_matches <- df_matches
