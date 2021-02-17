@@ -1320,7 +1320,6 @@ order by criteria_column_index "
       base_string <- df_group2[row,'criteria_type_code']
       df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]
       df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
-    #  df_matches[,paste(base_string,'_matches',sep='')] <- NA 
       df_matches$foo <-
         lapply(df_matches[,paste(base_string,'_expression',sep='')],
                function(x)
@@ -1356,10 +1355,10 @@ order by criteria_column_index "
                eval_criteria(x, eval_env = patient_data_env))
     
 
-    # Magic call to fix up the dataframe after the lapply calls which creates lists....
+    # Magic call to fix up the dataframe after the lapply calls which may create lists all the way down....
     df_matches <- as.data.frame(lapply(df_matches, unlist))
 
-    browser()    
+  #  browser()    
     print(Sys.time())
     DBI::dbDisconnect(session_conn)
     sessionInfo$df_matches <- df_matches
@@ -1372,147 +1371,62 @@ order by criteria_column_index "
     counter$countervalue <- counter$countervalue + 1  
     
     observe( {
-    colnames(sessionInfo$df_matches_to_show) =  c(
-      'NCT ID',
-      'Title',
-      'Phase',
-      'Study Source',
-      '# Matches',
-      'Disease Codes',
-      'Disease Names',
-      'Lead Disease Codes',
-      'Lead Disease Names',
-      'Disease Match',
-      'Lead Disease Match',
-      'Biomarker Inclusion',
-      'Biomarker Inclusion Expression',
-      'Biomarker Inclusion Match',
-      'Biomarker Exclusion',
-      'Biomarker Exclusion Expression',
-      'Biomarker Exclusion Match',
-      'Chemotherapy Inclusion',
-      'Chemotherapy Inclusion Expression',
-      'Chemotherapy Inclusion Match',
-      'Chemotherapy Exclusion',
-      'Chemotherapy Exclusion Expression',
-      'Chemotherapy Exclusion Match',
-      'Immunotherapy Exclusion Criteria',
-      'Immunotherapy Exclusion Expression',
-      'Immunotherapy Exclusion Match',
-      'HIV Exclusion Criteria',
-      'HIV Exclusion Expression',
-      'HIV Exclusion Match',
-      'VA Sites',
-      'NIH CC',
-      'Gender',
-      'Gender Expression',
-      'Gender Match',
-      'Min Age',
-      'Max Age',
-      'Age Expression',
-      'Age Match',
-      'HGB Criteria',
-      'HGB Expression',
-      'HGB Match',
-      'PLT Criteria',
-      'PLT Expression',
-      'PLT Match',
-      'WBC Criteria',
-      'WBC Expression',
-      'WBC Match',
-      'Performance Status Criteria',
-      'Performance Status Expression',
-      'Performance Status Match',
-      'clean_nct_id'
-    )
+     newColNames <- c('NCT ID',
+                      'Title',
+                      'Phase',
+                      'Study Source',
+                      '# Matches',
+                      'Disease Codes',
+                      'Disease Names',
+                      'Lead Disease Codes',
+                      'Lead Disease Names',
+                      'Disease Match',
+                      'Lead Disease Match' )
+     initially_hidden_columns <- c('clean_nct_id',  '# Matches',
+                                   'Disease Codes',  'Lead Disease Codes',  'Gender',
+                                   'Gender Expression', 'Min Age',
+                                   'Max Age',
+                                   'Age Expression')
+     criteria_columns <- c(
+       'Gender',
+       'Min Age',
+       'Max Age'
+     )
+                                   
+     for (row in 1:nrow(df_group1)) {
+       base_string <- df_group1[row,'criteria_type_title']
+       newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
+       initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
+       criteria_columns <- append(criteria_columns, base_string )
+     }
+     newColNames <- append(newColNames, c('VA Sites',
+                                          'NIH CC',
+                                          'Gender',
+                                          'Gender Expression',
+                                          'Gender Match',
+                                          'Min Age',
+                                          'Max Age',
+                                          'Age Expression',
+                                          'Age Match'))
+     for (row in 1:nrow(df_group2)) {
+       base_string <- df_group2[row,'criteria_type_title']
+       newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
+       initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
+       criteria_columns <- append(criteria_columns, base_string )
+     } 
+    newColNames <- append(newColNames, 'clean_nct_id')
+    colnames(sessionInfo$df_matches_to_show) <- newColNames
+    browser()
+   
     
-    initially_hidden_columns <- c('clean_nct_id',  '# Matches',
-                                  'Disease Codes',  'Lead Disease Codes', 'Biomarker Inclusion',
-                                  'Biomarker Inclusion Expression','Biomarker Exclusion',
-                                  'Biomarker Exclusion Expression', 'Chemotherapy Inclusion',
-                                  'Chemotherapy Inclusion Expression',     'Chemotherapy Exclusion',
-                                  'Chemotherapy Exclusion Expression','Immunotherapy Exclusion Criteria',
-                                  'Immunotherapy Exclusion Expression', 'HIV Exclusion Criteria',
-                                  'HIV Exclusion Expression',    'Gender',
-                                  'Gender Expression', 'Min Age',
-                                  'Max Age',
-                                  'Age Expression',   'HGB Criteria','HGB Match',
-                                  'HGB Expression','PLT Criteria',
-                                  'PLT Expression',  'WBC Criteria',
-                                  'WBC Expression','Performance Status Criteria',
-                                  'Performance Status Expression')
+
     columns_with_tooltips <- c("Disease Names")
-    criteria_columns <- c(
-      'Biomarker Inclusion',
-      'Biomarker Exclusion',
-      'Chemotherapy Exclusion',
-      'Immunotherapy Exclusion Criteria',
-      'HIV Exclusion Criteria',
-      'Gender',
-      'Min Age',
-      'Max Age',
-      'PLT Criteria',
-      'WBC Criteria',
-      'Performance Status Criteria'
-      
-    )
+  
 
     new_match_dt <-
       datatable(
         sessionInfo$df_matches_to_show,
-        colnames = c(
-          'NCT ID',
-          'Title',
-          'Phase',
-          'Study Source',
-          '# Matches',
-          'Disease Codes',
-          'Disease Names',
-          'Lead Disease Codes',
-          'Lead Disease Names',
-          'Disease Match',
-          'Lead Disease Match',
-          'Biomarker Inclusion',
-          'Biomarker Inclusion Expression',
-          'Biomarker Inclusion Match',
-          'Biomarker Exclusion',
-          'Biomarker Exclusion Expression',
-          'Biomarker Exclusion Match',
-          'Chemotherapy Inclusion',
-          'Chemotherapy Inclusion Expression',
-          'Chemotherapy Inclusion Match',
-          'Chemotherapy Exclusion',
-          'Chemotherapy Exclusion Expression',
-          'Chemotherapy Exclusion Match',
-          'Immunotherapy Exclusion Criteria',
-          'Immunotherapy Exclusion Expression',
-          'Immunotherapy Exclusion Match',
-          'HIV Exclusion Criteria',
-          'HIV Exclusion Expression',
-          'HIV Exclusion Match',
-          'VA Sites',
-          'NIH CC',
-          'Gender',
-          'Gender Expression',
-          'Gender Match',
-          'Min Age',
-          'Max Age',
-          'Age Expression',
-          'Age Match',
-          'HGB Criteria',
-          'HGB Expression',
-          'HGB Match',
-          'PLT Criteria',
-          'PLT Expression',
-          'PLT Match',
-          'WBC Criteria',
-          'WBC Expression',
-          'WBC Match',
-          'Performance Status Criteria',
-          'Performance Status Expression',
-          'Performance Status Match',
-          'clean_nct_id'
-        ),
+        colnames = newColNames,
         # true_disease,
         # filter='top',
         escape = FALSE,
