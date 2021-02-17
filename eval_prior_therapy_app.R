@@ -38,7 +38,7 @@ eval_prior_therapy_app  <-
       
       error = function(e) {
         par_env=parent.env(environment())
-        if (par_env$ignore_errors == FALSE) {
+        if (eval_env$debug_expressions == TRUE) {
           print(paste("eval error - ", x))
           print(paste("eval error - ", e))
         }

@@ -1282,6 +1282,8 @@ where criteria_type_active = 'Y' and criteria_column_index >= 2000
 order by criteria_column_index "
     df_group2 <- dbGetQuery(session_conn, group2_sql)
     
+    # set the debug flag for evals (or not )
+    patient_data_env$debug_expressions <- dbinfo$debug_expressions
 
     #
     # Now get the refined text and descriptions for the dynamic criteria groups -- and for the
@@ -1292,7 +1294,7 @@ order by criteria_column_index "
       base_string <- df_group1[row,'criteria_type_code']
       df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]
       df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
-     
+      
       df_matches$foo <-
         lapply(df_matches[,paste(base_string,'_expression',sep='')],
                function(x)
@@ -1392,12 +1394,18 @@ order by criteria_column_index "
        'Min Age',
        'Max Age'
      )
-                                   
+    
+     match_column_names <-   c('Lead Disease Match', 'Disease Match', 'VA Sites',
+                               'NIH CC',
+                               'Gender Match',
+                               'Age Match')
+     
      for (row in 1:nrow(df_group1)) {
        base_string <- df_group1[row,'criteria_type_title']
        newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
        initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
        criteria_columns <- append(criteria_columns, base_string )
+       match_column_names <- append(match_column_names,  paste(base_string, "Match") )
      }
      newColNames <- append(newColNames, c('VA Sites',
                                           'NIH CC',
@@ -1413,11 +1421,12 @@ order by criteria_column_index "
        newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
        initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
        criteria_columns <- append(criteria_columns, base_string )
+       match_column_names <- append(match_column_names,  paste(base_string, "Match") )
+       
      } 
     newColNames <- append(newColNames, 'clean_nct_id')
     colnames(sessionInfo$df_matches_to_show) <- newColNames
-    browser()
-   
+
     
 
     columns_with_tooltips <- c("Disease Names")
@@ -1497,36 +1506,10 @@ order by criteria_column_index "
             )
           ,
           
-        list(
-            targets = match(
-              c('Lead Disease Match', 'Disease Match', 'VA Sites',
-                'NIH CC',
-                'Gender Match',
-                'Age Match',
-                'Biomarker Inclusion Match',
-                'Chemotherapy Inclusion Match',
-                'PLT Match',
-                'WBC Match',
-                'Performance Status Match'),
-              names(sessionInfo$df_matches_to_show)
-            ),
-            render = JS(
-              "function(data, type, row, meta) {  if (data === null) { return \"\" } ",
-              "else if (type == 'display' && data == true ) { return '<img src=\"checkmark-32.png\" />'} ",
-              "else if (type == 'display' && data == false ) {  return  '<img src=\"x-mark-32.png\" />';}" , 
-              "else  { return \"\" ; }",
-              "}"
-            )
-          )
-        ,
+      
         list(
           targets = match(
-            c(
-              'Biomarker Exclusion Match',
-              'Immunotherapy Exclusion Match',
-              'HIV Exclusion Match',
-              'Chemotherapy Exclusion Match'
-          ),
+            match_column_names,
             names(sessionInfo$df_matches_to_show)
           ),
           render = JS(
