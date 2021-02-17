@@ -1272,12 +1272,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
 
     
 
-    group1_sql  <- "select criteria_type_code, criteria_type_title from criteria_types  
+    group1_sql  <- "select criteria_type_code, criteria_type_title, criteria_type_sense from criteria_types  
 where criteria_type_active = 'Y' and criteria_column_index < 2000
 order by criteria_column_index "
     df_group1 <- dbGetQuery(session_conn, group1_sql)
     
-    group2_sql  <- "select criteria_type_code, criteria_type_title from criteria_types  
+    group2_sql  <- "select criteria_type_code, criteria_type_title, criteria_type_sense from criteria_types  
 where criteria_type_active = 'Y' and criteria_column_index >= 2000
 order by criteria_column_index "
     df_group2 <- dbGetQuery(session_conn, group2_sql)
@@ -1395,17 +1395,23 @@ order by criteria_column_index "
        'Max Age'
      )
     
-     match_column_names <-   c('Lead Disease Match', 'Disease Match', 'VA Sites',
+     inclusion_match_column_names <-   c('Lead Disease Match', 'Disease Match', 'VA Sites',
                                'NIH CC',
                                'Gender Match',
                                'Age Match')
+     exclusion_match_column_names <- c()
      
      for (row in 1:nrow(df_group1)) {
        base_string <- df_group1[row,'criteria_type_title']
        newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
        initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
        criteria_columns <- append(criteria_columns, base_string )
-       match_column_names <- append(match_column_names,  paste(base_string, "Match") )
+       if(df_group1[row, 'criteria_type_sense'] == 'Inclusion') {
+         inclusion_match_column_names <- append(inclusion_match_column_names,  paste(base_string, "Match") )
+       } else {
+         exclusion_match_column_names <- append(exclusion_match_column_names,  paste(base_string, "Match") )
+       }
+       
      }
      newColNames <- append(newColNames, c('VA Sites',
                                           'NIH CC',
@@ -1421,7 +1427,11 @@ order by criteria_column_index "
        newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
        initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
        criteria_columns <- append(criteria_columns, base_string )
-       match_column_names <- append(match_column_names,  paste(base_string, "Match") )
+       if(df_group2[row, 'criteria_type_sense'] == 'Inclusion') {
+         inclusion_match_column_names <- append(inclusion_match_column_names,  paste(base_string, "Match") )
+       } else {
+         exclusion_match_column_names <- append(exclusion_match_column_names,  paste(base_string, "Match") )
+       }
        
      } 
     newColNames <- append(newColNames, 'clean_nct_id')
@@ -1506,10 +1516,23 @@ order by criteria_column_index "
             )
           ,
           
-      
         list(
           targets = match(
-            match_column_names,
+            inclusion_match_column_names,
+            names(sessionInfo$df_matches_to_show)
+          ),
+          render = JS(
+            "function(data, type, row, meta) {  if (data === null) { return \"\" } ",
+            "else if (type == 'display' && data == true ) { return '<img src=\"checkmark-32.png\" />'} ",
+            "else if (type == 'display' && data == false ) {  return  '<img src=\"x-mark-32.png\" />';}" , 
+            "else  { return \"\" ; }",
+            "}"
+          )
+        )
+        ,
+        list(
+          targets = match(
+            exclusion_match_column_names,
             names(sessionInfo$df_matches_to_show)
           ),
           render = JS(
