@@ -79,7 +79,8 @@ criteria_type_code text not null,
 criteria_type_title text not null,
 criteria_type_desc text not null,
 criteria_type_active varchar(1) check (criteria_type_active = 'Y' or criteria_type_active = 'N'),
-criteria_type_sense text check (criteria_type_sense = 'Inclusion' or criteria_type_sense = 'Exclusion')
+criteria_type_sense text check (criteria_type_sense = 'Inclusion' or criteria_type_sense = 'Exclusion'),
+criteria_column_index int
 );
 
 drop table if exists trial_criteria ;
@@ -96,6 +97,14 @@ foreign key(criteria_type_id) references criteria_types(criteria_type_id)
 );
 
 
+drop table if exists trial_unstructured_criteria;
+create table trial_criteria (
+nct_id varchar(100),
+display_order int,
+inclusion_indicator text,
+description text
+);
+create index tuc_nct_index on trial_unstructured_criteria(nct_id);
 
 
 
