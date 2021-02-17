@@ -98,7 +98,7 @@ foreign key(criteria_type_id) references criteria_types(criteria_type_id)
 
 
 drop table if exists trial_unstructured_criteria;
-create table trial_criteria (
+create table trial_unstructured_criteria (
 nct_id varchar(100),
 display_order int,
 inclusion_indicator text,
