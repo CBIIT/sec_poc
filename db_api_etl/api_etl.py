@@ -50,6 +50,7 @@ cur.execute('delete from maintypes')
 cur.execute('delete from trial_maintypes')
 cur.execute('delete from distinct_trial_diseases')
 cur.execute('delete from trial_sites')
+cur.execute('delete from trial_unstructured_criteria')
 con.commit()
 
 # First get the maintypes, then get the study data needed.
@@ -74,6 +75,7 @@ include_items = ['nct_id',
                  'eligibility.structured.max_age_in_years',
                  'eligibility.structured.min_age_in_years',
                  'eligibility.structured.gender',
+                 'eligibility.unstructured',
                  'diseases',
                  'brief_title',
                  'official_title',
@@ -156,6 +158,8 @@ while run:
              ])
         con.commit()
 
+        # disease processing
+
         dlist = []
         dlist_all = []
         dlist_lead = []
@@ -202,6 +206,18 @@ while run:
         for maintype in maintype_set:
             cur.execute('insert into trial_maintypes(nct_id, nci_thesaurus_concept_id) values (?,?)',
                         [trial['nct_id'], maintype])
+        con.commit()
+
+        # end of disease processing
+
+        # unstructured criteria
+        if 'unstructured' in trial['eligibility']:
+            uns = trial['eligibility']['unstructured']
+            for crit in uns:
+               # print(crit)
+                cur.execute('insert into trial_unstructured_criteria(nct_id, inclusion_indicator, display_order, description) values (?,?,?,?)',
+                            [ trial['nct_id'], crit['inclusion_indicator'], crit['display_order'], crit['description']]
+                            )
         con.commit()
 
     # r = requests.post('https://clinicaltrialsapi.cancer.gov/v1/clinical-trials',
