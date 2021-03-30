@@ -16,7 +16,7 @@ diseases_lead text,
 disease_names_lead text,
 phase text,
 primary_purpose_code text,
-study_source text
+study_source text,
 record_verification_date date
 );
 drop table if exists trial_diseases;
