@@ -42,7 +42,12 @@ create index trial_diseases_inc_ind on trial_diseases(inclusion_indicator);
 
 
 drop table if exists distinct_trial_diseases;
-create table distinct_trial_diseases(nci_thesaurus_concept_id text, preferred_name, disease_type, display_name);
+create table distinct_trial_diseases(
+  nci_thesaurus_concept_id text, 
+  preferred_name text, 
+  disease_type text, 
+  display_name text);
+  
 create index dtd_index on distinct_trial_diseases(nci_thesaurus_concept_id);
 
 
