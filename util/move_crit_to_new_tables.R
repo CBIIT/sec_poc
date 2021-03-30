@@ -166,7 +166,7 @@ df_imm_exc$imm_criteria_fixed <-
          function(x)
            transform_prior_therapy_conv(x))
 df_imm_exc <- as.data.frame(lapply(df_imm_exc, unlist))
-
+browser()
 
 new_imm_exc_df <- data.frame( "nct_id" = df_imm_exc$nct_id, 
                                     "criteria_type_id" = 3 ,
@@ -255,6 +255,7 @@ df_perf_2 <- df_perf[, c("nct_id", "trial_criteria_orig_text", "trial_criteria_e
 df_perf_2$criteria_type_id <- 8
 df_perf_2$update_date <- format_iso_8601(Sys.time())
 df_perf_2$update_by <- 'hickmanhb'
+
 
 
 #
