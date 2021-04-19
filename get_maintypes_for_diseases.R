@@ -19,7 +19,7 @@ get_maintypes_for_diseases  <- function(participant_codes, con) {
       on np.parent = m.nci_thesaurus_concept_id
       join ncit n on np.parent = n.code
       join ncit nc on np.descendant = nc.code
-      where np.descendant = ?
+      where np.descendant = $1
       )
       select distinct np.parent as maintype
       from ncit_tc_with_path np join maintypes m
@@ -27,7 +27,7 @@ get_maintypes_for_diseases  <- function(participant_codes, con) {
       join ncit n on np.parent = n.code
       join ncit nc on np.descendant = nc.code
       join minlevel ml on np.level=ml.min_level
-      where np.descendant = ?',
+      where np.descendant = $2',
       params = c(c_code, c_code)
     )
     return(dfm)

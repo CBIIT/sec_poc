@@ -796,7 +796,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     # get the criteria by type
     
     
-    cdf <- dbGetQuery(con, "select nct_id, trial_criteria_refined_text, trial_criteria_expression from trial_criteria where criteria_type_id = ? ",
+    cdf <- dbGetQuery(con, "select nct_id, trial_criteria_refined_text, trial_criteria_expression from trial_criteria where criteria_type_id = $1 ",
                       params = c(criteria_type_id))
     
     # Now rename to the columns in cdr based upon the abbr.
@@ -1774,8 +1774,7 @@ order by criteria_column_index "
     
     print(input$biomarker_list)
     if (length(input$biomarker_list) > 0) {
-      add_disease_sql <-
-        "select code as Code , 'YES' as Value, pref_name as Biomarkers from ncit where pref_name = ?"
+      add_disease_sql <-  "select code as Code , 'YES' as Value, pref_name as Biomarkers from ncit where pref_name = $1"
       session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       for (row in 1:length(input$biomarker_list)) {
         new_disease <- input$biomarker_list[row]
@@ -1799,7 +1798,7 @@ order by criteria_column_index "
     }
     
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
     #browser()
@@ -1819,7 +1818,7 @@ order by criteria_column_index "
     }
     
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
     #browser()
@@ -1839,7 +1838,7 @@ order by criteria_column_index "
       new_disease <- 'Solid Tumor'
     }
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+    add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
     session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
     df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
     #browser()
@@ -1860,7 +1859,7 @@ order by criteria_column_index "
       #
       # There are subtypes selected -- use those and do not use the selected maintype
       #
-      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
       session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       for (row in 1:length(input$subtype_typer)) {
         new_disease <- input$subtype_typer[row]
@@ -1876,7 +1875,7 @@ order by criteria_column_index "
     } else if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
       # No subtype, get the maintype and add that in.
       print(paste("add maintype as disease - ", input$maintype_typer))
-      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
       session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       new_disease <- input$maintype_typer
       df_new_disease <-
@@ -1894,7 +1893,7 @@ order by criteria_column_index "
     #See if we have subtypes, if so use them, otherwise see if we have a maintype/subtype 
     # and use that
     if(length(input$stage_typer) > 0  ){
-      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = ?"
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
       session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       for (row in 1:length(input$stage_typer)) {
         new_disease <- input$stage_typer[row]
@@ -1927,7 +1926,7 @@ order by criteria_column_index "
       withProgress(message = "Looking up codes", value = 0, {
         if(input$crosswalk_ontology == 'ICD10CM') {
           session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-          icd10_sql <- "select evs_c_code as Code, 'YES' as Value, evs_preferred_name as Description from icd10 where code_system = 'ICD10' and disease_code = ? and evs_c_code is not null"
+          icd10_sql <- "select evs_c_code as Code, 'YES' as Value, evs_preferred_name as Description from icd10 where code_system = 'ICD10' and disease_code = $1 and evs_c_code is not null"
           new_codes <-
             dbGetQuery(session_conn, icd10_sql,  params = c(input$crosswalk_code))
           DBI::dbDisconnect(session_conn)
