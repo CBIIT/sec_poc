@@ -14,7 +14,7 @@ get_subtypes_for_maintypes  <- function(ctrp_disease_string, con) {
   # Get the c codes for the ctrp display name 
   #
   c_codes <- dbGetQuery(con,
-                        "select nci_thesaurus_concept_id from distinct_trial_diseases where display_name = ?",
+                        "select nci_thesaurus_concept_id from distinct_trial_diseases where display_name = $1",
                         params = c(ctrp_disease_string))
   
   
@@ -30,7 +30,7 @@ get_subtypes_for_maintypes  <- function(ctrp_disease_string, con) {
 ,
 descendants as 
 (
-select descendant from ncit_tc where parent = ?) 
+select descendant from ncit_tc where parent = $1) 
 
 select s.display_name from ncit n join descendants d on n.code = d.descendant 
 join subtypes s on n.code = s.nci_thesaurus_concept_id

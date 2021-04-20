@@ -21,7 +21,7 @@ get_stage_for_types  <- function(ctrp_disease_string, con) {
    # browser()
     print(paste('get_code_for_string - ', ctrp_string))
     dfc <- dbGetQuery(con,
-                     "select distinct nci_thesaurus_concept_id from distinct_trial_diseases where display_name = ?",
+                     "select distinct nci_thesaurus_concept_id from distinct_trial_diseases where display_name = $1",
                         params = c(ctrp_string))
     return(dfc)
                         
@@ -38,7 +38,7 @@ select  nci_thesaurus_concept_id, display_name from distinct_trial_diseases wher
 ,
 descendants as 
 (
-select descendant from ncit_tc where parent = ? and descendant != ?) 
+select descendant from ncit_tc where parent = $1 and descendant != $2) 
 select s.display_name, n.code from ncit n join descendants d on n.code = d.descendant  
 join stages s on n.code = s.nci_thesaurus_concept_id
 order by s.display_name",
