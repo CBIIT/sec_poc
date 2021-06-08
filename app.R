@@ -180,7 +180,14 @@ background-color: #FFCCCC;
         DTOutput("diseases"),
         actionButton("show_biomarkers", "Biomarkers"),
         DTOutput('biomarkers'),
-     
+        radioGroupButtons(
+          inputId = "brain_mets",
+          label = "Brain/CNS metastases",
+          choices = c("Yes", "No", "Unspecified"),
+          selected = "Unspecified",
+          justified = FALSE,
+          status = "primary"
+        ),
         numericInput(
           "patient_wbc",
           "WBC (/uL)",
@@ -692,7 +699,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     dbGetQuery(
       con,
       "with domain_set as (
-        select tc.descendant as code  from ncit_tc tc where tc.parent in ('C16203', 'C1908',  'C62634')
+        select tc.descendant as code  from ncit_tc tc where tc.parent in ('C16203', 'C1908',  'C62634', 'C163758')
       )      
 select ds.code, n.pref_name  from domain_set ds join ncit n 
 on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
@@ -944,6 +951,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     updateNumericInput(session, "patient_age", value = NA)
     updateRadioGroupButtons(session, "hiv", selected = 'Unspecified')
     updateRadioGroupButtons(session, "gender", selected = 'Unspecified')
+    updateRadioGroupButtons(session, "brain_mets", selected = 'Unspecified')
     updatePickerInput(session, "performance_status", selected = "C159685")
     sessionInfo$disease_df <- sessionInfo$disease_df[0,]
     sessionInfo$biomarker_df <-  sessionInfo$biomarker_df[0,]
@@ -1155,6 +1163,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
   #  }
     #browser()
+    
+    if(input$brain_mets == 'Yes') {
+      sel[nrow(sel) + 1,] = c('C4015', "YES")
+    }
+    
     
     if(!is.na(input$patient_plt)) {
       print(paste("we have a platelet count ", input$patient_plt))
