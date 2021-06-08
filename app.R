@@ -692,7 +692,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     dbGetQuery(
       con,
       "with domain_set as (
-        select tc.descendant as code  from ncit_tc tc where tc.parent in ('C16203', 'C1908')
+        select tc.descendant as code  from ncit_tc tc where tc.parent in ('C16203', 'C1908',  'C62634')
       )      
 select ds.code, n.pref_name  from domain_set ds join ncit n 
 on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
@@ -1166,8 +1166,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     }
     
     sel_codes <- sel$Code
-    possible_disease_codes_df <-
-      sel[which(sel$Value == 'YES'),]  # NOTE USE TRANSITIVE CLOSURE TO MAKE SURE IF I NEED TO
+    possible_disease_codes_df <- sessionInfo$disease_df
+     # sel[which(sel$Value == 'YES'),]  # NOTE USE TRANSITIVE CLOSURE TO MAKE SURE IF I NEED TO
     print("---- possible disease codes -----")
     print(possible_disease_codes_df)
     sel_codes2 <- paste("'", sel$Code, "'", sep = "")
