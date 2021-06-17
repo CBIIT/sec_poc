@@ -101,7 +101,10 @@ getDiseaseTreeData <- function(con,ncit_code, search_string = NA, use_ctrp_displ
   ),
   
 all_nodes_ctrp as (
-  select ctrp1.display_name as parent , ctrp2.display_name as child, level as level,  1 as collapsed, 10 as nodeSize --, path_string
+ select replace(replace(replace(ctrp1.display_name, 'AJCC v7', ''), 'AJCC v8', '') , 'AJCC v6', '') as parent , 
+                              replace(replace(replace(ctrp2.display_name, 'AJCC v7', ''), 'AJCC v8', ''), 'AJCC v6', '') as child,  
+  
+  level as level,  1 as collapsed, 10 as nodeSize --, path_string
   from all_nodes an left outer join ctrp_names ctrp1 on an.parent=ctrp1.preferred_name
   join ctrp_names ctrp2 on an.child = ctrp2.preferred_name where ( ctrp1.display_name != ctrp2.display_name or level = 0)
  )
