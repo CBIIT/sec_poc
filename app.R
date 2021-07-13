@@ -1199,7 +1199,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       df_crit$clean_nct_id %in% disease_df$nct_id  # will set T/F for each row
     
     # Get the VA studies
-    setProgress(value = 0.2,  detail = 'Examing VA sites')
+    setProgress(value = 0.2,  detail = 'Examining VA sites')
     
     va_df <- get_api_studies_with_va_sites()
     df_crit$va_match <- df_crit$clean_nct_id %in% va_df$nct_id
