@@ -4,6 +4,10 @@
 get_api_studies_for_cancer_centers  <- function(cancer_centers) {
   start <- 0
   
+  CTS_V2_API_KEY <- Sys.getenv('CTS_V2_API_KEY')
+  
+  if (nchar(CTS_V2_API_KEY) == 0) {
+    # V1
   d <-
     POST(
       "https://clinicaltrialsapi.cancer.gov/v1/clinical-trials",
@@ -46,4 +50,49 @@ get_api_studies_for_cancer_centers  <- function(cancer_centers) {
   }
   # print(df)
   return(df)
+  } else {
+    d <-
+      POST(
+        'https://clinicaltrialsapi.cancer.gov/api/v2/trials',
+        body = list(
+          current_trial_status = 'Active',
+          primary_purpose = c('TREATMENT', 'SCREENING'),
+          sites.org_family = cancer_centers,
+          sites.recruitment_status = 'ACTIVE',
+          include = list('nct_id'),
+          size = 50,
+          from = 0
+        ),
+        encode = "json",
+        add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+      )
+    pdata <- content(d)
+    total_to_return <- pdata$total
+    df <- rbindlist(pdata$data)
+    num_returned <- nrow(df)
+    start <- num_returned
+    while (start < total_to_return) {
+      d <-
+        POST(
+          'https://clinicaltrialsapi.cancer.gov/api/v2/trials',
+          body = list(
+            current_trial_status = 'Active',
+            primary_purpose = c('TREATMENT', 'SCREENING'),
+            sites.org_family = cancer_centers,
+            sites.recruitment_status = 'ACTIVE',            
+            include = list('nct_id'),
+            size = 50,
+            from = start
+          ),
+          encode = "json",
+          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+        )
+      pdata <- content(d)
+      dfi <- rbindlist(pdata$data) # Turns the list into a dataframe
+      start <- start + nrow(dfi)
+      df <- rbind(df, dfi)
+      
+    }
+    return(df)
+  }
 }
