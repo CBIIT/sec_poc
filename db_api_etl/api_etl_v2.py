@@ -159,6 +159,9 @@ while run:
             gender_expression = "exists('C46110')"
         else:
             gender_expression = ''
+
+        max_age_in_years = None if 'max_age_in_years' not in trial['eligibility']['structured'] else trial['eligibility']['structured']['max_age_in_years']
+        min_age_in_years = None if 'min_age_in_years' not in trial['eligibility']['structured'] else trial['eligibility']['structured']['min_age_in_years']
         cur.execute(
             'insert into trials(nct_id, brief_title, official_title, ' +
             'brief_summary, detail_description, max_age_in_years, min_age_in_years, gender,' +
@@ -166,10 +169,10 @@ while run:
             ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
             [trial['nct_id'], trial['brief_title'],
              trial['official_title'], trial['brief_summary'], trial['detail_description']
-                , trial['eligibility']['structured']['max_age_in_years']
-                , trial['eligibility']['structured']['min_age_in_years']
+                ,max_age_in_years
+                , min_age_in_years
                 , trial['eligibility']['structured']['gender'],
-             "C25150 >= " + str(trial['eligibility']['structured']['min_age_in_years']) + " & C25150 <= " +
+             None if max_age_in_years is None or min_age_in_years is None else "C25150 >= " + str(trial['eligibility']['structured']['min_age_in_years']) + " & C25150 <= " +
              str(trial['eligibility']['structured']['max_age_in_years']),
              gender_expression,
              trial['phase'],
@@ -232,7 +235,7 @@ while run:
         # end of disease processing
 
         # unstructured criteria
-        if 'unstructured' in trial['eligibility']:
+        if 'unstructured' in trial['eligibility'] and trial['eligibility']['unstructured'] is not None:
             uns = trial['eligibility']['unstructured']
             for crit in uns:
                # print(crit)
