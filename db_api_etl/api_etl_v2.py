@@ -93,7 +93,8 @@ include_items = ['nct_id',
                  'primary_purpose_code',
                  'study_source',
                  'record_verification_date',
-                 'sites'
+                 'sites',
+                 'amendment_date'
                  ]
 
 
@@ -165,8 +166,8 @@ while run:
         cur.execute(
             'insert into trials(nct_id, brief_title, official_title, ' +
             'brief_summary, detail_description, max_age_in_years, min_age_in_years, gender,' +
-            'age_expression, gender_expression, phase , primary_purpose_code, study_source, record_verification_date)' +
-            ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            'age_expression, gender_expression, phase , primary_purpose_code, study_source, record_verification_date, amendment_date)' +
+            ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
             [trial['nct_id'], trial['brief_title'],
              trial['official_title'], trial['brief_summary'], trial['detail_description']
                 ,max_age_in_years
@@ -178,7 +179,8 @@ while run:
              trial['phase'],
              trial['primary_purpose'],
              trial['study_source'],
-             None if 'record_verification_date' not in trial else trial['record_verification_date']
+             None if 'record_verification_date' not in trial else trial['record_verification_date'],
+             None if 'amendment_date' not in trial else trial['amendment_date']
              ])
         con.commit()
 
