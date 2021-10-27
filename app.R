@@ -1363,17 +1363,20 @@ order by criteria_column_index "
       lapply(df_matches$age_criteria,
              function(x)
                eval_criteria(x, eval_env = patient_data_env))
-    
+      
     df_matches$gender_matches <-
       lapply(df_matches$gender_criteria,
              function(x)
                eval_criteria(x, eval_env = patient_data_env))
     
-
     # Magic call to fix up the dataframe after the lapply calls which may create lists all the way down....
-    df_matches <- as.data.frame(lapply(df_matches, unlist))
+    df_temp <- as.data.frame(lapply(df_matches, unlist))
+    df_matches <- df_temp
+    
+    #df_matches <- as.data.frame(lapply(df_matches, unlist))
+    
 
-  #  browser()    
+    #browser()    
     print(Sys.time())
     DBI::dbDisconnect(session_conn)
     sessionInfo$df_matches <- df_matches
