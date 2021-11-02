@@ -18,6 +18,10 @@ phase text,
 primary_purpose_code text,
 study_source text,
 record_verification_date date
+biomarker_inc_codes text,
+biomarker_inc_names  text,
+biomarker_exc_codes text,
+biomarker_exc_names text
 );
 drop table if exists trial_diseases;
 
