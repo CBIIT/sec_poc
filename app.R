@@ -23,6 +23,8 @@ library(sjmisc)
 library(lubridate)
 library(shinyFeedback)
 library(shinyalert)
+
+source('get_api_studies_for_biomarkers.R')
 source('hh_collapsibleTreeNetwork.R')
 source('getDiseaseTreeData.R')
 source('paste3.R')
@@ -784,8 +786,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     select
   '<a href=https://www.cancer.gov/about-cancer/treatment/clinical-trials/search/v?id=' ||  t.nct_id || '&r=1 target=\"_blank\">' || t.nct_id || '</a>' as nct_id,
   t.nct_id as clean_nct_id, age_expression, disease_names, diseases, gender, gender_expression, max_age_in_years, min_age_in_years,
-  'not yet' as hgb_description, 'FALSE' as hgb_criteria,
+ 
   disease_names_lead, diseases_lead ,
+  biomarker_exc_codes, biomarker_exc_names,
+  biomarker_inc_codes, biomarker_inc_names, 
   brief_title, phase, study_source , case study_source when 'National' then 1 when 'Institutional' then 2 when 'Externally Peer Reviewed' then 3 when 'Industrial' then 4 end study_source_sort_key ,
   sc.number_sites 
   from trials t join site_counts sc on t.nct_id = sc.nct_id "
@@ -1058,7 +1062,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   })
   
   # 
-  # Search and match button event handler 
+  # Search and match button event handler ----
   
   observeEvent(input$search_and_match, label = 'search and match', {
     print("search and match")
@@ -1209,6 +1213,43 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     df_crit$nih_cc_match <-
       df_crit$clean_nct_id %in% nih_cc_df$nct_id
     
+    setProgress(value = 0.3,  detail = 'Computing biomarker matches ')
+    if(nrow(sessionInfo$biomarker_df) > 0 ) {
+      biomarker_exc_df <- get_api_studies_for_biomarkers(sessionInfo$biomarker_df$Code, 'exclusion')
+      biomarker_inc_df <- get_api_studies_for_biomarkers(sessionInfo$biomarker_df$Code, 'inclusion')
+      trials_with_biomaker_inc_df <- dbGetQuery(session_conn,
+                                                'select nct_id from trials where biomarker_inc_codes is not null')
+      trials_with_biomaker_exc_df <- dbGetQuery(session_conn,
+                                                'select nct_id from trials where biomarker_exc_codes is not null')
+      
+      df_crit$biomarker_api_exc_matches <- df_crit$clean_nct_id %in% biomarker_exc_df$nct_id
+      
+      #
+      #These next two lines are a bit tricky
+      # First, if there the API returns the NCT ID for the inclusion or exclusion, then the sum will be two and TRUE is set
+      # Otherwise -- see if there is a criteria of the type for a NCT ID -- sum will be one.  Else - no criteria of a type for a trial
+      # set the result to NA (null) so we don't toss out NULL values vacuously 
+      #
+      df_crit <- transform(df_crit,biomarker_api_inc_matches = ifelse(clean_nct_id %in% biomarker_inc_df$nct_id + 
+                                                                 clean_nct_id %in% trials_with_biomaker_inc_df$nct_id == 2,TRUE,
+                                                                 ifelse(clean_nct_id %in% biomarker_inc_df$nct_id + 
+                                                                        clean_nct_id %in% trials_with_biomaker_inc_df$nct_id == 1, FALSE, 
+                                                                        NA)
+                                                                 )
+      )
+      df_crit <- transform(df_crit,biomarker_api_exc_matches = ifelse(clean_nct_id %in% biomarker_exc_df$nct_id + 
+                                                                        clean_nct_id %in% trials_with_biomaker_exc_df$nct_id == 2,TRUE,
+                                                                      ifelse(clean_nct_id %in% biomarker_exc_df$nct_id + 
+                                                                               clean_nct_id %in% trials_with_biomaker_exc_df$nct_id == 1, FALSE, 
+                                                                             NA)
+                                                                )
+      )
+      
+    } else {
+      df_crit$biomarker_api_exc_matches <- NA
+      df_crit$biomarker_api_inc_matches <- NA 
+    }
+    #browser()
     setProgress(value = 0.3,  detail = 'Computing patient maintypes')
     
     # Get the patient maintypes
