@@ -36,6 +36,33 @@ on np.parent = m.nci_thesaurus_concept_id
     return rc
 
 
+def gen_biomarker_info(biomarkers):
+    biomarker_inc_codes = []
+    biomarker_inc_names = []
+    biomarker_exc_codes = []
+    biomarker_exc_names = []
+    for b in biomarkers:
+        if 'inclusion_indicator' in b and b['inclusion_indicator'] is not None and b['inclusion_indicator'] == 'TRIAL':
+            if 'eligibility_criterion' in b and b['eligibility_criterion'] is not None:
+                if b['eligibility_criterion'] == 'inclusion':
+                    biomarker_inc_string = ''
+                    if 'name' in b and b['name'] is not None:
+                        biomarker_inc_string += b['name']
+                    if 'nci_thesaurus_concept_id' in b and b['nci_thesaurus_concept_id'] is not None:
+                        biomarker_inc_string += ' (' + b['nci_thesaurus_concept_id'] + ')'
+                        biomarker_inc_codes.append( b['nci_thesaurus_concept_id'])
+                    biomarker_inc_names.append(biomarker_inc_string)
+                elif b['eligibility_criterion'] == 'exclusion':
+                    biomarker_exc_string = ''
+                    if 'name' in b and b['name'] is not None:
+                        biomarker_exc_string += b['name']
+                    if 'nci_thesaurus_concept_id' in b and b['nci_thesaurus_concept_id'] is not None:
+                        biomarker_exc_string += ' (' + b['nci_thesaurus_concept_id'] + ')'
+                        biomarker_exc_codes.append( b['nci_thesaurus_concept_id'])
+                    biomarker_exc_names.append(biomarker_exc_string)
+
+    return (biomarker_inc_codes, biomarker_inc_names, biomarker_exc_codes, biomarker_exc_names)
+
 start_time = datetime.datetime.now()
 
 parser = argparse.ArgumentParser(
@@ -94,7 +121,8 @@ include_items = ['nct_id',
                  'study_source',
                  'record_verification_date',
                  'sites',
-                 'amendment_date'
+                 'amendment_date',
+                 'biomarkers'
                  ]
 
 
@@ -146,6 +174,7 @@ while run:
 
 
     for trial in j['data']:
+        print('NCT ID :', trial['nct_id'])
         for s in trial['sites']:
             cur.execute('insert into trial_sites(nct_id, org_name, org_family, org_status, org_to_family_relationship) values (?,?,?,?,?)',
                         [trial['nct_id'], s['org_name'], s['org_family'], s['recruitment_status'],None])
@@ -163,11 +192,15 @@ while run:
 
         max_age_in_years = 999 if 'max_age_in_years' not in trial['eligibility']['structured'] else trial['eligibility']['structured']['max_age_in_years']
         min_age_in_years = 0 if 'min_age_in_years' not in trial['eligibility']['structured'] else trial['eligibility']['structured']['min_age_in_years']
+        biomarker_info = [[], [], [], []] if ('biomarkers' not in trial or trial['biomarkers'] is None )  else gen_biomarker_info(trial['biomarkers'])
+        print(biomarker_info)  # (biomarker_inc_codes, biomarker_inc_names, biomarker_exc_codes, biomarker_exc_names)
+
         cur.execute(
-            'insert into trials(nct_id, brief_title, official_title, ' +
-            'brief_summary, detail_description, max_age_in_years, min_age_in_years, gender,' +
-            'age_expression, gender_expression, phase , primary_purpose_code, study_source, record_verification_date, amendment_date)' +
-            ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            """insert into trials(nct_id, brief_title, official_title, 
+            brief_summary, detail_description, max_age_in_years, min_age_in_years, gender,
+            age_expression, gender_expression, phase , primary_purpose_code, study_source, record_verification_date, amendment_date,
+            biomarker_inc_codes, biomarker_inc_names, biomarker_exc_codes, biomarker_exc_names) 
+            values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             [trial['nct_id'], trial['brief_title'],
              trial['official_title'], trial['brief_summary'], trial['detail_description']
                 ,max_age_in_years
@@ -180,7 +213,11 @@ while run:
              trial['primary_purpose'],
              trial['study_source'],
              None if 'record_verification_date' not in trial else trial['record_verification_date'],
-             None if 'amendment_date' not in trial else trial['amendment_date']
+             None if 'amendment_date' not in trial else trial['amendment_date'],
+             None if len(biomarker_info[0]) == 0 else ', '.join(biomarker_info[0]),
+             None if len(biomarker_info[1]) == 0 else ', '.join(biomarker_info[1]),
+             None if len(biomarker_info[2]) == 0 else ', '.join(biomarker_info[2]),
+             None if len(biomarker_info[3]) == 0 else ', '.join(biomarker_info[3])
              ])
         con.commit()
 
@@ -245,6 +282,7 @@ while run:
                             [ trial['nct_id'], crit['inclusion_indicator'], crit['display_order'], crit['description']]
                             )
         con.commit()
+        #print(str(trial['biomarkers']))
 
     # r = requests.post('https://clinicaltrialsapi.cancer.gov/v1/clinical-trials',
     #                  data=data)
