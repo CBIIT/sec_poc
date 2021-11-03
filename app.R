@@ -258,26 +258,7 @@ background-color: #FFCCCC;
                  "match_types_picker",
                  label = 'Participant Attributes',
                  choice = NULL,
-                 # choices = c(
-                 #   "Disease" = "disease_matches == TRUE",
-                 #   "Gender" = "gender_matches == TRUE",
-                 #   "Age" = " (age_matches == TRUE | is.na(age_matches) ) ",
-                 #   #    "HGB" = "hgb_matches == TRUE",
-                 #   "PLT" = " ( plt_matches == TRUE | is.na(plt_matches) ) ",
-                 #   "WBC" = " (  wbc_matches == TRUE | is.na(wbc_matches) )  ",
-                 #   "Performance Status" = " (perf_matches == TRUE | is.na(perf_matches) ) ",
-                 #   "Immunotherapy (exclusion)" = " ( immunotherapy_matches == FALSE | is.na(immunotherapy_matches) ) ",
-                 #   #     "Biomarkers" = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) ) | ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )  "
-                 #   "Biomarkers (exclusion) " = " ( biomarker_exc_matches == FALSE | is.na(biomarker_exc_matches) )   ",
-                 #   "Biomarkers (inclusion) " = " ( biomarker_inc_matches == TRUE | is.na(biomarker_inc_matches) )   " ,
-                 #   "Chemotherapy (exclusion) " = " ( chemotherapy_exc_matches == FALSE | is.na(chemotherapy_exc_matches) )   "
-                 #   ,
-                 #   "HIV Status (exclusion) " = " ( hiv_exc_matches == FALSE | is.na(hiv_exc_matches) ) "
-                 #   #,
-                 #   #"Chemotherapy (inclusion) " = " ( chemotherapy_inc_matches == TRUE | is.na(chemotherapy_inc_matches) )   "
-                 #   
-                 # ),
-                 #selected = "disease_matches == TRUE",
+       
                  multiple = TRUE,
                  options = pickerOptions(actionsBox = TRUE),
                  choicesOpt = NULL,
@@ -748,13 +729,18 @@ order by n.pref_name"
       con,
       
       "with all_crit_types as (
-        select 'disease_matches == TRUE'  as criteria_match_code , 'Diseases' as criteria_type_title, -10 as criteria_column_index
+        select 'disease_matches == TRUE'  as criteria_match_code , 'Diseases' as criteria_type_title, -100 as criteria_column_index
         UNION
-        select 'gender_matches == TRUE'  as criteria_match_code , 'Gender' as criteria_type_title, -5 as criteria_column_index
+        select 'gender_matches == TRUE'  as criteria_match_code , 'Gender' as criteria_type_title, -50 as criteria_column_index
         union
-        select ' (age_matches == TRUE | is.na(age_matches) ) '  as criteria_match_code , 'Age' as criteria_type_title, -1 as criteria_column_index
+        select ' (age_matches == TRUE | is.na(age_matches) ) '  as criteria_match_code , 'Age' as criteria_type_title, -10 as criteria_column_index
         union
-        
+        select ' ( biomarker_api_exc_matches == FALSE | is.na(biomarker_api_exc_matches) ) ' as criteria_match_code,
+              'Biomarker Exclusion' as criteria_type_title, -5 as criteria_column_index 
+        union  
+         select ' ( biomarker_api_inc_matches == TRUE | is.na(biomarker_api_inc_matches) ) ' as criteria_match_code,
+              'Biomarker Inclusion' as criteria_type_title, -3 as criteria_column_index 
+        union  
         select 
 		case criteria_type_sense
 		   when 'Inclusion' then ' ( ' || criteria_type_code || '_matches == TRUE | is.na(' || criteria_type_code || '_matches) )   '
@@ -1222,7 +1208,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       trials_with_biomaker_exc_df <- dbGetQuery(session_conn,
                                                 'select nct_id from trials where biomarker_exc_codes is not null')
       
-      df_crit$biomarker_api_exc_matches <- df_crit$clean_nct_id %in% biomarker_exc_df$nct_id
+      #df_crit$biomarker_api_exc_matches <- df_crit$clean_nct_id %in% biomarker_exc_df$nct_id
       
       #
       #These next two lines are a bit tricky
@@ -1244,7 +1230,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                                                                              NA)
                                                                 )
       )
-      
+      #browser()
     } else {
       df_crit$biomarker_api_exc_matches <- NA
       df_crit$biomarker_api_inc_matches <- NA 
@@ -1322,6 +1308,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         'disease_names_lead' = df_crit$disease_names_lead,
         'disease_matches' = df_crit$api_disease_match,
         'lead_disease_matches' = df_crit$lead_disease_match,  
+        'biomarker_exc_names' = df_crit$biomarker_exc_names,
+        'biomarker_api_exc_matches' = df_crit$biomarker_api_exc_matches,
+        'biomarker_inc_names' = df_crit$biomarker_inc_names,
+        'biomarker_api_inc_matches' = df_crit$biomarker_api_inc_matches,  
         stringsAsFactors = FALSE)
 
     
@@ -1439,24 +1429,29 @@ order by criteria_column_index "
                       'Disease Names',
                       'Lead Disease Codes',
                       'Lead Disease Names',
-                      'Disease Match',
-                      'Lead Disease Match' )
+                      'Disease',
+                      'Lead Disease' ,
+                       'Biomarker Exclusion Names',
+                       'Biomarker Exclusion',
+                       'Biomarker Inclusion Names',
+                       'Biomarker Inclusion')
      initially_hidden_columns <- c('clean_nct_id',  '# Matches',
                                    'Disease Codes',  'Lead Disease Codes',  'Gender',
                                    'Gender Expression', 'Min Age',
                                    'Max Age',
-                                   'Age Expression')
+                                   'Age Expression', 'Biomarker Exclusion Names','Biomarker Inclusion Names')
      criteria_columns <- c(
        'Gender',
        'Min Age',
-       'Max Age'
+       'Max Age' ,'Biomarker Exclusion Names','Biomarker Inclusion Names'
      )
     
-     inclusion_match_column_names <-   c('Lead Disease Match', 'Disease Match', 'VA Sites',
+     inclusion_match_column_names <-   c('Lead Disease', 'Disease', 'VA Sites',
                                'NIH CC',
                                'Gender Match',
-                               'Age Match')
-     exclusion_match_column_names <- c()
+                               'Age Match',
+                               'Biomarker Inclusion')
+     exclusion_match_column_names <- c( 'Biomarker Exclusion')
      
      for (row in 1:nrow(df_group1)) {
        base_string <- df_group1[row,'criteria_type_title']
