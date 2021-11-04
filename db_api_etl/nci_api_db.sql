@@ -115,5 +115,45 @@ description text
 );
 create index tuc_nct_index on trial_unstructured_criteria(nct_id);
 
+-- session information 
+
+drop table if exists search_session;
+
+create table search_session (
+session_uuid text primary key,
+submit_date text,
+nodename text,
+username text
+);
+
+drop table if exists search_session_data;
+
+---- data table for sessions
+---- concept_cd is the code (for now) in the NCIt
+--- valtype_cd -- T for text or N for numeric 
+--- tval_char - the value for a text type OR  the relational for a numeric type 
+---          E -> =
+---          L -> <
+---          LE -> <=
+---          G -> >
+---          GE -> >= 
+---
+---  nval_num holds the numeric value
+---  units_cd hold the units of measure
+---  comment could hold the bif of JSON for the source data 
+
+create table search_session_data
+( 
+   data_line       integer primary key autoincrement,
+   session_uuid    text,
+   concept_cd      text,
+   valtype_cd      text,
+   tval_char       text,
+   nval_num        real,
+   units_cd        text,
+   comment         text,
+   foreign key(session_uuid) references search_session(session_uuid)
+);
+
 
 
