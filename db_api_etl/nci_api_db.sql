@@ -140,7 +140,7 @@ drop table if exists search_session_data;
 ---
 ---  nval_num holds the numeric value
 ---  units_cd hold the units of measure
----  comment could hold the bif of JSON for the source data 
+---  comment could hold the snippet of JSON for the source data 
 
 create table search_session_data
 ( 
