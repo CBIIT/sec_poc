@@ -936,7 +936,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         if (concept_cd == 'C25720') { # zip code 
           if (valtype_cd == 'T') {
             updateTextInput(session, "patient_zipcode", value = tval_char)
-          }
+          } else if (valtype_cd == 'N') {
+            updateTextInput(session, "patient_zipcode", value = toString(int(nval_num)))
+          }  
+          
         }
         if (concept_cd == 'C46109') { # male 
           updateRadioGroupButtons(session, "gender", selected = 'Male')
