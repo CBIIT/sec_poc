@@ -596,7 +596,8 @@ server <- function(input, output, session) {
     ncit_search_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers")))),
     rvd_df = NA,
     cancer_center_df = NA,
-    crosswalk_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Description"))))
+    crosswalk_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Description")))),
+    session_id = NA
 
     )
   
@@ -631,6 +632,8 @@ server <- function(input, output, session) {
     }
     
   }
+  
+
   counter <- reactiveValues(countervalue = 0)
   shinyjs::disable("subtype_typer")
   
@@ -905,6 +908,52 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
  #                      'biomarker_list',
  #                      choices = df_biomarker_list_s$biomarker ,
 #                       server = TRUE)
+  
+  
+  # Events from this point forward ---- 
+  
+  observe(label = "Get Session UUID", {
+    query <- parseQueryString(session$clientData$url_search)
+    if (!is.null(query[['session_id']])) {
+      sessionInfo$session_id <- query[['session_id']]
+      print(paste('session_id is ',sessionInfo$session_id  ))
+      session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+      session_data <- dbGetQuery(session_con,'select data_line, concept_cd, valtype_cd, tval_char, nval_num,
+                                         units_cd from search_session_data where session_uuid = ?',
+                            params = c(sessionInfo$session_id))
+      
+      print(session_data)
+      for (row in 1:nrow(session_data)) {
+        concept_cd <- session_data[row, 'concept_cd']
+        valtype_cd  <- session_data[row, 'valtype_cd']
+        tval_char <- session_data[row, 'tval_char']
+        nval_num <- session_data[row, 'nval_num']
+        if (concept_cd == 'C25150') { # age
+          if (valtype_cd == 'N') {
+            updateNumericInput(session, "patient_age", value = nval_num)
+          }
+        }
+        if (concept_cd == 'C25720') { # zip code 
+          if (valtype_cd == 'T') {
+            updateTextInput(session, "patient_zipcode", value = tval_char)
+          }
+        }
+        if (concept_cd == 'C46109') { # male 
+          updateRadioGroupButtons(session, "gender", selected = 'Male')
+        } 
+        if (concept_cd == 'C46110') { #female 
+          updateRadioGroupButtons(session, "gender", selected = 'Female')
+        }
+        
+        
+      }
+      
+        
+      DBI::dbDisconnect(session_con)
+    } 
+   # output$session_string <-
+    #  renderText(sessionInfo$session_id)
+  })
   
   
   observeEvent(input$toggleSidebar, {
