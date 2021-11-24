@@ -23,6 +23,7 @@ library(sjmisc)
 library(lubridate)
 library(shinyFeedback)
 library(shinyalert)
+library(shinyWidgets)
 
 source('get_api_studies_for_biomarkers.R')
 source('hh_collapsibleTreeNetwork.R')
@@ -67,6 +68,7 @@ source('transform_perf_status.R')
 ui <- fluidPage(
   useShinyjs(),
   useShinyFeedback(),
+  useSweetAlert(),
   #
   # Wire up the close button on the biomarker modal to fire a shiny event 
   # so the data can be processed 
@@ -910,51 +912,100 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
 #                       server = TRUE)
   
   
+  
   # Events from this point forward ---- 
+  
+  # Process passed in session data ----
   
   observe(label = "Get Session UUID", {
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['session_id']])) {
       sessionInfo$session_id <- query[['session_id']]
-      print(paste('session_id is ',sessionInfo$session_id  ))
-      session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-      session_data <- dbGetQuery(session_con,'select data_line, concept_cd, valtype_cd, tval_char, nval_num,
-                                         units_cd from search_session_data where session_uuid = ?',
-                            params = c(sessionInfo$session_id))
-      
-      print(session_data)
-      for (row in 1:nrow(session_data)) {
-        concept_cd <- session_data[row, 'concept_cd']
-        valtype_cd  <- session_data[row, 'valtype_cd']
-        tval_char <- session_data[row, 'tval_char']
-        nval_num <- session_data[row, 'nval_num']
-        if (concept_cd == 'C25150') { # age
-          if (valtype_cd == 'N') {
-            updateNumericInput(session, "patient_age", value = nval_num)
-          }
-        }
-        if (concept_cd == 'C25720') { # zip code 
-          if (valtype_cd == 'T') {
-            updateTextInput(session, "patient_zipcode", value = tval_char)
-          } else if (valtype_cd == 'N') {
-            updateTextInput(session, "patient_zipcode", value = toString(as.integer(nval_num)))
-          }  
-         
-        }
-        if (concept_cd == 'C46109') { # male 
-          updateRadioGroupButtons(session, "gender", selected = 'Male')
-        } 
-        if (concept_cd == 'C46110') { #female 
-          updateRadioGroupButtons(session, "gender", selected = 'Female')
-        }
-        
-        
+      print(paste('session_id is ', sessionInfo$session_id))
+      session_con <-
+        DBI::dbConnect(RSQLite::SQLite(), dbinfo$session_db_file_location)
+      session_nodename <- dbGetQuery(session_con, 
+                             "select coalesce(nodename,'') as nodename from search_session where session_uuid = ?",
+                             params = c(sessionInfo$session_id))
+      if (nrow(session_nodename)>0 && nchar(session_nodename$nodename)>0 ) {
+        progress_title <- paste('Importing data from', session_nodename$nodename)
+      } else {
+        progress_title <- 'Retrieving data'
       }
       
-        
+      session_data <-
+        dbGetQuery(
+          session_con,
+          'select data_line, concept_cd, valtype_cd, tval_char, nval_num,
+                                         units_cd from search_session_data where session_uuid = ?',
+          params = c(sessionInfo$session_id)
+        )
       DBI::dbDisconnect(session_con)
-    } 
-   # output$session_string <-
+      print(session_data)
+      if (nrow(session_data) > 0) {
+        progressSweetAlert(
+          session = session, id = "myprogress",
+          title = progress_title,
+          display_pct = TRUE, value = 0
+        )
+        Sys.sleep(1.0)
+        progress_step <- 100 / nrow(session_data)
+        for (row in 1:nrow(session_data)) {
+          updateProgressBar(
+            session = session,
+            id = "myprogress",
+            value = row * progress_step
+          )
+          Sys.sleep(2/nrow(session_data))
+          concept_cd <- session_data[row, 'concept_cd']
+          valtype_cd  <- session_data[row, 'valtype_cd']
+          tval_char <- session_data[row, 'tval_char']
+          nval_num <- session_data[row, 'nval_num']
+          
+          if (concept_cd == 'C25150') {
+            # age
+            if (valtype_cd == 'N') {
+              updateNumericInput(session, "patient_age", value = nval_num)
+            }
+          }
+          if (concept_cd == 'C51948') {
+            # wbc
+            if (valtype_cd == 'N') {
+              updateNumericInput(session, "patient_wbc", value = nval_num)
+            }
+          }
+          if (concept_cd == 'C51951') {
+            # platelets
+            if (valtype_cd == 'N') {
+              updateNumericInput(session, "patient_plt", value = nval_num)
+            }
+          }
+          if (concept_cd == 'C25720') {
+            # zip code
+            if (valtype_cd == 'T') {
+              updateTextInput(session, "patient_zipcode", value = tval_char)
+            } else if (valtype_cd == 'N') {
+              updateTextInput(session, "patient_zipcode", value = toString(as.integer(nval_num)))
+            }
+            
+          }
+          if (concept_cd == 'C46109') {
+            # male
+            updateRadioGroupButtons(session, "gender", selected = 'Male')
+          }
+          if (concept_cd == 'C46110') {
+            #female
+            updateRadioGroupButtons(session, "gender", selected = 'Female')
+          }
+          
+          
+        }
+        closeSweetAlert(session = session)
+      }
+      
+     
+    }
+    # output$session_string <-
     #  renderText(sessionInfo$session_id)
   })
   
