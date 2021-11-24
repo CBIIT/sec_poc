@@ -936,8 +936,9 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       session_data <-
         dbGetQuery(
           session_con,
-          'select data_line, concept_cd, valtype_cd, tval_char, nval_num,
-                                         units_cd from search_session_data where session_uuid = ?',
+          'select concept_cd, valtype_cd, tval_char, nval_num,
+                                         units_cd from search_session_data where session_uuid = ? 
+                                         and concept_cd is not null',
           params = c(sessionInfo$session_id)
         )
       DBI::dbDisconnect(session_con)
