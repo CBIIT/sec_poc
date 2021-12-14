@@ -156,5 +156,11 @@ create table search_session_data
    foreign key(session_uuid) references search_session(session_uuid)
 );
 
+drop table if exists ncit_version;
+create table ncit_version (
+version_id string,
+tc_gen_date date,
+active_version char(1)
+);
 
 
