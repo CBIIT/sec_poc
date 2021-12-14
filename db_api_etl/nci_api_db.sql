@@ -146,6 +146,7 @@ create table search_session_data
 ( 
    data_line       integer primary key autoincrement,
    session_uuid    text,
+   original_concept_cd text,
    concept_cd      text,
    valtype_cd      text,
    tval_char       text,
