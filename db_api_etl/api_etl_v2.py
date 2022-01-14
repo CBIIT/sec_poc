@@ -230,30 +230,29 @@ while run:
         dname_list_lead = []
         maintype_set = set()
         for d in trial['diseases']:
-            if 'type' not in d:
-                print("NO TYPE:", d)
-                print(trial)
+            if 'type' not in d or 'name' not in d or d['name'] is None:
+                print("Inconsistent disease data : ", d)
+            else:
+                dlist.append(
+                    [trial['nct_id'], d['nci_thesaurus_concept_id'], d['is_lead_disease'], None, # Note have to put the preferred name back here.
+                     None if 'type' not in d or len(d['type']) == 0 else '-'.join(sorted(d['type']))
+                        ,
+                     d['inclusion_indicator'], None if 'name' not in d else d['name']  # Note this the CTRP display name
+                     ]
+                )
 
-            dlist.append(
-                [trial['nct_id'], d['nci_thesaurus_concept_id'], d['is_lead_disease'], None, # Note have to put the preferred name back here.
-                 None if 'type' not in d or len(d['type']) == 0 else '-'.join(sorted(d['type']))
-                    ,
-                 d['inclusion_indicator'], None if 'name' not in d else d['name']  # Note this the CTRP display name
-                 ]
-            )
+                if d['inclusion_indicator'] == 'TRIAL':
+                    dlist_all.append("'" + d['nci_thesaurus_concept_id'] + "'")
+                    dname_list_all.append(d['name'] + ' ( ' + d['nci_thesaurus_concept_id'] + ' )')  #Changing to name (ctrp_display_name)
 
-            if d['inclusion_indicator'] == 'TRIAL':
-                dlist_all.append("'" + d['nci_thesaurus_concept_id'] + "'")
-                dname_list_all.append(d['name'] + ' ( ' + d['nci_thesaurus_concept_id'] + ' )')  #Changing to name (ctrp_display_name)
-
-            if d['inclusion_indicator'] == 'TRIAL' and d['is_lead_disease'] == True:
-                dlist_lead.append("'" + d['nci_thesaurus_concept_id'] + "'")
-                dname_list_lead.append(d['name'] + ' ( ' + d['nci_thesaurus_concept_id'] + ' )')
-                # also add in the maintypes
-                maintypes = get_maintypes(con, d['nci_thesaurus_concept_id'])
-                if maintypes is not None:
-                    for m in maintypes:
-                        maintype_set.add(m[0])
+                if d['inclusion_indicator'] == 'TRIAL' and d['is_lead_disease'] == True:
+                    dlist_lead.append("'" + d['nci_thesaurus_concept_id'] + "'")
+                    dname_list_lead.append(d['name'] + ' ( ' + d['nci_thesaurus_concept_id'] + ' )')
+                    # also add in the maintypes
+                    maintypes = get_maintypes(con, d['nci_thesaurus_concept_id'])
+                    if maintypes is not None:
+                        for m in maintypes:
+                            maintype_set.add(m[0])
 
         cur.execute(
             'update trials set diseases = ? , diseases_lead = ?, ' +
