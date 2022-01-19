@@ -990,6 +990,9 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         )
       
       print(session_data)
+      DBI::dbDisconnect(session_con)
+      session_con <-
+        DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       if (nrow(session_data) > 0) {
         progressSweetAlert(
           session = session, id = "myprogress",
