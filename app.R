@@ -599,7 +599,8 @@ server <- function(input, output, session) {
     rvd_df = NA,
     cancer_center_df = NA,
     crosswalk_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Description")))),
-    session_id = NA
+    session_id = NA,
+    prior_therapy_data_df = NA
 
     )
   
@@ -683,18 +684,43 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   df_misc_choices <- setNames(
     as.vector(df_misc_choice_data[["code"]]),as.vector(df_misc_choice_data[["pref_name"]]))
   
-  df_prior_therapy_data <-
-    dbGetQuery(
-      con,
-      "with domain_set as (
-        select tc.descendant as code  from ncit_tc tc where tc.parent in ('C16203', 'C1908',  'C62634', 'C163758')
-      )      
-select ds.code, n.pref_name  from domain_set ds join ncit n 
-on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
-order by n.pref_name"
-    )
+  df_prior_therapy_data <- dbGetQuery(con, "with descendants as
+  (
+    select descendant from ncit_tc where parent in ('C25218', 'C1908', 'C62634', 'C163758') 
+  ),
+  descendants_to_remove as
+  (
+    select descendant from ncit_tc where parent in ('C25294') 
+  )    
+  ,
+  good_codes as (
+    select descendant from descendants 
+    except 
+    select descendant from descendants_to_remove)
+  
+  select gc.descendant as code, n.pref_name  
+  from good_codes gc join ncit n on gc.descendant = n.code"
+  )
+  
+  
+#   df_prior_therapy_data <-
+#     dbGetQuery(
+#       con,
+#       "with domain_set as (
+#         select tc.descendant as code  from ncit_tc tc where tc.parent in ('C16203', 'C1908',  'C62634', 'C163758')
+#       )      
+# select ds.code, n.pref_name  from domain_set ds join ncit n 
+# on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
+# order by n.pref_name"
+#     )
   df_prior_therapy_choices <- setNames(
-    as.vector(df_prior_therapy_data[["code"]]),as.vector(df_prior_therapy_data[["pref_name"]]))
+     as.vector(df_prior_therapy_data[["code"]]),as.vector(df_prior_therapy_data[["pref_name"]]))
+  
+  #df_prior_therapy_choices <- df_prior_therapy_data$pref_name
+  sessionInfo$prior_therapy_data_df <- df_prior_therapy_choices
+  
+  df_maintypes <-
+    
   df_maintypes <-
     dbGetQuery(
       con,
@@ -920,10 +946,31 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   observe(label = "Get Session UUID", {
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['session_id']])) {
+      prior_therapy_list = c()
       sessionInfo$session_id <- query[['session_id']]
       print(paste('session_id is ', sessionInfo$session_id))
       session_con <-
         DBI::dbConnect(RSQLite::SQLite(), dbinfo$session_db_file_location)
+      df_prior_therapy_interop_sql <- "
+      with descendants as
+            (
+                select descendant from ncit_tc where parent in ('C25218', 'C1908', 'C62634', 'C163758') 
+            ),
+        descendants_to_remove as
+            (
+                select descendant from ncit_tc where parent in ('C25294') 
+            )    
+			,
+		good_codes as (
+	      select descendant from descendants 
+		  except 
+		  select descendant from descendants_to_remove)
+		 
+		select gc.descendant as code, n.pref_name  
+		from good_codes gc join ncit n on gc.descendant = n.code
+        where n.code = $1		
+    "
+     # browser()
       session_nodename <- dbGetQuery(session_con, 
                              "select coalesce(nodename,'') as nodename from search_session where session_uuid = ?",
                              params = c(sessionInfo$session_id))
@@ -941,7 +988,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                                          and concept_cd is not null',
           params = c(sessionInfo$session_id)
         )
-      DBI::dbDisconnect(session_con)
+      
       print(session_data)
       if (nrow(session_data) > 0) {
         progressSweetAlert(
@@ -998,10 +1045,25 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             #female
             updateRadioGroupButtons(session, "gender", selected = 'Female')
           }
-          
+          df_prior_therapy_interop <- 
+            dbGetQuery(
+              session_con,df_prior_therapy_interop_sql, params = c(concept_cd)
+            )  
+          if (nrow(df_prior_therapy_interop)>0) {
+           # browser()
+            prior_therapy_list <- append(prior_therapy_list, df_prior_therapy_interop$code) # or pref name
+          }
+        }
+        if (length(prior_therapy_list) > 0 ) {
+         # browser()
+         # updateSelectizeInput(session, "prior_therapy", selected = prior_therapy_list)
+          updateSelectizeInput(session, "prior_therapy", selected = prior_therapy_list, 
+                               choices = sessionInfo$prior_therapy_data_df, 
+                               server = TRUE)
           
         }
         closeSweetAlert(session = session)
+        DBI::dbDisconnect(session_con)
       }
       
      
