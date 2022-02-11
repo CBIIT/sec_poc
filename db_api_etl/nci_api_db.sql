@@ -16,13 +16,9 @@ diseases_lead text,
 disease_names_lead text,
 phase text,
 primary_purpose_code text,
-study_source text,
+study_source text
 record_verification_date date,
-amendment_date date,
-biomarker_inc_codes text,
-biomarker_inc_names  text,
-biomarker_exc_codes text,
-biomarker_exc_names text
+amendment_date date
 );
 drop table if exists trial_diseases;
 
@@ -47,12 +43,7 @@ create index trial_diseases_inc_ind on trial_diseases(inclusion_indicator);
 
 
 drop table if exists distinct_trial_diseases;
-create table distinct_trial_diseases(
-  nci_thesaurus_concept_id text, 
-  preferred_name text, 
-  disease_type text, 
-  display_name text);
-  
+create table distinct_trial_diseases(nci_thesaurus_concept_id text, preferred_name, disease_type, display_name);
 create index dtd_index on distinct_trial_diseases(nci_thesaurus_concept_id);
 
 
@@ -82,31 +73,6 @@ create index trial_sites_nct_idx on trial_sites(nct_id);
 create index trial_sites_nct_name_idx on trial_sites(nct_id, org_name);
 create index trial_sites_nct_fam_idx on trial_sites(nct_id, org_family);
 
-drop table if exists criteria_types;
-create table criteria_types(
-criteria_type_id  INTEGER PRIMARY KEY AUTOINCREMENT,
-criteria_type_code text not null,
-criteria_type_title text not null,
-criteria_type_desc text not null,
-criteria_type_active varchar(1) check (criteria_type_active = 'Y' or criteria_type_active = 'N'),
-criteria_type_sense text check (criteria_type_sense = 'Inclusion' or criteria_type_sense = 'Exclusion'),
-criteria_column_index int
-);
-
-drop table if exists trial_criteria ;
-create table trial_criteria (
-nct_id varchar(100),
-criteria_type_id integer,
-trial_criteria_orig_text text,
-trial_criteria_refined_text text not null,
-trial_criteria_expression text not null,
-update_date date,
-update_by text,
-primary key(nct_id, criteria_type_id),
-foreign key(criteria_type_id) references criteria_types(criteria_type_id)
-);
-
-
 drop table if exists trial_unstructured_criteria;
 create table trial_unstructured_criteria (
 nct_id varchar(100),
@@ -116,52 +82,11 @@ description text
 );
 create index tuc_nct_index on trial_unstructured_criteria(nct_id);
 
--- session information 
-
-drop table if exists search_session;
-
-create table search_session (
-session_uuid text primary key,
-submit_date text,
-nodename text,
-username text
-);
-
-drop table if exists search_session_data;
-
----- data table for sessions
----- concept_cd is the code (for now) in the NCIt
---- valtype_cd -- T for text or N for numeric 
---- tval_char - the value for a text type OR  the relational for a numeric type 
----          E -> =
----          L -> <
----          LE -> <=
----          G -> >
----          GE -> >= 
----
----  nval_num holds the numeric value
----  units_cd hold the units of measure
----  comment could hold the snippet of JSON for the source data 
-
-create table search_session_data
-( 
-   data_line       integer primary key autoincrement,
-   session_uuid    text,
-   original_concept_cd text,
-   concept_cd      text,
-   valtype_cd      text,
-   tval_char       text,
-   nval_num        real,
-   units_cd        text,
-   comment         text,
-   foreign key(session_uuid) references search_session(session_uuid)
-);
 
 drop table if exists ncit_version;
 create table ncit_version (
-version_id string,
-tc_gen_date date,
-active_version char(1)
+version_id varchar(32),
+downloaded_url text,
+transitive_closure_generation_date date,
+active_version char(1) check (active_version = 'Y' or active_version is NULL )
 );
-
-

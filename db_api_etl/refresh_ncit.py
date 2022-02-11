@@ -21,6 +21,9 @@ import sys
 import wget
 import datetime
 import argparse
+import tempfile
+from pathlib import Path
+import requests
 
 start_time = datetime.datetime.now()
 pp = pprint.PrettyPrinter(indent=4)
@@ -28,42 +31,58 @@ pp = pprint.PrettyPrinter(indent=4)
 parser = argparse.ArgumentParser(description='Download the NCIT Thesaurus Zip file and create transitive closure tables in a sqlite database.')
 
 parser.add_argument('--dbfilename', action='store', type=str, required=True)
-parser.add_argument('--thesaurus_url', action='store', type=str, required=True)
+#parser.add_argument('--thesaurus_url', action='store', type=str, required=True)
 
 args = parser.parse_args()
-
-# Set these to whatever you need them to be.
-print("downloading thesaurus file from ", args.thesaurus_url)
-#thesaurus_url = 'http://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Thesaurus_19.08d.FLAT.zip'
-
-thesaurus_zip = wget.download(args.thesaurus_url)
-
-
-arch = zipfile.ZipFile(thesaurus_zip, mode='r')
-
-print("extracting thesaurus file")
-thesaurus_file = arch.open('Thesaurus.txt', mode='r')
-
-
 
 con = sqlite3.connect(args.dbfilename)
 
 cur = con.cursor()
-cur.execute("select count(*) from ncit_version where version_id = ? and active_version = 'Y' ", [args.thesaurus_url])
-ver_rs = cur.fetchone()[0]
 
+url_fstring = "https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/archive/%s_Release/Thesaurus_%s.FLAT.zip"
+r = requests.get('https://api-evsrest.nci.nih.gov/api/v1/concept/ncit',
+                 params={'include': 'minimal', 'list': 'C2991'}, timeout=(.4, 7.0))
+evs_results = r.json()
+print(evs_results)
+if len(evs_results) != 1 or 'version' not in evs_results[0]:
+    print("NO VERSION NUMBER in returned info from EVS", evs_results)
+    sys.exit(0)
+
+current_evs_version = evs_results[0]['version']
+print("Current EVS NCIT version :", current_evs_version)
 #
-# Check to see if we need to process this version.  If we do, we will write a record to ncit_version after we are all done
-# with the transitive closure generation.
+# E.g. https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/archive/22.01e_Release/Thesaurus_22.01e.FLAT.zip
+# Note that the NCIT Download page MAY have a different version that what EVS is using.  We
+# want to stay in sync with EVS
 #
 
-if ver_rs == 1:
-    # No need to process this version.
-    print("Version", args.thesaurus_url, "is the current version - nothing to do and exiting.")
-    sys.exit()
+check_version_sql = " select version_id from ncit_version where active_version = 'Y'"
+cur = con.cursor()
+cur.execute(check_version_sql)
+rs = cur.fetchone()
 
-print(ver_rs)
+if rs is not None and rs[0] == current_evs_version:
+    print("POC NCIt is same as EVS NCIt, exiting")
+    con.commit()
+    con.close()
+    sys.exit(0)
+elif rs is None:
+    print("No current NCIt version noted in the POC db")
+else:
+    print("EVS NCIt version :", current_evs_version, " POC DB NCIt version:", rs[0])
 
+print("Preparing to process NCIT version", current_evs_version)
+
+url_string = url_fstring % (current_evs_version, current_evs_version)
+
+tfilename = Path(url_string).name
+tfile = tempfile.NamedTemporaryFile(suffix=tfilename)
+# sys.exit()
+thesaurus_zip = wget.download(url=url_string, out=tfile.name)
+arch = zipfile.ZipFile(thesaurus_zip, mode='r')
+
+print("Extracting thesaurus file contents")
+thesaurus_file = arch.open('Thesaurus.txt', mode='r')
 
 # Names in the dataframe will become columns in the sqlite database
 
@@ -274,20 +293,63 @@ con.execute("create index tc_parent_index on ncit_tc(parent)")
 
 con.commit()
 
-# update the
-# Now update the version table to note when we generated the TC
+# Now update the synonyms
+sql = '''select code, synonyms from ncit 
+where (concept_status is null or (concept_status not like '%Obsolete%' and concept_status not like '%Retired%') ) 
+'''
 
-u1_sql = """ update ncit_version set active_version = 'N' """
-cur.execute(u1_sql)
+insert_sql = '''
+insert into ncit_syns(code, syn_name, l_syn_name) values($1,$2,$3)
+'''
+cur = con.cursor()
+cur.execute('drop table if exists ncit_syns')
 con.commit()
+cur.execute(
+    """
+create table ncit_syns
+(
+code varchar(100),
+syn_name text,
+l_syn_name text)""")
+con.commit()
+cur.execute(sql)
+r = cur.fetchall()
+#bar = progressbar.ProgressBar(maxval=len(r),
+#
+#                       widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+#bar.start()
 
-i1_sql = """
-insert into ncit_version(version_id, tc_gen_date, active_version) values (?,?,?)
-"""
-cur.execute(i1_sql, [args.thesaurus_url, datetime.datetime.now(), 'Y'])
+biglist = []
+i=0
+for rec in r:
+
+    c = rec[0]
+    synonyms = rec[1].split('|')
+    newlist = list(zip([c] * len(synonyms), synonyms, [s.lower() for s in synonyms]))
+
+    i += 1
+ #   bar.update(i)
+    biglist.extend(newlist)
+    #print(rs)
+
+print("inserting synonmyms in database")
+cur.execute("BEGIN TRANSACTION")
+cur.executemany(insert_sql, biglist )
+con.commit()
+print("done inserting synonyms in database")
+cur.execute('create index ncit_syns_code_idx on ncit_syns(code)')
+cur.execute('create index ncit_syns_syn_name on ncit_syns(syn_name)')
+cur.execute('create index ncit_lsyns_syn_name on ncit_syns(l_syn_name)')
+
+# First make sure other versions are not marked as active
+
+cur.execute('update ncit_version set active_version = NULL')
+cur.execute("""insert into ncit_version(version_id, downloaded_url, transitive_closure_generation_date, active_version)
+           values(?,?,?,?)
+   """, [current_evs_version, url_string, datetime.datetime.now(), 'Y'])
 con.commit()
 
 end_time = datetime.datetime.now()
-
 print("Process complete in ", end_time - start_time)
-# In[ ]:
+
+con.close()
