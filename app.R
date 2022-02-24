@@ -974,7 +974,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         where n.code = $1		
     "
       
-      df_cancer_interop_sql <- "select tc.descendant from ncit_tc tc where tc.parent = 'C2991' and tc.descendant = $1"
+      df_cancer_interop_sql <- "select tc.descendant from ncit_tc tc where tc.parent = 'C2991' and tc.descendant = $1 and tc.descendant <> 'C2991'"
       
       
      # browser()
