@@ -591,6 +591,7 @@ server <- function(input, output, session) {
     df_matches = NULL,
     sidebar_shown = TRUE,
     disease_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases")))),
+    idisease_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases")))),
     biomarker_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Biomarkers")))),
     distance_df = NA,
     latitude = NA,
@@ -947,6 +948,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['session_id']])) {
       prior_therapy_list = c()
+      disease_list = c()
+      df_diseases <- data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases"))))
       sessionInfo$session_id <- query[['session_id']]
       print(paste('session_id is ', sessionInfo$session_id))
       session_con <-
@@ -970,6 +973,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
 		from good_codes gc join ncit n on gc.descendant = n.code
         where n.code = $1		
     "
+      
+      df_cancer_interop_sql <- "select tc.descendant from ncit_tc tc where tc.parent = 'C2991' and tc.descendant = $1"
+      
+      
      # browser()
       session_nodename <- dbGetQuery(session_con, 
                              "select coalesce(nodename,'') as nodename from search_session where session_uuid = ?",
@@ -999,7 +1006,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           title = progress_title,
           display_pct = TRUE, value = 0
         )
-        Sys.sleep(1.0)
+       # Sys.sleep(1.0)
         progress_step <- 100 / nrow(session_data)
         for (row in 1:nrow(session_data)) {
           updateProgressBar(
@@ -1007,7 +1014,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             id = "myprogress",
             value = row * progress_step
           )
-          Sys.sleep(2/nrow(session_data))
+        #  Sys.sleep(2/nrow(session_data))
           concept_cd <- session_data[row, 'concept_cd']
           valtype_cd  <- session_data[row, 'valtype_cd']
           tval_char <- session_data[row, 'tval_char']
@@ -1048,6 +1055,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             #female
             updateRadioGroupButtons(session, "gender", selected = 'Female')
           }
+          
+          # Check for prior therapy 
           df_prior_therapy_interop <- 
             dbGetQuery(
               session_con,df_prior_therapy_interop_sql, params = c(concept_cd)
@@ -1056,6 +1065,36 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
            # browser()
             prior_therapy_list <- append(prior_therapy_list, df_prior_therapy_interop$code) # or pref name
           }
+          
+          # See if concept_cd has commas in it
+          # NLP Diseases - Experimental 
+          
+          concept_cds <- unlist(strsplit(concept_cd, ','))
+          for (r in (1:length(concept_cds))) {
+            print(paste("disease row : ", r, " concept_cd ", concept_cds[r]))
+          
+            df_cancer_interop <- 
+              dbGetQuery(
+                session_con,df_cancer_interop_sql, params = c(concept_cds[r])
+              )  
+            print(df_cancer_interop)
+            if (nrow(df_cancer_interop)>0) {
+              # browser()
+              disease_list <- append(disease_list, concept_cd) 
+              #browser()
+            #  add_disease_sql <- "select distinct nci_thesaurus_concept_id 
+            #            as \"Code\" , 'YES' as \"Value\", 
+            #            preferred_name as \"Diseases\" from  trial_diseases where nci_thesaurus_concept_id = $1"
+              add_disease_sql <- "select distinct code 
+                        as \"Code\" , 'YES' as \"Value\", 
+                        pref_name as \"Diseases\" from  ncit where code = $1"
+              df_new_disease <- dbGetQuery(session_con, add_disease_sql,  params = c(concept_cds[r]))
+              df_diseases <- rbind(df_diseases, df_new_disease)
+              print(paste("df_diseases ", df_diseases))
+             # browser()
+              }
+            }
+          
         }
         if (length(prior_therapy_list) > 0 ) {
          # browser()
@@ -1065,11 +1104,16 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                                server = TRUE)
           
         }
+        if (nrow(df_diseases) > 0) {
+          sessionInfo$disease_df <- df_diseases
+          
+        }
         closeSweetAlert(session = session)
         DBI::dbDisconnect(session_con)
       }
       
-     
+      
+      
     }
     # output$session_string <-
     #  renderText(sessionInfo$session_id)
@@ -2203,6 +2247,7 @@ order by criteria_column_index "
   
   
   observe( {
+  print('sessionInfo$disease_df changed')  
   show_disease_dt <- datatable(
     sessionInfo$disease_df,
     class = 'cell-border stripe compact wrap ',
