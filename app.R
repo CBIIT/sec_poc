@@ -1105,7 +1105,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           
         }
         if (nrow(df_diseases) > 0) {
-          sessionInfo$disease_df <- df_diseases
+          sessionInfo$disease_df <- distinct(df_diseases)
           
         }
         closeSweetAlert(session = session)
