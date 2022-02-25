@@ -825,7 +825,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     # get the criteria by type
     
     
-    cdf <- dbGetQuery(con, "select nct_id, trial_criteria_refined_text, trial_criteria_expression from trial_criteria where criteria_type_id = $1 ",
+    cdf <- dbGetQuery(con, "select nct_id, trial_criteria_refined_text, trial_criteria_expression from trial_criteria where criteria_type_id = $1 
+                       and  trial_criteria_expression is not null and trial_criteria_expression <> '' ",
                       params = c(criteria_type_id))
     
     # Now rename to the columns in cdr based upon the abbr.
