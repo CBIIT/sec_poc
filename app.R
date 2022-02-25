@@ -1056,20 +1056,23 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             updateRadioGroupButtons(session, "gender", selected = 'Female')
           }
           
-          # Check for prior therapy 
-          df_prior_therapy_interop <- 
-            dbGetQuery(
-              session_con,df_prior_therapy_interop_sql, params = c(concept_cd)
-            )  
-          if (nrow(df_prior_therapy_interop)>0) {
-           # browser()
-            prior_therapy_list <- append(prior_therapy_list, df_prior_therapy_interop$code) # or pref name
-          }
+          concept_cds <- unlist(strsplit(concept_cd, ','))
           
+          # Check for prior therapy (NLP )
+          for (r in (1:length(concept_cds))) {
+            df_prior_therapy_interop <- 
+              dbGetQuery(
+                session_con,df_prior_therapy_interop_sql, params = c(concept_cds[r])
+              )  
+            if (nrow(df_prior_therapy_interop)>0) {
+             # browser()
+              prior_therapy_list <- append(prior_therapy_list, df_prior_therapy_interop$code) # or pref name
+            }
+          }
           # See if concept_cd has commas in it
           # NLP Diseases - Experimental 
           
-          concept_cds <- unlist(strsplit(concept_cd, ','))
+          
           for (r in (1:length(concept_cds))) {
             print(paste("disease row : ", r, " concept_cd ", concept_cds[r]))
           
@@ -1097,6 +1100,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           
         }
         if (length(prior_therapy_list) > 0 ) {
+          prior_therapy_list <- unique(prior_therapy_list)
          # browser()
          # updateSelectizeInput(session, "prior_therapy", selected = prior_therapy_list)
           updateSelectizeInput(session, "prior_therapy", selected = prior_therapy_list, 
