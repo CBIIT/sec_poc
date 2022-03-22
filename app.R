@@ -181,6 +181,10 @@ background-color: #FFCCCC;
         actionButton("show_gyn_disease", "Gyn"),
         actionButton("show_lung_disease", "Lung"),
         actionButton("show_solid_disease", "Solid"),
+        selectizeInput("disease_tree_typer", label = "Disease Trees", 
+                       NULL,  selected = NULL , multiple = FALSE
+        )
+        ,
         DTOutput("diseases"),
         actionButton("show_biomarkers", "Biomarkers"),
         DTOutput('biomarkers'),
@@ -684,6 +688,30 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     )
   df_misc_choices <- setNames(
     as.vector(df_misc_choice_data[["code"]]),as.vector(df_misc_choice_data[["pref_name"]]))
+  
+  df_disease_tree_choices_raw <-
+    dbGetQuery(
+      con,
+      "with real_tree_data as (
+select nci_thesaurus_concept_id, display_name 
+    from distinct_trial_diseases ds 
+    where (ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%')
+    and nci_thesaurus_concept_id not in ('C2991', 'C2916')
+    and not display_name like 'Other %'
+ UNION
+   select '' as ncit_thesaurus_concept_id, '' as display_name
+  )
+ select nci_thesaurus_concept_id, display_name from real_tree_data  
+	order by display_name"
+    )
+  df_disease_tree_choices <- setNames(
+    as.vector(df_disease_tree_choices_raw[["nci_thesaurus_concept_id"]]),as.vector(df_disease_tree_choices_raw[["display_name"]]))
+  
+  updateSelectizeInput(session,
+                       'disease_tree_typer',
+                       choices = df_disease_tree_choices ,
+                       selected = NULL,
+                       server = TRUE)
   
   df_prior_therapy_data <- dbGetQuery(con, "with descendants as
   (
