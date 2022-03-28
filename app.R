@@ -284,8 +284,10 @@ background-color: #FFCCCC;
         actionButton("show_solid_disease", "Solid"),
         selectizeInput("disease_tree_typer", label = "Disease Trees", 
                        NULL,  selected = NULL , multiple = FALSE
-        )
+        ),
+        actionButton("show_disease_tree_button", "Show Tree")
         ,
+        hr(),
         DTOutput("diseases"),
         actionButton("show_biomarkers", "Biomarkers"),
         DTOutput('biomarkers'),
@@ -341,7 +343,8 @@ background-color: #FFCCCC;
     actionButton("show_crosswalk", "Add non-NCI codes"),
     DTOutput('crosswalk_codes'),
         actionButton("search_and_match", "SEARCH AND MATCH")
-      )
+      ),
+    actionButton("show_generic_disease_tree_modal", "s")
     )
     
     ,
@@ -502,7 +505,7 @@ background-color: #FFCCCC;
           downloadButton("downloadData", "Download Match Data", style =
                            'padding:4px; font-size:80%')
         )
-        ,
+        
         
       )
       , 
@@ -525,6 +528,26 @@ background-color: #FFCCCC;
               
     )
     ,
+    # Generic disease tree bsmodal ----
+     bsModal("disease_tree_bsmodal", "Select Disease", "show_generic_disease_tree_modal", size = "large",
+             fluidPage(id = "treePanel_gen",
+                       fluidRow(column(
+                         12,
+                         wellPanel(
+                           id = "tPanel_gen",
+                           style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
+                           collapsibleTreeOutput("generic_disease_tree", height = "75vh", width =
+                                                   '4500px')
+                         )
+                       )),
+                       fluidRow(column(2, 'Disease selected:'), 
+                                column(6, align = "left", textOutput("generic_disease_tree_disease_selected")),
+                                column(2, align = 'right'), actionButton("generic_disease_tree_add_disease", label='Add disease'))
+                       
+             )
+             
+     )
+     ,
     bsModal("lung_bsmodal", "Select Lung Disease", "show_lung_disease", size = "large",
             fluidPage(id = "treePanel",
                       fluidRow(column(
@@ -711,6 +734,7 @@ server <- function(input, output, session) {
     )
   
   tgt <- NA
+  shinyjs::hide("show_generic_disease_tree_modal")
   
   # get a TGT from UMLS
   
@@ -745,7 +769,7 @@ server <- function(input, output, session) {
 
   counter <- reactiveValues(countervalue = 0)
   shinyjs::disable("subtype_typer")
-  
+  shinyjs::disable("show_disease_tree_button")
   
   
   target_lvd <- ymd(today()) - years(2)
@@ -1965,6 +1989,76 @@ order by criteria_column_index "
   # )
   # 
   
+  # Disease tree typer selected ----
+  observeEvent(input$disease_tree_typer, ignoreNULL = TRUE, {
+    print("Disease tree typer")
+    if (input$disease_tree_typer == '') {
+      shinyjs::disable("show_disease_tree_button")
+    } else {
+      shinyjs::enable("show_disease_tree_button")
+      
+    }
+  })
+
+  # Show the generic disease tree modal dialog ----
+  
+  observeEvent(input$show_disease_tree_button, {
+    print("Show generic disease tree for ")   
+    print(input$disease_tree_typer)  
+    dt_generic_disease_tree <- getDiseaseTreeData(safe_query, input$disease_tree_typer, use_ctrp_display_name = TRUE)
+    output$generic_disease_tree <- renderCollapsibleTree({
+      hh_collapsibleTreeNetwork( 
+        dt_generic_disease_tree,
+        collapsed = TRUE,
+        linkLength = 500,
+        zoomable = FALSE,
+        inputId = "generic_disease_tree_selected_node",
+        nodeSize = 'nodeSize',
+        #nodeSize = 14,
+        aggFun = 'identity',
+        fontSize = 14 #,
+        #,
+        #  width = '2000px',
+        #  height = '1700px'
+      )})
+    click("show_generic_disease_tree_modal")
+    
+  })
+  
+  observeEvent(input$generic_disease_tree_selected_node, ignoreNULL = TRUE, {
+    print("generic disease tree node selected")
+    #browser()
+    print(input$generic_disease_tree_selected_node)
+    # browser()
+    if(length(input$generic_disease_tree_selected_node) > 0) {
+      output$generic_disease_tree_disease_selected <- renderText(input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]] )
+    } else {
+      output$generic_disease_tree_disease_selected <- renderText('Fix me')
+    }
+    
+    # browser()
+    print("----------")
+  })
+  
+  
+  observeEvent(input$generic_disease_tree_add_disease, {
+    print("add disease from generic disease tree")
+    if(length(input$generic_disease_tree_selected_node) > 0) {
+      new_disease <- input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]]
+    } else {
+      new_disease <- ''
+    }
+    
+    print(paste("new disease = ", new_disease))
+    add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
+    df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
+    #browser()
+    sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
+    print(sessionInfo$disease_df)
+    
+    
+  }
+  )
   
   observeEvent(input$gyn_selected_node, ignoreNULL = TRUE, {
     print("gyn node selected")
