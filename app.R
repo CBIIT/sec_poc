@@ -32,15 +32,15 @@ library(RPostgres)
 #
 dbinfo <- config::get()
 
-Sys.setenv(LD_LIBRARY_PATH = "/usr/local/lib")
-library(reticulate)
-#use_python('/usr/bin/python3', required=TRUE )
-reticulate::py_discover_config()
-source_python(paste(
-  dbinfo$python_file_dir,
-  '/create_performance_expression.py',
-  sep = ""
-))
+#Sys.setenv(LD_LIBRARY_PATH = "/usr/local/lib")
+#library(reticulate)
+##use_python('/usr/bin/python3', required=TRUE )
+#reticulate::py_discover_config()
+#source_python(paste(
+#  dbinfo$python_file_dir,
+#  '/create_performance_expression.py',
+#  sep = ""
+#))
 
 
 local_dbname <- dbinfo$dbname
