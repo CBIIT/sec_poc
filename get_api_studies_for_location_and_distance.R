@@ -74,7 +74,8 @@ get_api_studies_for_location_and_distance  <- function(lat, long, num_miles) {
           from = 0
         ),
         encode = "json",
-        add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+        add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json'),
+        timeout(4)
       )
     pdata <- content(d)
     total_to_return <- pdata$total
@@ -97,7 +98,8 @@ get_api_studies_for_location_and_distance  <- function(lat, long, num_miles) {
             from = start
           ),
           encode = "json",
-          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json'),
+          timeout(4)
         )
       pdata <- content(d)
       dfi <- rbindlist(pdata$data) # Turns the list into a dataframe

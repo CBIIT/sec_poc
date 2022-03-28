@@ -542,7 +542,8 @@ background-color: #FFCCCC;
                        )),
                        fluidRow(column(2, 'Disease selected:'), 
                                 column(6, align = "left", textOutput("generic_disease_tree_disease_selected")),
-                                column(2, align = 'right'), actionButton("generic_disease_tree_add_disease", label='Add disease'))
+                                column(2, align = 'right'), actionButton("generic_disease_tree_add_disease", label='Add disease')),
+                       fluidRow(textOutput("hidden_root_node"))
                        
              )
              
@@ -729,12 +730,14 @@ server <- function(input, output, session) {
     cancer_center_df = NA,
     crosswalk_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Description")))),
     session_id = NA,
-    prior_therapy_data_df = NA
+    prior_therapy_data_df = NA,
+    disease_tree_root_node = NA
 
     )
   
   tgt <- NA
   shinyjs::hide("show_generic_disease_tree_modal")
+  shinyjs::hide("hidden_root_node")
   
   # get a TGT from UMLS
   
@@ -2006,6 +2009,8 @@ order by criteria_column_index "
     print("Show generic disease tree for ")   
     print(input$disease_tree_typer)  
     dt_generic_disease_tree <- getDiseaseTreeData(safe_query, input$disease_tree_typer, use_ctrp_display_name = TRUE)
+    output$hidden_root_node <- renderText(dt_generic_disease_tree$child[[1]])
+    sessionInfo$disease_tree_root_node <- dt_generic_disease_tree$child[[1]]
     output$generic_disease_tree <- renderCollapsibleTree({
       hh_collapsibleTreeNetwork( 
         dt_generic_disease_tree,
@@ -2033,7 +2038,7 @@ order by criteria_column_index "
     if(length(input$generic_disease_tree_selected_node) > 0) {
       output$generic_disease_tree_disease_selected <- renderText(input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]] )
     } else {
-      output$generic_disease_tree_disease_selected <- renderText('Fix me')
+      output$generic_disease_tree_disease_selected <- renderText(sessionInfo$disease_tree_root_node)
     }
     
     # browser()
@@ -2043,10 +2048,11 @@ order by criteria_column_index "
   
   observeEvent(input$generic_disease_tree_add_disease, {
     print("add disease from generic disease tree")
+    #browser()
     if(length(input$generic_disease_tree_selected_node) > 0) {
       new_disease <- input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]]
     } else {
-      new_disease <- ''
+      new_disease <- sessionInfo$disease_tree_root_node
     }
     
     print(paste("new disease = ", new_disease))

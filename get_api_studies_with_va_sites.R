@@ -1,3 +1,4 @@
+library(httr)
 #
 # R Function to get the list of studies from the API for a passed in list of ncit codes
 #
@@ -63,8 +64,10 @@ get_api_studies_with_va_sites  <- function () {
           from = 0
         ),
         encode = "json",
-        add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+        add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json'),
+        timeout(4)
       )
+    print(paste("va api studies return code = ",d$status_code))
     pdata <- content(d)
     total_to_return <- pdata$total
     df <- rbindlist(pdata$data)
@@ -83,7 +86,8 @@ get_api_studies_with_va_sites  <- function () {
             from = start
           ),
           encode = "json",
-          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json'),
+          timeout(4)
         )
       pdata <- content(d)
       dfi <- rbindlist(pdata$data) # Turns the list into a dataframe
