@@ -5,7 +5,7 @@
 library(RSQLite)
 library(plyr)
 
-get_stage_for_types  <- function(ctrp_disease_string, con) {
+get_stage_for_types  <- function(ctrp_disease_string, safe_query) {
   
   print(paste("stage : type  = ", ctrp_disease_string))
   ## HH 
@@ -20,7 +20,7 @@ get_stage_for_types  <- function(ctrp_disease_string, con) {
   get_code_for_string <- function(ctrp_string) {
    # browser()
     print(paste('get_code_for_string - ', ctrp_string))
-    dfc <- dbGetQuery(con,
+    dfc <- safe_query(dbGetQuery,
                      "select distinct nci_thesaurus_concept_id from distinct_trial_diseases where display_name = $1",
                         params = c(ctrp_string))
     return(dfc)
@@ -30,8 +30,7 @@ get_stage_for_types  <- function(ctrp_disease_string, con) {
   
   get_stage_for_code <- function(c_code) {
     print(paste('get_stage_for_code - ', c_code))
-    dfm <- dbGetQuery(
-      con,
+    dfm <- safe_query(dbGetQuery,
       "with stages as (
 select  nci_thesaurus_concept_id, display_name from distinct_trial_diseases where disease_type  like '%stage%' /* in ('stage', 'stage-subtype','grade-stage-subtype') */
 )

@@ -112,7 +112,7 @@ criteria_type_id integer,
 trial_criteria_orig_text text,
 trial_criteria_refined_text text not null,
 trial_criteria_expression text not null,
-update_date date,
+update_date timestamp,
 update_by text,
 primary key(nct_id, criteria_type_id),
 foreign key(criteria_type_id) references criteria_types(criteria_type_id)
@@ -136,3 +136,16 @@ downloaded_url text,
 transitive_closure_generation_date timestamp,
 active_version char(1) check (active_version = 'Y' or active_version is NULL )
 );
+
+
+drop table if exists disease_tree ;
+create table disease_tree (
+    code text,
+    parent text,
+    child text,
+    levels int,
+    collapsed int,
+    "nodeSize" int
+);
+create index disease_tree_index_1 on disease_tree(code);
+create index disease_tree_index_2 on disease_tree(code, levels, parent, child);

@@ -343,6 +343,9 @@ cur.execute("""insert into ncit_version(version_id, downloaded_url, transitive_c
    """, [current_evs_version, url_string, datetime.datetime.now(), 'Y'])
 con.commit()
 
+
+
+    
 end_time = datetime.datetime.now()
 print("Process complete in ", end_time - start_time)
 
