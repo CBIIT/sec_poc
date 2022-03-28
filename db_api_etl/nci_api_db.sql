@@ -16,18 +16,26 @@ diseases_lead text,
 disease_names_lead text,
 phase text,
 primary_purpose_code text,
-study_source text
+study_source text,
 record_verification_date date,
-amendment_date date
+amendment_date date,
+biomarker_exc_codes text,
+biomarker_exc_names text,
+biomarker_inc_codes text,
+biomarker_inc_names text
 );
+
+drop index if exists trials_nct_idx;
+create index trials_nct_idx on trials(nct_id);
+
 drop table if exists trial_diseases;
 
 create table trial_diseases
 (
-idx integer primary key,
+idx serial primary key,
 nct_id varchar(100),
 nci_thesaurus_concept_id varchar(100),
-lead_disease_indicator varchar(4),
+lead_disease_indicator boolean,
 preferred_name text,
 disease_type text,
 inclusion_indicator text,
@@ -43,7 +51,10 @@ create index trial_diseases_inc_ind on trial_diseases(inclusion_indicator);
 
 
 drop table if exists distinct_trial_diseases;
-create table distinct_trial_diseases(nci_thesaurus_concept_id text, preferred_name, disease_type, display_name);
+create table distinct_trial_diseases(nci_thesaurus_concept_id text, 
+preferred_name text, 
+disease_type text, 
+display_name text);
 create index dtd_index on distinct_trial_diseases(nci_thesaurus_concept_id);
 
 
@@ -83,10 +94,45 @@ description text
 create index tuc_nct_index on trial_unstructured_criteria(nct_id);
 
 
+drop table if exists criteria_types;
+create table criteria_types(
+criteria_type_id  INTEGER PRIMARY KEY,
+criteria_type_code text not null,
+criteria_type_title text not null,
+criteria_type_desc text not null,
+criteria_type_active varchar(1) check (criteria_type_active = 'Y' or criteria_type_active = 'N'),
+criteria_type_sense text check (criteria_type_sense = 'Inclusion' or criteria_type_sense = 'Exclusion'),
+criteria_column_index int
+);
+
+drop table if exists trial_criteria ;
+create table trial_criteria (
+nct_id varchar(100),
+criteria_type_id integer,
+trial_criteria_orig_text text,
+trial_criteria_refined_text text not null,
+trial_criteria_expression text not null,
+update_date date,
+update_by text,
+primary key(nct_id, criteria_type_id),
+foreign key(criteria_type_id) references criteria_types(criteria_type_id)
+);
+
+
+
+drop table if exists trial_unstructured_criteria;
+create table trial_unstructured_criteria (
+nct_id varchar(100),
+display_order int,
+inclusion_indicator text,
+description text
+);
+create index tuc_nct_index on trial_unstructured_criteria(nct_id);
+
 drop table if exists ncit_version;
 create table ncit_version (
 version_id varchar(32),
 downloaded_url text,
-transitive_closure_generation_date date,
+transitive_closure_generation_date timestamp,
 active_version char(1) check (active_version = 'Y' or active_version is NULL )
 );
