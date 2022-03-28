@@ -4,6 +4,8 @@ import sys
 import datetime
 import argparse
 import os
+import psycopg2
+import psycopg2.extras
 
 CTS_V2_API_KEY = os.getenv('CTS_V2_API_KEY')
 header_v2_api = {"x-api-key" : CTS_V2_API_KEY, "Content-Type" : "application/json"}
@@ -17,7 +19,7 @@ def get_maintypes(con, lead_disease):
 on np.parent = m.nci_thesaurus_concept_id
  join ncit n on np.parent = n.code 
  join ncit nc on np.descendant = nc.code 
- where np.descendant = ?
+ where np.descendant = %s
  )
  select distinct np.parent as mainytype
 from ncit_tc_with_path np join maintypes m 
@@ -25,13 +27,13 @@ on np.parent = m.nci_thesaurus_concept_id
  join ncit n on np.parent = n.code 
  join ncit nc on np.descendant = nc.code 
  join minlevel ml on np.level=ml.min_level
- where np.descendant = ?
+ where np.descendant = %s
 
     """
 
     cur = con.cursor()
     r = cur.execute(s, [lead_disease, lead_disease])
-    rc = r.fetchall()
+    rc = cur.fetchall()
    # print(lead_disease, rc)
     return rc
 
@@ -67,12 +69,17 @@ start_time = datetime.datetime.now()
 
 parser = argparse.ArgumentParser(
     description='Update the specified sqlite database with information from the cancer.gov API')
-parser.add_argument('--dbfilename', action='store', type=str, required=True)
+parser.add_argument('--dbname',action='store',type=str, required=False )
+parser.add_argument('--host',action='store',type=str, required=False )
+parser.add_argument('--user',action='store',type=str, required=False )
+parser.add_argument('--password',action='store',type=str, required=False )
+parser.add_argument('--port',action='store',type=str, required=False )
 args = parser.parse_args()
 
-database_file = args.dbfilename
 
-con = sqlite3.connect(database_file)
+con = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, port=args.port,
+ password=args.password)
+
 cur = con.cursor()
 cur.execute('delete from trial_diseases')
 cur.execute('delete from trials')
@@ -95,7 +102,7 @@ maintypes = []
 for t in j['data']:
     maintypes.append(t['codes'])
 
-cur.executemany('insert into maintypes(nci_thesaurus_concept_id) values (?)', maintypes)
+cur.executemany('insert into maintypes(nci_thesaurus_concept_id) values (%s)', maintypes)
 con.commit()
 
 today_date = datetime.date.today()
@@ -176,7 +183,7 @@ while run:
     for trial in j['data']:
         print('NCT ID :', trial['nct_id'])
         for s in trial['sites']:
-            cur.execute('insert into trial_sites(nct_id, org_name, org_family, org_status, org_to_family_relationship) values (?,?,?,?,?)',
+            cur.execute('insert into trial_sites(nct_id, org_name, org_family, org_status, org_to_family_relationship) values (%s,%s,%s,%s,%s)',
                         [trial['nct_id'], s['org_name'], s['org_family'], s['recruitment_status'],None])
 
         # print(trial['nct_id'])
@@ -200,7 +207,7 @@ while run:
             brief_summary, detail_description, max_age_in_years, min_age_in_years, gender,
             age_expression, gender_expression, phase , primary_purpose_code, study_source, record_verification_date, amendment_date,
             biomarker_inc_codes, biomarker_inc_names, biomarker_exc_codes, biomarker_exc_names) 
-            values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             [trial['nct_id'], trial['brief_title'],
              trial['official_title'], trial['brief_summary'], trial['detail_description']
                 ,max_age_in_years
@@ -255,18 +262,18 @@ while run:
                             maintype_set.add(m[0])
 
         cur.execute(
-            'update trials set diseases = ? , diseases_lead = ?, ' +
-            ' disease_names = ?, disease_names_lead = ? where nct_id = ?',
+            'update trials set diseases = %s , diseases_lead = %s, ' +
+            ' disease_names = %s, disease_names_lead = %s where nct_id = %s',
             [','.join(dlist_all), ','.join(dlist_lead), ','.join(dname_list_all), ','.join(dname_list_lead),
              trial['nct_id']])
 
-        cur.executemany(
-            'insert into trial_diseases(nct_id, nci_thesaurus_concept_id, lead_disease_indicator, preferred_name, disease_type, inclusion_indicator, display_name) ' +
-            ' values(?,?,?,?,?,?,?)',
-            dlist)
+        psycopg2.extras.execute_batch(cur,
+        'insert into trial_diseases(nct_id, nci_thesaurus_concept_id, lead_disease_indicator, preferred_name, disease_type, inclusion_indicator, display_name) ' +
+        ' values(%s,%s,%s,%s,%s,%s,%s)',
+        dlist, page_size = 1000)
 
         for maintype in maintype_set:
-            cur.execute('insert into trial_maintypes(nct_id, nci_thesaurus_concept_id) values (?,?)',
+            cur.execute('insert into trial_maintypes(nct_id, nci_thesaurus_concept_id) values (%s,%s)',
                         [trial['nct_id'], maintype])
         con.commit()
 
@@ -277,7 +284,7 @@ while run:
             uns = trial['eligibility']['unstructured']
             for crit in uns:
                # print(crit)
-                cur.execute('insert into trial_unstructured_criteria(nct_id, inclusion_indicator, display_order, description) values (?,?,?,?)',
+                cur.execute('insert into trial_unstructured_criteria(nct_id, inclusion_indicator, display_order, description) values (%s,%s,%s,%s)',
                             [ trial['nct_id'], crit['inclusion_indicator'], crit['display_order'], crit['description']]
                             )
         con.commit()
@@ -286,7 +293,8 @@ while run:
     # r = requests.post('https://clinicaltrialsapi.cancer.gov/v1/clinical-trials',
     #                  data=data)
 
-    c = cur.execute('select count(*) from trials').fetchone()[0]
+    r = cur.execute('select count(*) from trials')
+    c = cur.fetchone()[0]
     if len(j['data']) < 50:
         run = False
 
