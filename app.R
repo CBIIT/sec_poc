@@ -1166,15 +1166,15 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           }
           if (concept_cd == 'C51948') {
             # wbc
-            if (valtype_cd == 'N') {
+          #  if (valtype_cd == 'N') {
               updateNumericInput(session, "patient_wbc", value = nval_num)
-            }
+          #  }
           }
           if (concept_cd == 'C51951') {
             # platelets
-            if (valtype_cd == 'N') {
+         #   if (valtype_cd == 'N') {
               updateNumericInput(session, "patient_plt", value = nval_num)
-            }
+          #  }
           }
           if (concept_cd == 'C25720') {
             # zip code
