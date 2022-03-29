@@ -1094,8 +1094,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       df_diseases <- data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases"))))
       sessionInfo$session_id <- query[['session_id']]
       print(paste('session_id is ', sessionInfo$session_id))
-      session_con <-
-        DBI::dbConnect(RSQLite::SQLite(), dbinfo$session_db_file_location)
+     
       df_prior_therapy_interop_sql <- "
       with descendants as
             (
@@ -1120,8 +1119,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
       
      # browser()
-      session_nodename <- dbGetQuery(session_con, 
-                             "select coalesce(nodename,'') as nodename from search_session where session_uuid = ?",
+      session_nodename <- safe_query(dbGetQuery, 
+                             "select coalesce(nodename,'') as nodename from fhirops.search_session where session_uuid = $1",
                              params = c(sessionInfo$session_id))
       if (nrow(session_nodename)>0 && nchar(session_nodename$nodename)>0 ) {
         progress_title <- paste('Importing data from', session_nodename$nodename)
@@ -1130,18 +1129,15 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       }
       
       session_data <-
-        dbGetQuery(
-          session_con,
+        safe_query(dbGetQuery,
           'select concept_cd, valtype_cd, tval_char, nval_num,
-                                         units_cd from search_session_data where session_uuid = ? 
+                                         units_cd from fhirops.search_session_data where session_uuid = $1 
                                          and concept_cd is not null',
           params = c(sessionInfo$session_id)
         )
       
       print(session_data)
-      DBI::dbDisconnect(session_con)
-      session_con <-
-        DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+
       if (nrow(session_data) > 0) {
         progressSweetAlert(
           session = session, id = "myprogress",
@@ -1203,8 +1199,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           # Check for prior therapy (NLP )
           for (r in (1:length(concept_cds))) {
             df_prior_therapy_interop <- 
-              dbGetQuery(
-                session_con,df_prior_therapy_interop_sql, params = c(concept_cds[r])
+              safe_query(dbGetQuery,df_prior_therapy_interop_sql, params = c(concept_cds[r])
               )  
             if (nrow(df_prior_therapy_interop)>0) {
              # browser()
@@ -1219,8 +1214,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             print(paste("disease row : ", r, " concept_cd ", concept_cds[r]))
           
             df_cancer_interop <- 
-              dbGetQuery(
-                session_con,df_cancer_interop_sql, params = c(concept_cds[r])
+              safe_query(dbGetQuery,df_cancer_interop_sql, params = c(concept_cds[r])
               )  
             print(df_cancer_interop)
             if (nrow(df_cancer_interop)>0) {
@@ -1233,7 +1227,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
               add_disease_sql <- "select distinct code 
                         as \"Code\" , 'YES' as \"Value\", 
                         pref_name as \"Diseases\" from  ncit where code = $1"
-              df_new_disease <- dbGetQuery(session_con, add_disease_sql,  params = c(concept_cds[r]))
+              df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(concept_cds[r]))
               df_diseases <- rbind(df_diseases, df_new_disease)
               print(paste("df_diseases ", df_diseases))
              # browser()
@@ -1255,7 +1249,6 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           
         }
         closeSweetAlert(session = session)
-        DBI::dbDisconnect(session_con)
       }
       
       
