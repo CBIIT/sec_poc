@@ -94,6 +94,8 @@ description text
 create index tuc_nct_index on trial_unstructured_criteria(nct_id);
 
 
+create sequence trial_diseases_sequence start with 250 ; -- Leave room for imported criteria
+
 drop table if exists criteria_types;
 create table criteria_types(
 criteria_type_id  INTEGER PRIMARY KEY,
@@ -124,7 +126,7 @@ drop table if exists trial_unstructured_criteria;
 create table trial_unstructured_criteria (
 nct_id varchar(100),
 display_order int,
-inclusion_indicator text,
+inclusion_indicator boolean,
 description text
 );
 create index tuc_nct_index on trial_unstructured_criteria(nct_id);
