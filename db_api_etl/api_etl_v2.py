@@ -402,6 +402,8 @@ sql = """
                       )
 """
 cur.execute(sql)
+cur.execute("delete from disease_tree")
+
 sql = """
         insert into disease_tree (code, parent, child, levels, collapsed, \"nodeSize\")
         select top_code as code, replace(parent, '  ', ' '), replace(child, '  ', ' '), levels, collapsed, 
