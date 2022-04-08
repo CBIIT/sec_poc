@@ -8,6 +8,7 @@ import psycopg2
 import psycopg2.extras
 
 CTS_V2_API_KEY = os.getenv('CTS_V2_API_KEY')
+print(CTS_V2_API_KEY)
 header_v2_api = {"x-api-key" : CTS_V2_API_KEY, "Content-Type" : "application/json"}
 
 def get_maintypes(con, lead_disease):
@@ -81,13 +82,13 @@ con = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, por
  password=args.password)
 
 cur = con.cursor()
-cur.execute('delete from trial_diseases')
-cur.execute('delete from trials')
-cur.execute('delete from maintypes')
+cur.execute('delete from  trial_diseases ')
+cur.execute('delete from  trials')
+cur.execute('delete from   maintypes')
 cur.execute('delete from trial_maintypes')
 cur.execute('delete from distinct_trial_diseases')
-cur.execute('delete from trial_sites')
-cur.execute('delete from trial_unstructured_criteria')
+cur.execute('delete from  trial_sites')
+cur.execute('delete from  trial_unstructured_criteria')
 con.commit()
 
 # First get the maintypes, then get the study data needed.
