@@ -136,7 +136,9 @@ create table ncit_version (
 version_id varchar(32),
 downloaded_url text,
 transitive_closure_generation_date timestamp,
-active_version char(1) check (active_version = 'Y' or active_version is NULL )
+active_version char(1) check (active_version = 'Y' or active_version is NULL ),
+ncit_tokenizer_generation_date timestamp,
+ncit_tokenizer bytea
 );
 
 
