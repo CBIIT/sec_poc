@@ -59,6 +59,7 @@ get_api_studies_for_location_and_distance  <- function(lat, long, num_miles) {
   return(df)
   } else {
     #V2
+    print("V2 Studies for location and distance")
     d <-
       POST(
         'https://clinicaltrialsapi.cancer.gov/api/v2/trials',
@@ -74,8 +75,10 @@ get_api_studies_for_location_and_distance  <- function(lat, long, num_miles) {
           from = 0
         ),
         encode = "json",
-        add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+        add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json'),
+        timeout(4)
       )
+    print(paste("location and distance studies return code = ",d$status_code))
     pdata <- content(d)
     total_to_return <- pdata$total
     df <- rbindlist(pdata$data)
@@ -97,7 +100,8 @@ get_api_studies_for_location_and_distance  <- function(lat, long, num_miles) {
             from = start
           ),
           encode = "json",
-          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json'),
+          timeout(4)
         )
       pdata <- content(d)
       dfi <- rbindlist(pdata$data) # Turns the list into a dataframe

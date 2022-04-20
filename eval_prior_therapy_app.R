@@ -12,7 +12,7 @@ source('transform_prior_therapy.R')
 eval_prior_therapy_app  <-
   function(csv_codes,
            x,
-           session_conn,
+           safe_query,
            eval_env = .GlobalEnv,
            ignore_errors = FALSE,
            FUN = transform_prior_therapy) {

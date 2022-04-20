@@ -5,14 +5,13 @@
 library(RSQLite)
 library(plyr)
 
-get_maintypes_for_diseases  <- function(participant_codes, con) {
+get_maintypes_for_diseases  <- function(participant_codes, safe_query) {
  
   #print(paste("participant_codes = ", participant_codes))
   
   get_maintype_for_code <- function(c_code) {
     print(paste('get_maintype_for_code - ', c_code))
-    dfm <- dbGetQuery(
-      con,
+    dfm <- safe_query(dbGetQuery,
       '
       with minlevel as
       (select min(level) as min_level from ncit_tc_with_path np join maintypes m

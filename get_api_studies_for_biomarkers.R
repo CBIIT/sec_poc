@@ -6,6 +6,10 @@ get_api_studies_for_biomarkers  <- function(ncit_code, eligibility_criterion ) {
   CTS_V2_API_KEY <- Sys.getenv('CTS_V2_API_KEY')
   if (nchar(CTS_V2_API_KEY) >  0) {
       # V2
+      print("V2 biomarkers")
+      retry_count <- 0
+      done <- FALSE
+      while (retry_count < 3 && done == FALSE ) {
       d <-
         POST(
           'https://clinicaltrialsapi.cancer.gov/api/v2/trials',
@@ -20,8 +24,18 @@ get_api_studies_for_biomarkers  <- function(ncit_code, eligibility_criterion ) {
             from = 0
           ),
           encode = "json",
-          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+          add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json'),
+          timeout(4)
         )
+        print(paste("biomarkers api studies return code = ",d$status_code))
+        if(d$status_code == 200) {
+          done <- TRUE 
+        } else {
+          retry_count <- retry_count + 1
+          Sys.sleep(retry_count)
+        }
+        
+      }
       pdata <- content(d)
       total_to_return <- pdata$total
       
@@ -43,7 +57,8 @@ get_api_studies_for_biomarkers  <- function(ncit_code, eligibility_criterion ) {
               from = start
             ),
             encode = "json",
-            add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json')
+            add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = 'application/json'),
+            timeout(4)
           )
         pdata <- content(d)
         dfi <- rbindlist(pdata$data) # Turns the list into a dataframe

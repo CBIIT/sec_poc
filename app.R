@@ -24,6 +24,120 @@ library(lubridate)
 library(shinyFeedback)
 library(shinyalert)
 library(shinyWidgets)
+library(pool)
+library(RPostgres)
+
+
+#
+#
+dbinfo <- config::get()
+
+#Sys.setenv(LD_LIBRARY_PATH = "/usr/local/lib")
+#library(reticulate)
+##use_python('/usr/bin/python3', required=TRUE )
+#reticulate::py_discover_config()
+#source_python(paste(
+#  dbinfo$python_file_dir,
+#  '/create_performance_expression.py',
+#  sep = ""
+#))
+
+
+local_dbname <- dbinfo$dbname
+local_host <- dbinfo$host
+local_user <- dbinfo$user
+local_password <- dbinfo$password
+local_port <- dbinfo$port
+pool_idleTimeout <- 300 # 5 minute pool timeout default
+pool_minSize <- 0
+pool_maxSize <- 3
+pool_validationInterval <- 60000000000 
+
+pool_con <- dbPool(#drv = RPostgreSQL::PostgreSQL(), 
+  drv = RPostgres::Postgres(),
+  dbname = local_dbname,
+  host = local_host, 
+  user = local_user,
+  password =local_password,
+  port = local_port, 
+  idleTimeout = pool_idleTimeout,
+  minSize = pool_minSize,
+  maxSize = pool_maxSize,
+  validationInterval = pool_validationInterval
+) 
+
+print(pool_con)
+
+#
+# generate_safe_query ----
+# This is a function that takes the database connection pool as an argument.  It returns 
+# a function that takes a given R dbapi function (like dbGetQuery) and arguments and tries to run that 
+# statement given the passed in function. If the statement fails, it sleeps for the 
+# designated time, recreates the pool, and tries again.  If the error condition is 
+# transient in nature, (for example, network connectivity is lost, or the AWS database goes dormant and needs to be spun back up) 
+# this will successful recover from that.
+# 
+# Other errors won't recover but will be noted before bailing out.
+#
+#
+wait_times <- c(2,2)
+
+generate_safe_query <- function(pool) {
+  function(db_function, ...) {
+    # print("in safe query")
+    tryCatch({
+      #  xx<-lapply(sys.call()[-1], deparse)
+      #  print(paste0(ifelse(nchar(names(xx))>0, paste0(names(xx),"="), ""), unlist(xx), collapse=", "))
+      db_function(pool, ...)
+    }, error = function(e) {
+      print("ERROR IN safe_query ")
+      print(e$message)
+      #browser()
+      print("error - going to try to recreate the pool")
+      tryCatch( {
+        Sys.sleep(wait_times[1])  # Sleep two seconds 
+        # poolClose(pool_con)
+        pool_con <<- dbPool(drv = RPostgres::Postgres(),
+                            dbname = local_dbname,
+                            host = local_host, 
+                            user = local_user,
+                            password = local_password,
+                            idleTimeout = pool_idleTimeout,
+                            minSize = pool_minSize,
+                            maxSize = pool_maxSize,
+                            validationInterval = pool_validationInterval
+        ) 
+        db_function(pool, ...)
+      } , error = function(e) {
+        # Unexpected error
+        print(paste("cannot recreate pool - going to sleep and try one more time  ", e$message))
+        tryCatch( {
+          Sys.sleep(wait_times[2])  # Sleep two seconds 
+          # poolClose(pool_con)
+          pool_con <<- dbPool(drv = RPostgres::Postgres(),
+                              dbname = local_dbname,
+                              host = local_host, 
+                              user = local_user,
+                              password = local_password,
+                              idleTimeout = pool_idleTimeout,
+                              minSize = pool_minSize,
+                              maxSize = pool_maxSize,
+                              validationInterval = pool_validationInterval
+          ) 
+          db_function(pool, ...)
+        } , error = function(e) {
+          # Unexpected error
+          print(paste("cannot recreate pool - bailing out ", e$message))
+          stop(e)
+        })
+      })
+      
+    })
+  }
+}
+############
+
+safe_query <<- generate_safe_query(pool_con)
 
 source('get_api_studies_for_biomarkers.R')
 source('hh_collapsibleTreeNetwork.R')
@@ -41,19 +155,6 @@ source('get_org_families.R')
 source('get_api_studies_for_cancer_centers.R')
 
 source('get_umls_crosswalk.R')
-#
-#
-dbinfo <- config::get()
-
-Sys.setenv(LD_LIBRARY_PATH = "/usr/local/lib")
-library(reticulate)
-#use_python('/usr/bin/python3', required=TRUE )
-reticulate::py_discover_config()
-source_python(paste(
-  dbinfo$python_file_dir,
-  '/create_performance_expression.py',
-  sep = ""
-))
 source('get_api_studies_for_disease.R')
 source('fix_blood_results.R')
 source('get_api_studies_for_location_and_distance.R')
@@ -183,8 +284,10 @@ background-color: #FFCCCC;
         actionButton("show_solid_disease", "Solid"),
         selectizeInput("disease_tree_typer", label = "Disease Trees", 
                        NULL,  selected = NULL , multiple = FALSE
-        )
+        ),
+        actionButton("show_disease_tree_button", "Show Tree")
         ,
+        hr(),
         DTOutput("diseases"),
         actionButton("show_biomarkers", "Biomarkers"),
         DTOutput('biomarkers'),
@@ -240,7 +343,8 @@ background-color: #FFCCCC;
     actionButton("show_crosswalk", "Add non-NCI codes"),
     DTOutput('crosswalk_codes'),
         actionButton("search_and_match", "SEARCH AND MATCH")
-      )
+      ),
+    actionButton("show_generic_disease_tree_modal", "s")
     )
     
     ,
@@ -401,7 +505,7 @@ background-color: #FFCCCC;
           downloadButton("downloadData", "Download Match Data", style =
                            'padding:4px; font-size:80%')
         )
-        ,
+        
         
       )
       , 
@@ -424,6 +528,27 @@ background-color: #FFCCCC;
               
     )
     ,
+    # Generic disease tree bsmodal ----
+     bsModal("disease_tree_bsmodal", "Select Disease", "show_generic_disease_tree_modal", size = "large",
+             fluidPage(id = "treePanel_gen",
+                       fluidRow(column(
+                         12,
+                         wellPanel(
+                           id = "tPanel_gen",
+                           style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
+                           collapsibleTreeOutput("generic_disease_tree", height = "75vh", width =
+                                                   '4500px')
+                         )
+                       )),
+                       fluidRow(column(2, 'Disease selected:'), 
+                                column(6, align = "left", textOutput("generic_disease_tree_disease_selected")),
+                                column(2, align = 'right'), actionButton("generic_disease_tree_add_disease", label='Add disease')),
+                       fluidRow(textOutput("hidden_root_node"))
+                       
+             )
+             
+     )
+     ,
     bsModal("lung_bsmodal", "Select Lung Disease", "show_lung_disease", size = "large",
             fluidPage(id = "treePanel",
                       fluidRow(column(
@@ -605,11 +730,14 @@ server <- function(input, output, session) {
     cancer_center_df = NA,
     crosswalk_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Description")))),
     session_id = NA,
-    prior_therapy_data_df = NA
+    prior_therapy_data_df = NA,
+    disease_tree_root_node = NA
 
     )
   
   tgt <- NA
+  shinyjs::hide("show_generic_disease_tree_modal")
+  shinyjs::hide("hidden_root_node")
   
   # get a TGT from UMLS
   
@@ -644,7 +772,7 @@ server <- function(input, output, session) {
 
   counter <- reactiveValues(countervalue = 0)
   shinyjs::disable("subtype_typer")
-  
+  shinyjs::disable("show_disease_tree_button")
   
   
   target_lvd <- ymd(today()) - years(2)
@@ -655,18 +783,18 @@ server <- function(input, output, session) {
  #  print(paste('nrow', nrow(rvd_df)))
  # # browser()
   
-  con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+  #con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+  con <- pool_con
   
   # s1 <- Sys.time()
   # 
-   rvd_df <- dbGetQuery(con, paste("select nct_id from trials where record_verification_date >= '", target_lvd , "'", sep=""))
-   print(paste('nrows', nrow(rvd_df)))
+  rvd_df <- safe_query(dbGetQuery, paste("select nct_id from trials where record_verification_date >= '", target_lvd , "'", sep=""))   
+  print(paste('nrows', nrow(rvd_df)))
    
-   df_number_sites <- dbGetQuery(con, "select count(nct_id) as number_sites, nct_id from trial_sites where org_status = 'ACTIVE' group by nct_id")
+  df_number_sites <- safe_query(dbGetQuery, "select count(nct_id) as number_sites, nct_id from trial_sites where org_status = 'ACTIVE' group by nct_id")
 
   df_disease_choice_data <-
-    dbGetQuery(
-      con,
+    safe_query(dbGetQuery, 
       "with preferred_names as (
 select  preferred_name, count(preferred_name) as name_count
       from trial_diseases ds where ds.disease_type like '%maintype%' or ds.disease_type like  '%subtype%'
@@ -681,8 +809,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   
   #browser()
   df_misc_choice_data <-
-    dbGetQuery(
-      con ,
+    safe_query(dbGetQuery,
       "select code, pref_name from ncit where concept_status <> 'Obsolete_Concept' or concept_status is null order by parents, pref_name
       "
     )
@@ -690,8 +817,7 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     as.vector(df_misc_choice_data[["code"]]),as.vector(df_misc_choice_data[["pref_name"]]))
   
   df_disease_tree_choices_raw <-
-    dbGetQuery(
-      con,
+    safe_query(dbGetQuery,
       "with real_tree_data as (
 select nci_thesaurus_concept_id, display_name 
     from distinct_trial_diseases ds 
@@ -712,8 +838,8 @@ select nci_thesaurus_concept_id, display_name
                        choices = df_disease_tree_choices ,
                        selected = NULL,
                        server = TRUE)
-  
-  df_prior_therapy_data <- dbGetQuery(con, "with descendants as
+ 
+  df_prior_therapy_data <- safe_query(dbGetQuery, "with descendants as
   (
     select descendant from ncit_tc where parent in ('C25218', 'C1908', 'C62634', 'C163758') 
   ),
@@ -731,28 +857,16 @@ select nci_thesaurus_concept_id, display_name
   from good_codes gc join ncit n on gc.descendant = n.code"
   )
   
-  
-#   df_prior_therapy_data <-
-#     dbGetQuery(
-#       con,
-#       "with domain_set as (
-#         select tc.descendant as code  from ncit_tc tc where tc.parent in ('C16203', 'C1908',  'C62634', 'C163758')
-#       )      
-# select ds.code, n.pref_name  from domain_set ds join ncit n 
-# on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
-# order by n.pref_name"
-#     )
+
+
   df_prior_therapy_choices <- setNames(
      as.vector(df_prior_therapy_data[["code"]]),as.vector(df_prior_therapy_data[["pref_name"]]))
   
-  #df_prior_therapy_choices <- df_prior_therapy_data$pref_name
   sessionInfo$prior_therapy_data_df <- df_prior_therapy_choices
   
-  df_maintypes <-
     
   df_maintypes <-
-    dbGetQuery(
-      con,
+    safe_query(dbGetQuery,
       " select NULL as display_name union 
       select display_name 
       from distinct_trial_diseases ds where ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%'
@@ -760,8 +874,8 @@ select nci_thesaurus_concept_id, display_name
     )
 
   df_biomarker_list_s <-
-    dbGetQuery(
-      con,
+    safe_query(dbGetQuery,
+     
       "with domain_set as (
         select tc.descendant as code  from ncit_tc tc where tc.parent = 'C36391'
       )      
@@ -785,9 +899,8 @@ order by n.pref_name"
   #
   
   df_criteria_picker_data <-
-    dbGetQuery(
-      con,
-      
+    safe_query(dbGetQuery,
+
       "with all_crit_types as (
         select 'disease_matches == TRUE'  as criteria_match_code , 'Diseases' as criteria_type_title, -100 as criteria_column_index
         UNION
@@ -839,11 +952,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   brief_title, phase, study_source , case study_source when 'National' then 1 when 'Institutional' then 2 when 'Externally Peer Reviewed' then 3 when 'Industrial' then 4 end study_source_sort_key ,
   sc.number_sites 
   from trials t join site_counts sc on t.nct_id = sc.nct_id "
-  df_crit <- dbGetQuery(con, crit_sql)
+  df_crit <- safe_query(dbGetQuery, crit_sql)
   
   # HH Cutting here for dynamic criteria 
   
-  crit_types <- dbGetQuery(con, "select criteria_type_id, criteria_type_code, criteria_type_title, criteria_type_active from criteria_types  where criteria_type_active = 'Y' order by criteria_type_id ")
+  crit_types <- safe_query(dbGetQuery, 
+                           "select criteria_type_id, criteria_type_code, criteria_type_title, criteria_type_active from criteria_types  where criteria_type_active = 'Y' order by criteria_type_id ")
   
   for (row in 1:nrow(crit_types)) {
     criteria_type_id <- crit_types[row, 'criteria_type_id']
@@ -853,7 +967,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     # get the criteria by type
     
     
-    cdf <- dbGetQuery(con, "select nct_id, trial_criteria_refined_text, trial_criteria_expression from trial_criteria where criteria_type_id = $1 
+    cdf <- safe_query(dbGetQuery, "select nct_id, trial_criteria_refined_text, trial_criteria_expression from trial_criteria where criteria_type_id = $1 
                        and  trial_criteria_expression is not null and trial_criteria_expression <> '' ",
                       params = c(criteria_type_id))
     
@@ -883,13 +997,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   
   #browser()
   
-  dt_gyn_tree <- getDiseaseTreeData(con, 'C4913', use_ctrp_display_name = TRUE)
-  dt_lung_tree <- getDiseaseTreeData(con, 'C4878',use_ctrp_display_name = TRUE)
-  dt_solid_tree <- getDiseaseTreeData(con, 'C9292',use_ctrp_display_name = TRUE)
+  dt_gyn_tree <- getDiseaseTreeData(safe_query, 'C4913', use_ctrp_display_name = TRUE)
+  dt_lung_tree <- getDiseaseTreeData(safe_query, 'C4878',use_ctrp_display_name = TRUE)
+  dt_solid_tree <- getDiseaseTreeData(safe_query, 'C9292',use_ctrp_display_name = TRUE)
   
-  #browser()
   
-  DBI::dbDisconnect(con)
+  #DBI::dbDisconnect(con)
   output$gyn_disease_tree <- renderCollapsibleTree({
     hh_collapsibleTreeNetwork( 
       dt_gyn_tree,
@@ -981,8 +1094,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       df_diseases <- data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases"))))
       sessionInfo$session_id <- query[['session_id']]
       print(paste('session_id is ', sessionInfo$session_id))
-      session_con <-
-        DBI::dbConnect(RSQLite::SQLite(), dbinfo$session_db_file_location)
+     
       df_prior_therapy_interop_sql <- "
       with descendants as
             (
@@ -1007,8 +1119,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
       
      # browser()
-      session_nodename <- dbGetQuery(session_con, 
-                             "select coalesce(nodename,'') as nodename from search_session where session_uuid = ?",
+      session_nodename <- safe_query(dbGetQuery, 
+                             "select coalesce(nodename,'') as nodename from fhirops.search_session where session_uuid = $1",
                              params = c(sessionInfo$session_id))
       if (nrow(session_nodename)>0 && nchar(session_nodename$nodename)>0 ) {
         progress_title <- paste('Importing data from', session_nodename$nodename)
@@ -1017,18 +1129,15 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       }
       
       session_data <-
-        dbGetQuery(
-          session_con,
+        safe_query(dbGetQuery,
           'select concept_cd, valtype_cd, tval_char, nval_num,
-                                         units_cd from search_session_data where session_uuid = ? 
+                                         units_cd from fhirops.search_session_data where session_uuid = $1 
                                          and concept_cd is not null',
           params = c(sessionInfo$session_id)
         )
       
       print(session_data)
-      DBI::dbDisconnect(session_con)
-      session_con <-
-        DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+
       if (nrow(session_data) > 0) {
         progressSweetAlert(
           session = session, id = "myprogress",
@@ -1057,15 +1166,15 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           }
           if (concept_cd == 'C51948') {
             # wbc
-            if (valtype_cd == 'N') {
+          #  if (valtype_cd == 'N') {
               updateNumericInput(session, "patient_wbc", value = nval_num)
-            }
+          #  }
           }
           if (concept_cd == 'C51951') {
             # platelets
-            if (valtype_cd == 'N') {
+         #   if (valtype_cd == 'N') {
               updateNumericInput(session, "patient_plt", value = nval_num)
-            }
+          #  }
           }
           if (concept_cd == 'C25720') {
             # zip code
@@ -1090,8 +1199,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           # Check for prior therapy (NLP )
           for (r in (1:length(concept_cds))) {
             df_prior_therapy_interop <- 
-              dbGetQuery(
-                session_con,df_prior_therapy_interop_sql, params = c(concept_cds[r])
+              safe_query(dbGetQuery,df_prior_therapy_interop_sql, params = c(concept_cds[r])
               )  
             if (nrow(df_prior_therapy_interop)>0) {
              # browser()
@@ -1106,8 +1214,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             print(paste("disease row : ", r, " concept_cd ", concept_cds[r]))
           
             df_cancer_interop <- 
-              dbGetQuery(
-                session_con,df_cancer_interop_sql, params = c(concept_cds[r])
+              safe_query(dbGetQuery,df_cancer_interop_sql, params = c(concept_cds[r])
               )  
             print(df_cancer_interop)
             if (nrow(df_cancer_interop)>0) {
@@ -1120,7 +1227,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
               add_disease_sql <- "select distinct code 
                         as \"Code\" , 'YES' as \"Value\", 
                         pref_name as \"Diseases\" from  ncit where code = $1"
-              df_new_disease <- dbGetQuery(session_con, add_disease_sql,  params = c(concept_cds[r]))
+              df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(concept_cds[r]))
               df_diseases <- rbind(df_diseases, df_new_disease)
               print(paste("df_diseases ", df_diseases))
              # browser()
@@ -1142,7 +1249,6 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           
         }
         closeSweetAlert(session = session)
-        DBI::dbDisconnect(session_con)
       }
       
       
@@ -1212,12 +1318,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       print('enabled subtype_type')
       shinyjs::enable("subtype_typer")
       shinyjs::enable("stage_typer")
-      session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+     
       
-      df_new_subtypes <- get_subtypes_for_maintypes(input$maintype_typer, session_con)
-      df_stages <- get_stage_for_types(input$maintype_typer, session_con)
+      df_new_subtypes <- get_subtypes_for_maintypes(input$maintype_typer, safe_query)
+      df_stages <- get_stage_for_types(input$maintype_typer, safe_query)
       
-      DBI::dbDisconnect(session_con)
+     
      
       updateSelectizeInput(session,
                            'subtype_typer',
@@ -1255,12 +1361,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     if(length(input$subtype_typer) > 0  ){
       print('enabled stage_typer')
       shinyjs::enable("stage_typer")
-       session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+      
        
        #df_stages <- get_stage_for_types(input$subtype_typer[1], session_con)
-       df_stages <- get_stage_for_types(input$subtype_typer, session_con)
+       df_stages <- get_stage_for_types(input$subtype_typer, safe_query)
        
-       DBI::dbDisconnect(session_con)
+      
   
        updateSelectizeInput(session,
                             'stage_typer',
@@ -1269,11 +1375,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
     } else  if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
          shinyjs::enable("stage_typer")
-        session_con <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+      
         
-        df_stages <- get_stage_for_types(input$maintype_typer, session_con)
-        DBI::dbDisconnect(session_con)
-        
+        df_stages <- get_stage_for_types(input$maintype_typer, safe_query)
+
         updateSelectizeInput(session,
                              'stage_typer',
                              choices = df_stages$display_name ,
@@ -1424,8 +1529,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     print(csv_codes)
     
     setProgress(value = 0.1,  detail = 'Matching on disease')
-    session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-    
+
     #
     # Now get the disease matching studies
     #
@@ -1449,9 +1553,9 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     if(nrow(sessionInfo$biomarker_df) > 0 ) {
       biomarker_exc_df <- get_api_studies_for_biomarkers(sessionInfo$biomarker_df$Code, 'exclusion')
       biomarker_inc_df <- get_api_studies_for_biomarkers(sessionInfo$biomarker_df$Code, 'inclusion')
-      trials_with_biomaker_inc_df <- dbGetQuery(session_conn,
+      trials_with_biomaker_inc_df <- safe_query(dbGetQuery,
                                                 'select nct_id from trials where biomarker_inc_codes is not null')
-      trials_with_biomaker_exc_df <- dbGetQuery(session_conn,
+      trials_with_biomaker_exc_df <- safe_query(dbGetQuery,
                                                 'select nct_id from trials where biomarker_exc_codes is not null')
       
       #df_crit$biomarker_api_exc_matches <- df_crit$clean_nct_id %in% biomarker_exc_df$nct_id
@@ -1486,7 +1590,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     
     # Get the patient maintypes
     patient_maintypes_df <-
-      get_maintypes_for_diseases(possible_disease_codes_df$Code, session_conn)
+      get_maintypes_for_diseases(possible_disease_codes_df$Code, safe_query)
     print(paste("patient maintypes = ", patient_maintypes_df))
     s2 <-
       paste("'", patient_maintypes_df$maintype, "'", sep = "")
@@ -1501,7 +1605,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         ')'
       )
     
-    maintype_studies_all <- dbGetQuery(session_conn,
+    maintype_studies_all <- safe_query(dbGetQuery,
                                        maintype_studies_all_sql)
     
     #
@@ -1565,12 +1669,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     group1_sql  <- "select criteria_type_code, criteria_type_title, criteria_type_sense from criteria_types  
 where criteria_type_active = 'Y' and criteria_column_index < 2000
 order by criteria_column_index "
-    df_group1 <- dbGetQuery(session_conn, group1_sql)
+    df_group1 <- safe_query(dbGetQuery, group1_sql)
     
     group2_sql  <- "select criteria_type_code, criteria_type_title, criteria_type_sense from criteria_types  
 where criteria_type_active = 'Y' and criteria_column_index >= 2000
 order by criteria_column_index "
-    df_group2 <- dbGetQuery(session_conn, group2_sql)
+    df_group2 <- safe_query(dbGetQuery, group2_sql)
     
     # set the debug flag for evals (or not )
     patient_data_env$debug_expressions <- dbinfo$debug_expressions
@@ -1588,7 +1692,7 @@ order by criteria_column_index "
       df_matches$foo <-
         lapply(df_matches[,paste(base_string,'_expression',sep='')],
                function(x)
-                 eval_prior_therapy_app(csv_codes, x, session_conn,
+                 eval_prior_therapy_app(csv_codes, x, safe_query,
                                         eval_env =
                                           patient_data_env))
       
@@ -1655,7 +1759,6 @@ order by criteria_column_index "
 
     #browser()    
     print(Sys.time())
-    DBI::dbDisconnect(session_conn)
     sessionInfo$df_matches <- df_matches
     print("creating table to display")
 
@@ -1882,6 +1985,80 @@ order by criteria_column_index "
   # )
   # 
   
+  # Disease tree typer selected ----
+  observeEvent(input$disease_tree_typer, ignoreNULL = TRUE, {
+    print("Disease tree typer")
+    if (input$disease_tree_typer == '') {
+      shinyjs::disable("show_disease_tree_button")
+    } else {
+      shinyjs::enable("show_disease_tree_button")
+      
+    }
+  })
+
+  # Show the generic disease tree modal dialog ----
+  
+  observeEvent(input$show_disease_tree_button, {
+    print("Show generic disease tree for ")   
+    print(input$disease_tree_typer)  
+    dt_generic_disease_tree <- getDiseaseTreeData(safe_query, input$disease_tree_typer, use_ctrp_display_name = TRUE)
+    output$hidden_root_node <- renderText(dt_generic_disease_tree$child[[1]])
+    sessionInfo$disease_tree_root_node <- dt_generic_disease_tree$child[[1]]
+    output$generic_disease_tree <- renderCollapsibleTree({
+      hh_collapsibleTreeNetwork( 
+        dt_generic_disease_tree,
+        collapsed = TRUE,
+        linkLength = 500,
+        zoomable = FALSE,
+        inputId = "generic_disease_tree_selected_node",
+        nodeSize = 'nodeSize',
+        #nodeSize = 14,
+       # tooltip = TRUE,
+        aggFun = 'identity',
+        fontSize = 14 #,
+        #,
+        #  width = '2000px',
+        #  height = '1700px'
+      )})
+    click("show_generic_disease_tree_modal")
+    
+  })
+  
+  observeEvent(input$generic_disease_tree_selected_node, ignoreNULL = TRUE, {
+    print("generic disease tree node selected")
+    #browser()
+    print(input$generic_disease_tree_selected_node)
+    # browser()
+    if(length(input$generic_disease_tree_selected_node) > 0) {
+      output$generic_disease_tree_disease_selected <- renderText(input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]] )
+    } else {
+      output$generic_disease_tree_disease_selected <- renderText(sessionInfo$disease_tree_root_node)
+    }
+    
+    # browser()
+    print("----------")
+  })
+  
+  
+  observeEvent(input$generic_disease_tree_add_disease, {
+    print("add disease from generic disease tree")
+    #browser()
+    if(length(input$generic_disease_tree_selected_node) > 0) {
+      new_disease <- input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]]
+    } else {
+      new_disease <- sessionInfo$disease_tree_root_node
+    }
+    
+    print(paste("new disease = ", new_disease))
+    add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
+    df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
+    #browser()
+    sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
+    print(sessionInfo$disease_df)
+    
+    
+  }
+  )
   
   observeEvent(input$gyn_selected_node, ignoreNULL = TRUE, {
     print("gyn node selected")
@@ -2073,16 +2250,14 @@ order by criteria_column_index "
     print(input$biomarker_list)
     if (length(input$biomarker_list) > 0) {
       add_disease_sql <-  "select code as \"Code\" , 'YES' as \"Value\", pref_name as \"Biomarkers\" from ncit where pref_name = $1"
-      session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       for (row in 1:length(input$biomarker_list)) {
         new_disease <- input$biomarker_list[row]
         df_new_disease <-
-          dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+          safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
         #browser(0)
         sessionInfo$biomarker_df <-
           rbind(sessionInfo$biomarker_df, df_new_disease)
       }
-      DBI::dbDisconnect(session_conn)
     }
     print(sessionInfo$biomarker_df)
   })
@@ -2097,10 +2272,8 @@ order by criteria_column_index "
     
     print(paste("new disease = ", new_disease))
     add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
-    session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-    df_new_disease <- dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+    df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
     #browser()
-    DBI::dbDisconnect(session_conn)
     sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
     print(sessionInfo$disease_df)
     
@@ -2158,30 +2331,26 @@ order by criteria_column_index "
       # There are subtypes selected -- use those and do not use the selected maintype
       #
       add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
-      session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       for (row in 1:length(input$subtype_typer)) {
         new_disease <- input$subtype_typer[row]
         df_new_disease <-
-          dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+          safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
         #browser()
         sessionInfo$disease_df <-
           rbind( sessionInfo$disease_df, df_new_disease)
       }
      
-      DBI::dbDisconnect(session_conn)
-      
+
     } else if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
       # No subtype, get the maintype and add that in.
       print(paste("add maintype as disease - ", input$maintype_typer))
       add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
-      session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       new_disease <- input$maintype_typer
       df_new_disease <-
-        dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+        safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
       sessionInfo$disease_df <-
         rbind( sessionInfo$disease_df, df_new_disease)
-      DBI::dbDisconnect(session_conn)
-      
+
       
     }
     
@@ -2192,17 +2361,15 @@ order by criteria_column_index "
     # and use that
     if(length(input$stage_typer) > 0  ){
       add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
-      session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
       for (row in 1:length(input$stage_typer)) {
         new_disease <- input$stage_typer[row]
         df_new_disease <-
-          dbGetQuery(session_conn, add_disease_sql,  params = c(new_disease))
+          safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
         #browser()
         sessionInfo$disease_df <-
           rbind( sessionInfo$disease_df, df_new_disease)
       }
       
-      DBI::dbDisconnect(session_conn)
     }
     
   }

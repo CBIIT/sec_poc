@@ -1,4 +1,4 @@
-getDiseaseTreeData <- function(con,ncit_code, search_string = NA, use_ctrp_display_name = FALSE) {
+getDiseaseTreeData <- function(safe_query,ncit_code, search_string = NA, use_ctrp_display_name = FALSE) {
   
   s <- "
  with recursive parent_descendant(parent, descendant, level, path_string)
@@ -44,73 +44,17 @@ getDiseaseTreeData <- function(con,ncit_code, search_string = NA, use_ctrp_displ
   --, pref_name as path_string
   from ncit n where n.code = ?
   )
-  select parent, child, level as levels,  1 as collapsed , 10 as nodeSize --, path_string
+  select parent, child, level as levels,  1 as collapsed , 10 as \"nodeSize\" --, path_string
   
   
   from all_nodes where level < 999
   order by level"
   
   
-  s_ctrp <- " 
-  with recursive parent_descendant(parent, descendant, level, path_string)
-  as (
-  select tc.parent , tc.descendant , 1 as level, n1.pref_name || ' | ' || n2.pref_name as path_string  
-  from ncit_tc_with_path tc join ncit n1 on tc.parent = n1.code join ncit n2 on tc.descendant = n2.code 
-  where tc.parent = ? and tc.level = 1 
-  union ALL
-  select pd.descendant as parent ,
-  tc1.descendant as descendant, 
-  pd.level + 1 as level,
-  pd.path_string || ' | ' ||  n1.pref_name as path_string
-  from parent_descendant pd join
-  ncit_tc_with_path tc1 on pd.descendant = tc1.parent and tc1.level = 1
-  join ncit n1 on n1.code = tc1.descendant
-  
-  )
-  -- select * from parent_descendant 
-  
-  
-  ,
-  data_for_tree as
-  (
-  select distinct n1.pref_name  as parent,
-  n2.pref_name  as child,
-  pd.level
-  --,
-  --pd.path_string
-  from parent_descendant pd
-  join ncit n1 on pd.parent = n1.code 
-  join ncit n2 on pd.descendant = n2.code 
-
-  where exists (select dd.nci_thesaurus_concept_id from distinct_trial_diseases dd where dd.nci_thesaurus_concept_id = n2.code )
-  
-  )
-  ,
-  all_nodes as (
-  select parent, child, level 
-  --, path_string 
-  from data_for_tree
-  union
-  select NULL as parent , pref_name  as child, 0 as level 
-  --, pref_name as path_string
-  from ncit n where n.code = ?
-  )
-  ,
-  ctrp_names as (
-  select distinct preferred_name, display_name from trial_diseases 
-  ),
-  
-all_nodes_ctrp as (
- select replace(replace(replace(ctrp1.display_name, 'AJCC v7', ''), 'AJCC v8', '') , 'AJCC v6', '') as parent , 
-                              replace(replace(replace(ctrp2.display_name, 'AJCC v7', ''), 'AJCC v8', ''), 'AJCC v6', '') as child,  
-  
-  level as level,  1 as collapsed, 10 as nodeSize --, path_string
-  from all_nodes an left outer join ctrp_names ctrp1 on an.parent=ctrp1.preferred_name
-  join ctrp_names ctrp2 on an.child = ctrp2.preferred_name where ( ctrp1.display_name != ctrp2.display_name or level = 0)
- )
- select parent, child, level as levels, collapsed, nodeSize  from all_nodes_ctrp 
- where level < 999
-  order by level"
+  s_ctrp <- "
+    select parent, child, levels, collapsed, \"nodeSize\" from disease_tree where code = $1
+    order by levels, parent, child
+  "
   
  
   if (use_ctrp_display_name == TRUE) {
@@ -120,9 +64,9 @@ all_nodes_ctrp as (
   }
   
   df_tree_data <-
-    dbGetQuery(con,
+    safe_query(dbGetQuery,
                q_string,
-               params = c(ncit_code,ncit_code))
+               params = c(ncit_code))
   
   
  # browser()
