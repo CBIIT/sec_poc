@@ -2013,6 +2013,7 @@ order by criteria_column_index "
         inputId = "generic_disease_tree_selected_node",
         nodeSize = 'nodeSize',
         #nodeSize = 14,
+       # tooltip = TRUE,
         aggFun = 'identity',
         fontSize = 14 #,
         #,
