@@ -20,8 +20,7 @@ NCIT_CODE_AND_SYNONYMS_SQL = '''
         /* and (lower(synonyms) like '%chemotherapy%' or lower(synonyms) like '%ecog%' or lower(synonyms) like '%white blood cell%') */
         '''
 NCIT_SYNONYMS_SQL = '''select code, l_syn_name from ncit_syns'''
-# NCI_VERSION_INSERT_SQL = '''insert into test_nlp_version (ncit_tokenizer_generation_date, ncit_tokenizer) values (%s,%s)'''
-NCI_VERSION_INSERT_SQL = '''UPDATE test_ncit_version SET ncit_tokenizer_generation_date=(%s), 
+NCI_VERSION_UPDATE_SQL = '''UPDATE test_ncit_version SET ncit_tokenizer_generation_date=(%s), 
     ncit_tokenizer=(%s)
     WHERE active_version=(%s)'''
 
@@ -77,7 +76,7 @@ if __name__ == '__main__':
     matcher.add("TerminologyList", patterns)
     compressed_pickled_string = compress(dumps(matcher))
     timestamp = datetime.now(timezone.utc)
-    save(db, NCI_VERSION_INSERT_SQL, (timestamp, compressed_pickled_string, 'Y',))
+    save(db, NCI_VERSION_UPDATE_SQL, (timestamp, compressed_pickled_string, 'Y',))
     db.close()
     end_time = datetime.now()
     print("NLP Tokenizer Completed in ", end_time - start_time)
