@@ -535,9 +535,12 @@ background-color: #FFCCCC;
                          12,
                          wellPanel(
                            id = "tPanel_gen",
-                           style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
-                           collapsibleTreeOutput("generic_disease_tree", height = "75vh", width =
-                                                   '4500px')
+                          # style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
+                           #style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll;",
+                           
+                          # collapsibleTreeOutput("generic_disease_tree", height = "75vh", width =
+                          #                         '4000px')
+                           collapsibleTreeOutput("generic_disease_tree", height = "75vh")
                          )
                        )),
                        fluidRow(column(2, 'Disease selected:'), 
@@ -618,7 +621,7 @@ background-color: #FFCCCC;
                       bsAlert('crosswalk_modal_alert'),
                       fluidRow(radioButtons("crosswalk_ontology","Ontology ",
                         choices = c("ICD10CM" = "ICD10CM", "LOINC" = "LNC", "SNOMEDCT" = "SNOMEDCT_US",
-                                    "RXNORM" = "RXNORM"),
+                                    "RXNORM" = "RXNORM")
 
                       )
                       ),
@@ -821,7 +824,8 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       "with real_tree_data as (
 select nci_thesaurus_concept_id, display_name 
     from distinct_trial_diseases ds 
-    where (ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%')
+    where (ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%' or ds.nci_thesaurus_concept_id = 
+'C4913' )
     and nci_thesaurus_concept_id not in ('C2991', 'C2916')
     and not display_name like 'Other %'
  UNION
@@ -2009,11 +2013,12 @@ order by criteria_column_index "
         dt_generic_disease_tree,
         collapsed = TRUE,
         linkLength = 500,
-        zoomable = FALSE,
+        zoomable = TRUE,
         inputId = "generic_disease_tree_selected_node",
         nodeSize = 'nodeSize',
         #nodeSize = 14,
-       # tooltip = TRUE,
+        tooltip = TRUE,
+        tooltipHtml = 'tooltipHtml',
         aggFun = 'identity',
         fontSize = 14 #,
         #,
