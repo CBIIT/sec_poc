@@ -52,7 +52,7 @@ getDiseaseTreeData <- function(safe_query,ncit_code, search_string = NA, use_ctr
   
   
   s_ctrp <- "
-    select parent, child, levels, collapsed, \"nodeSize\" from disease_tree where code = $1
+    select parent, child, levels, collapsed, \"nodeSize\" ,  \"tooltipHtml\" from disease_tree where code = $1
     order by levels, parent, child
   "
   
