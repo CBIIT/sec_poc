@@ -108,6 +108,7 @@ hh_collapsibleTreeNetwork <- function(df, inputId = NULL, attribute = "leafCount
   
   #stop("Hubert's code")
   # reject bad inputs
+  print(paste('colnames are ', colnames(df)))
   if(!is.data.frame(df)) stop("df must be a data frame")
   if(sum(is.na(df[,1])) != 1) stop("there must be 1 NA for root in the first column")
   if(!is.character(fill)) stop("fill must be a either a color or column name")
@@ -119,7 +120,7 @@ hh_collapsibleTreeNetwork <- function(df, inputId = NULL, attribute = "leafCount
   # root is the node with NA as a parent
   root <- df[is.na(df[,1]),]
   tree <- df[!is.na(df[,1]),]
-  
+  # browser()
   # convert the data frame network into a data.tree node
   if (nrow(df)==1) {
     # Special case of single node tree
@@ -155,10 +156,10 @@ hh_collapsibleTreeNetwork <- function(df, inputId = NULL, attribute = "leafCount
     attribute = attribute,
     linkLength = linkLength,
     fontSize = fontSize,
-    #tooltip = tooltip,
-    tooltip = NULL,
+    tooltipHtml = tooltipHtml,
+    tooltip = tooltip,
     collapsed = collapsed,
-    zoomable = zoomable,
+    zoomable = TRUE,
     margin = list(
       top = 20,
       bottom = 20,
@@ -181,26 +182,27 @@ hh_collapsibleTreeNetwork <- function(df, inputId = NULL, attribute = "leafCount
     # options[['stroke-width']] <- 0
   }
   print(paste(Sys.time(), 'Done with  fills'))
-  
-  # only necessary to perform these calculations if there is a tooltip
-  # if(tooltip & is.null(tooltipHtml)) {
-  #   if (is.numeric(df[[attribute]]) & substitute(aggFun)!="identity") {
-  #     # traverse down the tree and compute the weights of each node for the tooltip
-  #     t <- data.tree::Traverse(node, "pre-order")
-  #     data.tree::Do(t, function(x) {
-  #       x$WeightOfNode <- data.tree::Aggregate(x, attribute, aggFun)
-  #       # make the tooltips look nice
-  #       x$WeightOfNode <- prettyNum(
-  ##         x$WeightOfNode, big.mark = ",", digits = 3, scientific = FALSE
-  #      )
-  #    })
-  #  } else {
-  #    # Can't perform an aggregation on non-numeric
-  #    node$Do(function(x) x$WeightOfNode <- x[[attribute]])
-  #  }
-  #  jsonFields <- c(jsonFields, "WeightOfNode")
-  #}
-  
+  #browser()
+  #only necessary to perform these calculations if there is a tooltip
+  #if(tooltip & is.null(tooltipHtml)) {
+  if(tooltip) {
+    if (is.numeric(df[[attribute]]) & substitute(aggFun)!="identity") {
+      # traverse down the tree and compute the weights of each node for the tooltip
+      t <- data.tree::Traverse(node, "pre-order")
+      data.tree::Do(t, function(x) {
+        x$WeightOfNode <- data.tree::Aggregate(x, attribute, aggFun)
+        # make the tooltips look nice
+        x$WeightOfNode <- prettyNum(
+          x$WeightOfNode, big.mark = ",", digits = 3, scientific = FALSE
+        )
+      })
+    } else {
+      # Can't perform an aggregation on non-numeric
+      node$Do(function(x) x$WeightOfNode <- x[[attribute]])
+    }
+    jsonFields <- c(jsonFields, "WeightOfNode")
+  }
+  #browser()
   # if tooltipHtml is specified, pass it on in the data
   if(tooltip & !is.null(tooltipHtml)) {
     node$Do(function(x) x$tooltip <- x[[tooltipHtml]])
@@ -244,7 +246,7 @@ hh_collapsibleTreeNetwork <- function(df, inputId = NULL, attribute = "leafCount
   print("ready to create widget")
   # create the widget
   htmlwidgets::createWidget(
-    "collapsibleTree", x, width = width, height = height,
+    "collapsibleTree_htest", x, width = width, height = height,
     htmlwidgets::sizingPolicy(viewer.padding = 0)
   )
 }

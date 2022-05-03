@@ -335,7 +335,7 @@ cur.execute('drop table if exists disease_tree_temp')
 con.commit()
 
 sql = """
-    create temporary table disease_tree_temp as (
+    create  table disease_tree_temp as (
   with recursive parent_descendant(top_code, parent, descendant, level, path_string)
   as (
   select tc.parent as top_code, tc.parent , tc.descendant , 1 as level, n1.pref_name || ' | ' || n2.pref_name as path_string  
@@ -343,7 +343,7 @@ sql = """
   where tc.parent 
    in (
          select nci_thesaurus_concept_id
-         from distinct_trial_diseases ds where ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%'
+         from distinct_trial_diseases ds where (ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%')
          and nci_thesaurus_concept_id not in ('C2991', 'C2916') union select 'C4913' as nci_thesaurus_concept_id 
    )
    and tc.level = 1 
@@ -356,7 +356,7 @@ sql = """
   ncit_tc_with_path tc1 on pd.descendant = tc1.parent and tc1.level = 1
   join ncit n1 on n1.code = tc1.descendant
   )
-  -- select * from parent_descendant  where level < 3 order by top_code, level
+   --select * from parent_descendant  where level < 3 order by top_code, level
   ,
   data_for_tree as
   (
@@ -386,6 +386,16 @@ sql = """
   )
   )
   ,
+  trial_disease_counts as ( 
+select display_name, replace(replace(replace(display_name, 'AJCC v7', ''), 'AJCC v8', ''), 'AJCC v6', '') as rev_name , count(display_name) as num_trials 
+from trial_diseases  
+group by display_name  
+),
+ctrp_display_name_trial_counts as (
+select rev_name, sum(num_trials) as num_trials from trial_disease_counts
+group by rev_name 
+)
+  ,
   ctrp_names as (
   select distinct preferred_name, display_name from trial_diseases 
   ),
@@ -393,11 +403,25 @@ sql = """
                         select an.top_code,  replace(replace(replace(ctrp1.display_name, 'AJCC v7', ''), 'AJCC v8', '') , 'AJCC v6', '') as parent , 
                        replace(replace(replace(ctrp2.display_name, 'AJCC v7', ''), 'AJCC v8', ''), 'AJCC v6', '') as child,  
                        level as level,  
-                       1 as collapsed, 10 as \"nodeSize\" --, path_string
+                       1 as collapsed, 10 as "nodeSize" --, path_string
+                       
+					   , 
+					   
+					 --  'foo' as "tooltipHtml" 
+					  CASE 
+					    
+					    when cc.num_trials = 1  THEN coalesce(cast(cc.num_trials as varchar), ' ')  || ' trial' 
+					     
+					     when cc.num_trials > 1 THEN coalesce(cast(cc.num_trials as varchar), ' ')  || ' trials'  
+					     else ' ' 
+					    END  as "tooltipHtml"
+					   
                        from all_nodes an left outer join ctrp_names ctrp1 on an.parent=ctrp1.preferred_name
-                       join ctrp_names ctrp2 on an.child = ctrp2.preferred_name where  ( ctrp1.display_name != ctrp2.display_name or  level = 0) 
+                       join ctrp_names ctrp2 on an.child = ctrp2.preferred_name 
+					    left outer join ctrp_display_name_trial_counts cc on cc.rev_name = ctrp2.display_name 
+						where  ( ctrp1.display_name != ctrp2.display_name or  level = 0) 
                       )
-                      select distinct top_code, parent, child, level as levels, collapsed, \"nodeSize\"  from all_nodes_ctrp 
+                      select distinct top_code, parent, child, level as levels, collapsed, "nodeSize" , "tooltipHtml" from all_nodes_ctrp 
                       where level < 999 
                       )
 """
@@ -405,9 +429,9 @@ cur.execute(sql)
 cur.execute("delete from disease_tree")
 
 sql = """
-        insert into disease_tree (code, parent, child, levels, collapsed, \"nodeSize\")
+        insert into disease_tree (code, parent, child, levels, collapsed, \"nodeSize\", \"tooltipHtml\")
         select top_code as code, replace(parent, '  ', ' '), replace(child, '  ', ' '), levels, collapsed, 
-        \"nodeSize\" from disease_tree_temp
+        \"nodeSize\", \"tooltipHtml\" from disease_tree_temp
         order by code, levels, parent, child;
 """
 cur.execute(sql)
