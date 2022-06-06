@@ -690,8 +690,12 @@ server <- function(input, output, session) {
   shinyjs::hide("show_generic_disease_tree_modal")
   shinyjs::hide("hidden_root_node")
   
-  # get a TGT from UMLS
+
+  progress <- Progress$new(session, min=1, max=10)
+  progress$set(message = 'Initializing SEC POC',
+               detail = '')
   
+  # get a TGT from UMLS
   if (dbinfo$enable_umls) {
     print("enabling UMLS calls")
     d <-  POST(
@@ -739,6 +743,9 @@ server <- function(input, output, session) {
   
   # s1 <- Sys.time()
   # 
+  
+
+  
   rvd_df <- safe_query(dbGetQuery, paste("select nct_id from trials where record_verification_date >= '", target_lvd , "'", sep=""))   
   print(paste('nrows', nrow(rvd_df)))
    
@@ -755,6 +762,8 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       order by name_count desc"
     )
   
+
+  
   df_disease_choices <- setNames(
       as.vector(df_disease_choice_data[["code"]]),as.vector(df_disease_choice_data[["preferred_name"]]))
   
@@ -766,6 +775,8 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
     )
   df_misc_choices <- setNames(
     as.vector(df_misc_choice_data[["code"]]),as.vector(df_misc_choice_data[["pref_name"]]))
+  
+  progress$set(value = 2)
   
   df_disease_tree_choices_raw <-
     safe_query(dbGetQuery,
@@ -818,8 +829,9 @@ select nci_thesaurus_concept_id, display_name
      as.vector(df_prior_therapy_data[["code"]]),as.vector(df_prior_therapy_data[["pref_name"]]))
   
   sessionInfo$prior_therapy_data_df <- df_prior_therapy_choices
+
+  progress$set(value = 3)
   
-    
   df_maintypes <-
     safe_query(dbGetQuery,
       " select NULL as display_name union 
@@ -891,6 +903,8 @@ order by n.pref_name"
     choices = criteria_picker_vec,
     selected = c('disease_matches == TRUE')
   )
+  
+  progress$set(value = 4)
  # browser()
   
   crit_sql <-
@@ -950,6 +964,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   
   df_crit <- df_crit[order(df_crit$study_source_sort_key, -df_crit$number_sites),]
   
+  progress$set(value = 5)
+  
   #browser()
   
   dt_gyn_tree <- getDiseaseTreeData(safe_query, 'C4913', use_ctrp_display_name = TRUE)
@@ -1002,6 +1018,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       #  height = '700px'
     )})
   
+
+  progress$set(value = 6)
   
   updateSelectizeInput(session,
                        'maintype_typer',
@@ -1028,7 +1046,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                        'cancer_center_picker',
                        choices = get_org_families() ,
                        server = TRUE)
-  
+  progress$set(value = 7)
+  progress$close()  
 
 #  updateSelectizeInput(session,
  #                      'biomarker_list',
@@ -2060,7 +2079,28 @@ order by criteria_column_index "
     }
     
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
+    #add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
+    add_disease_sql <- "
+    with poss_diseases as  (
+select distinct original_child from disease_tree where child = $1
+)
+,
+ctrp_display_likes as (
+select 
+   case 
+    when position('  ' in pd.original_child) > 0 then replace(pd.original_child, '  ', '%') 
+	when right(pd.original_child,1) = ' ' then substr(pd.original_child, 1, length(pd.original_child)-1) || '%' 
+	else pd.original_child
+  end  like_string
+  from poss_diseases pd
+)
+
+select dtd.nci_thesaurus_concept_id as \"Code\", 
+   'YES' as \"Value\" ,  
+    dtd.preferred_name as \"Diseases\" from distinct_trial_diseases dtd 
+join ctrp_display_likes c on dtd.display_name like c.like_string
+
+    "
     df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
     #browser()
     sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)

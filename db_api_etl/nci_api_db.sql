@@ -149,7 +149,23 @@ create table disease_tree (
     child text,
     levels int,
     collapsed int,
-    "nodeSize" int
+    "nodeSize" int,
+    "tooltipHtml" text,
+    original_child text
 );
 create index disease_tree_index_1 on disease_tree(code);
 create index disease_tree_index_2 on disease_tree(code, levels, parent, child);
+
+drop table if exists curated_crosswalk;
+CREATE TABLE curated_crosswalk (
+  id 	serial primary key,
+  code_system TEXT,
+  disease_code TEXT,
+  preferred_name TEXT,
+  evs_c_code TEXT,
+  evs_preferred_name TEXT
+);
+create index crosswalk_ind1 on curated_crosswalk(code_system, disease_code);
+create index crosswalk_ind2 on curated_crosswalk(evs_c_code);
+
+
