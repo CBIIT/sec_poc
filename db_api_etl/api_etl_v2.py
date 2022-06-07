@@ -426,16 +426,68 @@ group by rev_name
                       )
 """
 cur.execute(sql)
+con.commit()
+
+# Note now take care of the blank tool tips 
+
+sql_for_synthetic_node = """
+ select distinct top_code, parent, child, levels, collapsed, "nodeSize" , "tooltipHtml" from disease_tree_temp where "tooltipHtml" = ' '
+
+"""
+
+cur.execute(sql_for_synthetic_node)
+syn_nodes  = cur.fetchall()
+print(syn_nodes)
+for syn_node in syn_nodes:
+    print("Processing syn node", syn_node)
+    syn_node_name = syn_node[2]
+    # Now see where the AJCC substitution happened
+    if '  ' in syn_node_name: 
+        print("2 spaces")
+        syn_node_name_like = syn_node_name.replace('  ', '%')
+    elif syn_node_name[-1] == ' ':
+        print('space at end')
+        syn_node_name_like = syn_node_name[:-1] + '%'
+    else:
+        print("UNKNOWN reason for syn node blank html tool tip ")
+        syn_node_name_like = None
+    print("syn_node_name_like", syn_node_name_like)    
+    syn_node_trial_count_sql = """
+    with ncit_codes_for_syn_node as (
+select DISTINCT nci_thesaurus_concept_id from distinct_trial_diseases where display_name like %s
+)
+select count(distinct nct_id) from trial_diseases td join ncit_codes_for_syn_node sn on td.nci_thesaurus_concept_id = sn.nci_thesaurus_concept_id
+    """  
+    if syn_node_name_like is not None:
+        cur.execute(syn_node_trial_count_sql, [syn_node_name_like])
+        t= cur.fetchone()
+        syn_node_count = t[0]
+        print("node count = ", syn_node_count )
+        if syn_node_count == 1:
+            new_tooltip = "1 trial"
+        else:
+            new_tooltip = str(syn_node_count)+ " trials"  
+        print(new_tooltip)    
+        usql = """
+          update disease_tree_temp set "tooltipHtml" = %s where
+               top_code = %s and parent = %s and  child = %s and levels = %s and collapsed = %s and "nodeSize" = %s
+        """
+        cur.execute(usql, [new_tooltip, syn_node[0], syn_node[1], syn_node[2], syn_node[3], syn_node[4], syn_node[5]])
+        con.commit()
+
+
 cur.execute("delete from disease_tree")
 
 sql = """
-        insert into disease_tree (code, parent, child, levels, collapsed, \"nodeSize\", \"tooltipHtml\")
-        select top_code as code, replace(parent, '  ', ' '), replace(child, '  ', ' '), levels, collapsed, 
-        \"nodeSize\", \"tooltipHtml\" from disease_tree_temp
+        insert into disease_tree (code, parent, child, levels, collapsed, \"nodeSize\", \"tooltipHtml\", original_child)
+        select top_code as code, trim(replace(parent, '  ', ' ')), trim(replace(child, '  ', ' ')), levels, collapsed, 
+        \"nodeSize\", \"tooltipHtml\" , child  from disease_tree_temp
         order by code, levels, parent, child;
 """
 cur.execute(sql)
 con.commit()    
+
+
 
 con.close()
 
