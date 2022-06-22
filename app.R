@@ -284,8 +284,10 @@ background-color: #FFCCCC;
         actionButton("show_solid_disease", "Solid"),
         selectizeInput("disease_tree_typer", label = "Disease Trees", 
                        NULL,  selected = NULL , multiple = FALSE
-        ),
+        ), 
+        checkboxInput("show_staging_checkbox", "Show staging", FALSE),
         actionButton("show_disease_tree_button", "Show Tree")
+        
         ,
         hr(),
         DTOutput("diseases"),
@@ -2029,7 +2031,7 @@ order by criteria_column_index "
   observeEvent(input$show_disease_tree_button, {
     print("Show generic disease tree for ")   
     print(input$disease_tree_typer)  
-    dt_generic_disease_tree <- getDiseaseTreeData(safe_query, input$disease_tree_typer, use_ctrp_display_name = TRUE)
+    dt_generic_disease_tree <- getDiseaseTreeData(safe_query, input$disease_tree_typer, use_ctrp_display_name = TRUE, show_staging = input$show_staging_checkbox)
     output$hidden_root_node <- renderText(dt_generic_disease_tree$child[[1]])
     sessionInfo$disease_tree_root_node <- dt_generic_disease_tree$child[[1]]
     output$generic_disease_tree <- renderCollapsibleTree({

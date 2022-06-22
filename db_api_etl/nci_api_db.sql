@@ -156,6 +156,20 @@ create table disease_tree (
 create index disease_tree_index_1 on disease_tree(code);
 create index disease_tree_index_2 on disease_tree(code, levels, parent, child);
 
+drop table if exists disease_tree_nostage ;
+create table disease_tree_nostage(
+    code text,
+    parent text,
+    child text,
+    levels int,
+    collapsed int,
+    "nodeSize" int,
+    "tooltipHtml" text,
+    original_child text
+);
+create index disease_tree_index_1_ns on disease_tree_nostage(code);
+create index disease_tree_index_2_ns on disease_tree_nostage(code, levels, parent, child);
+
 drop table if exists curated_crosswalk;
 CREATE TABLE curated_crosswalk (
   id 	serial primary key,

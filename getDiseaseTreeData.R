@@ -1,4 +1,5 @@
-getDiseaseTreeData <- function(safe_query,ncit_code, search_string = NA, use_ctrp_display_name = FALSE) {
+getDiseaseTreeData <- function(safe_query,ncit_code, search_string = NA, use_ctrp_display_name = FALSE,
+                               show_staging = FALSE) {
   
   s <- "
  with recursive parent_descendant(parent, descendant, level, path_string)
@@ -55,13 +56,23 @@ getDiseaseTreeData <- function(safe_query,ncit_code, search_string = NA, use_ctr
     select parent, child, levels, collapsed, \"nodeSize\" ,  \"tooltipHtml\" from disease_tree where code = $1
     order by levels, parent, child
   "
+  s_ctrp_nostage <- "
+    select parent, child, levels, collapsed, \"nodeSize\" ,  \"tooltipHtml\" from disease_tree_nostage where code = $1
+    order by levels, parent, child
+  "
   
+
  
   if (use_ctrp_display_name == TRUE) {
-    q_string <- s_ctrp
+    if (show_staging == TRUE) {
+      q_string <- s_ctrp
+    } else {
+      q_string <- s_ctrp_nostage
+    }
   } else {
     q_string <- s
   }
+  print(q_string)
   
   df_tree_data <-
     safe_query(dbGetQuery,
