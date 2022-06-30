@@ -2055,18 +2055,30 @@ order by criteria_column_index "
     
   })
   
+  # Handle node click on disease tree ----
   observeEvent(input$generic_disease_tree_selected_node, ignoreNULL = TRUE, {
     print("generic disease tree node selected")
     #browser()
     print(input$generic_disease_tree_selected_node)
+    
     # browser()
     if(length(input$generic_disease_tree_selected_node) > 0) {
+      new_disease <- input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]]
       output$generic_disease_tree_disease_selected <- renderText(input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]] )
     } else {
       output$generic_disease_tree_disease_selected <- renderText(sessionInfo$disease_tree_root_node)
+      new_disease <- sessionInfo$disease_tree_root_node
     }
-    
-    # browser()
+    see_if_collector_node_sql = "select count(*) from disease_tree where child = $1 and child <> original_child"
+    df_collector_node <- safe_query(dbGetQuery, see_if_collector_node_sql,  params = c(new_disease))
+   # browser()
+    if (df_collector_node$count[[1]] > 0) {
+      print("collector node")
+      shinyjs::disable("generic_disease_tree_add_disease")
+    } else {
+      print("regular node ")
+      shinyjs::enable("generic_disease_tree_add_disease")
+    }
     print("----------")
   })
   
