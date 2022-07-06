@@ -651,6 +651,46 @@ sql = """
 cur.execute(sql)
 con.commit()    
 
+
+print("Processing mul CTRP display name node tree data")
+
+#
+# Now fix the nodes for which one CTRP display name yields > 1 C code
+#
+print("Correcting node counts for nodes with more than one C code for a display_name")
+get_mul_counts_sql = """
+with multiple_display_names as (
+select display_name, count(display_name) as num_ctrp_display_names
+from distinct_trial_diseases 
+group by display_name having count(display_name) > 1
+)
+
+select count(distinct td.nct_id) as num_trials, mdn.display_name from trial_diseases td join 
+multiple_display_names mdn  on td.display_name = mdn.display_name group by mdn.display_name 
+"""
+update_tree_sql = """ 
+        update disease_tree set  "tooltipHtml" = %s where child = %s
+"""    
+update_tree_nostage_sql = """ 
+        update disease_tree_nostage set  "tooltipHtml" = %s where child = %s
+"""   
+
+cur.execute(get_mul_counts_sql)
+mul_nodes  = cur.fetchall()
+print(mul_nodes)
+for a_node in mul_nodes:
+    print("processing node ", a_node)
+    if a_node[0] == 1:
+        new_tooltip = "1 trial"
+    else:
+        new_tooltip = str(a_node[0])+ " trials"  
+    print(new_tooltip)   
+    cur.execute(update_tree_sql, [new_tooltip, a_node[1]])
+    cur.execute(update_tree_nostage_sql, [new_tooltip, a_node[1]])
+    con.commit()
+  
+
+  
 con.close()
 
 end_time = datetime.datetime.now()
