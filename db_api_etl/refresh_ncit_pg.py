@@ -204,7 +204,7 @@ con.commit()
 
 # In[52]:
 
-
+cur.execute('drop view if exists good_pt_codes')
 cur.execute('drop table if exists ncit_tc')
 cur.execute("create table ncit_tc as select distinct parent, descendant from ncit_tc_with_path ")
 cur.execute('create index ncit_tc_parent on ncit_tc (parent) ')
@@ -262,7 +262,44 @@ cur.execute(
 
 # In[59]:
 
-
+cur.execute(
+'''
+create or replace view  good_pt_codes as 
+ (
+ with descendants as
+            (
+                select descendant from ncit_tc where parent in ('C25218', 'C1908', 'C62634', 'C163758') 
+            ),
+        descendants_to_remove as
+            (
+				
+				select descendant  from ncit_tc where parent in ( 'C25294','C102116','C173045','C65141','C91102','C20993') 
+UNION
+select 'C305' as descendant -- bilirubin
+union 
+select 'C399' as descendant -- creatinine
+union 
+select 'C37932' as descendant -- contraception  
+union 
+select 'C92949' as descendant -- pregnancy test
+UNION
+select 'C1505' as descendant -- dietary supplment
+UNION
+select 'C71961' as descendant -- grapefruit juice
+UNION
+select 'C71974' as descendant -- grapefruit
+UNION
+select 'C16124' as descendant -- prior therapy
+            ),     
+           good_codes as (
+			select d.descendant from descendants d 
+			except 
+			select d2.descendant from descendants_to_remove d2 
+	   )
+	     select n.code, trim(n.pref_name) as pref_name, trim(n.synonyms) as synonyms , trim(n.semantic_type) as semantic_type from ncit n join good_codes gc on n.code = gc.descendant
+	)	 
+'''	
+)
 
 # In[61]:
 
@@ -274,15 +311,11 @@ print("There are ", num_paths , " distinct paths in the NCIt.")
 # In[62]:
 
 
-cur.execute("drop index if exists tc_parent_index")
-cur.execute("create index tc_parent_index on ncit_tc(parent)")
+cur.execute("drop index if exists ncit_tc_parent")
+cur.execute("drop index if exists ncit_tc_descendant")
+cur.execute('create index ncit_tc_parent on ncit_tc (parent) ')
+cur.execute('create index ncit_tc_descendant on ncit_tc (descendant) ')
 
-# At this point, several options are available.
-# * Use this table in operations.
-# * Export the table in CSV to use in other situations
-# * Reinstantiate the table as a pandas dataframe to use directly in Python/pandas
-
-# In[65]:
 
 
 con.commit()
