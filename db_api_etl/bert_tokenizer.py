@@ -18,7 +18,7 @@ UNIT_OF_MEASURE_TREE = "'C25709'"
 PYSICAL_FEELINGS_QUESTION_TREE = "'C173219'"
 PERSONAL_ATTRIBUTE_TREE = "'C19332'"
 
-BERT_MODEL_LOCATION = '/content/model'
+BERT_MODEL_LOCATION = '/local/models/content/model'
 CRITERIA_TYPE_INSERT = '''insert into criteria_types 
     (
         criteria_type_id, criteria_type_code, criteria_type_title, 
