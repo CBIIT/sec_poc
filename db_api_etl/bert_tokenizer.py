@@ -1,13 +1,20 @@
 #!/usr/bin/env python
 
 import argparse
-from datetime import (datetime, timezone)
+from dataclasses import dataclass, field, astuple
+from datetime import (date, datetime, timezone)
 from typing import (Union, Any)
 from psycopg2 import connect
 from transformers import TFAutoModelForTokenClassification
 from transformers import AutoTokenizer
 from transformers import pipeline
 
+
+## Used to fill bert_candidate_criteria with data from candidate_criteria
+# Requires Bert Model to be build and be in place.
+#   Look at BERTMODEL_LOCATION for details or to set it...currently set for VM
+# Requires a connection to psql
+## Joseph Verbeck
 
 # curated_criteria is where i should save formated bert data
 # trial_unstructured_criteria is where i should pull data for bert to format
@@ -161,6 +168,21 @@ class BertTokenizer:
     def _combine_words(self):
         pass
 
+@dataclass
+class BertCandidateCriteria:
+    nct_id: str
+    criteria_type_id: str
+    display_order: int
+    inclusion_indicator: int
+    candidate_criteria_text: str
+    candidate_criteria_norm_form: str
+    candidate_criteria_expression: str
+    generated_date: str
+    marked_done_date: field(default=None)
+
+    def __iter__(self):
+        return iter(astuple(self))
+
 
 if __name__ == '__main__':
     start_time = datetime.now()
@@ -207,18 +229,29 @@ if __name__ == '__main__':
 
             save(
                 db, 
-                REFINED_BERT_CANDIDATE_CRITERIA, 
-                (
-                    trial[0], # nct_id
-                    trial[1], # criteria_type_id
-                    trial[2], # display_order
-                    trial[3], # inclusion_indicator
-                    trial[4], # candidate_criteria_text
-                    candidate_criteria_norm_form, # candidate_criteria_norm_form
-                    build_expressions(found_c_codes), # candidate_criteria_expression
-                    datetime.now(), # generated_date
-                    None, # marked_done_date
-                )
+                REFINED_BERT_CANDIDATE_CRITERIA,
+                tuple(BertCandidateCriteria(
+                    nct_id=trial[0],
+                    criteria_type_id=trial[1],
+                    display_order=trial[2],
+                    inclusion_indicator=trial[3],
+                    candidate_criteria_text=trial[4],
+                    candidate_criteria_norm_form=candidate_criteria_norm_form,
+                    candidate_criteria_expression=build_expressions(found_c_codes),
+                    generated_date=datetime.now(),
+                    marked_done_date=None
+                ))
+                # (
+                #     trial[0], # nct_id
+                #     trial[1], # criteria_type_id
+                #     trial[2], # display_order
+                #     trial[3], # inclusion_indicator
+                #     trial[4], # candidate_criteria_text
+                #     candidate_criteria_norm_form, # candidate_criteria_norm_form
+                #     build_expressions(found_c_codes), # candidate_criteria_expression
+                #     datetime.now(), # generated_date
+                #     None, # marked_done_date
+                # )
             )
         except Exception as err:
             print(err)
