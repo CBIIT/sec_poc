@@ -41,8 +41,7 @@ REFINED_BERT_CANDIDATE_CRITERIA = """insert into bert_candidate_criteria
     ) values (%s, %s, %s, %s, %s, %s, %s, %s, %s);"""
 
 CANDIDATE_CRITERIA_SELECT = '''select * from candidate_criteria
-    where criteria_type_id=12 OR criteria_type_id=18
-    limit 1000;'''
+    where criteria_type_id=12 OR criteria_type_id=18;'''
 
 ## gilbert's disease is being broken into multiple findings...breaks sql insert 
 # CANDIDATE_CRITERIA_SELECT = '''select * from candidate_criteria
@@ -201,7 +200,8 @@ if __name__ == '__main__':
 
     unstructered_trials_data = get_all(db, CANDIDATE_CRITERIA_SELECT)
     
-    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+    # tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+    tokenizer = AutoTokenizer.from_pretrained('/local/models/distilbert-base-uncased', local_files_only=True)
     model = TFAutoModelForTokenClassification.from_pretrained(BERT_MODEL_LOCATION)
     bert_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
 
