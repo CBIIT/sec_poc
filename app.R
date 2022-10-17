@@ -165,6 +165,7 @@ source('eval_criteria.R')
 source('get_api_studies_with_va_sites.R')
 source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
+source('get_biomarkers_from_evs.R')
 
 ui <- fluidPage(
   useShinyjs(),
@@ -842,18 +843,31 @@ select nci_thesaurus_concept_id, display_name
       order by display_name"
     )
 
-  df_biomarker_list_s <-
-    safe_query(dbGetQuery,
-     
-      "with domain_set as (
-        select tc.descendant as code  from ncit_tc tc where tc.parent = 'C36391'
-      )      
-select ds.code, n.pref_name as biomarker from domain_set ds join ncit n 
-on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
-order by n.pref_name"
-    )
+#   df_biomarker_list_s <-
+#     safe_query(dbGetQuery,
+#      
+#       "with domain_set as (
+#         select tc.descendant as code  from ncit_tc tc where tc.parent in ( 'C36391',  -- Molecular Genetic Variation 
+# 		                                                                   'C158948', -- Rearrangement detected 	
+# 																		   'C158949' -- Rearragement negative
+# 																			)
+# 		union 
+#         select  n.code as code  from ncit n  where   (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
+# 		   and n.semantic_type = 'Cell or Molecular Dysfunction' 
+#        		
+#       )   
+# 	,  
+# biomarkers as (select ds.code, coalesce(nullif(display_name,''), pref_name) as biomarker from domain_set ds join ncit n 
+# on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
+# )
+# select * from biomarkers 
+# order by biomarker 
+#       "
+#     )
 
-  
+  df_biomarker_list_t <- get_biomarkers_from_evs()
+  colnames(df_biomarker_list_t) <- c("type", "code", "biomarker")
+  df_biomarker_list_s <- subset(df_biomarker_list_t, select = -c(type))
   
   # To get around the wacko server side bug, render this thing here as a normal static selectize but with the biomarker dataframe from the server side   
   output$biomarker_controls <- renderUI({
