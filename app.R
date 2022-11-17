@@ -166,6 +166,7 @@ source('get_api_studies_with_va_sites.R')
 source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
 source('get_biomarkers_from_evs.R')
+# source('guided_questions.R')
 
 ui <- fluidPage(
   useShinyjs(),
@@ -224,6 +225,7 @@ background-color: #FFCCCC;
             actionLink('clear_all', label = 'Clear All')
           )
         ),
+        actionButton("show_guided_questions", "Guided Search Criteria"),
         hr(),
         textInput(
           'patient_zipcode',
@@ -362,7 +364,8 @@ background-color: #FFCCCC;
         trigger = "hover",
         options = NULL
       ),
-      
+
+    #   guidedQuestionsUI("modalExample"),
       
       fluidRow(
         column(
@@ -511,8 +514,7 @@ background-color: #FFCCCC;
         
         
       )
-      , 
-   
+      ,   
     # Generic disease tree bsmodal ----
      bsModal("disease_tree_bsmodal", "Select Disease", "show_generic_disease_tree_modal", size = "large",
              fluidPage(id = "treePanel_gen",
@@ -688,6 +690,8 @@ server <- function(input, output, session) {
     disease_tree_c_code_from_button  = NULL
 
     )
+
+   
   
   tgt <- NA
   shinyjs::hide("show_generic_disease_tree_modal")
@@ -1051,6 +1055,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                        'misc_typer',
                        choices = df_misc_choices ,
                        server = TRUE)
+
+#   updateSelectizeInput(session,
+#                        'ncit_search',
+#                        choices = df_misc_choices ,
+#                        server = TRUE)
   
   updateSelectizeInput(session,
                        'prior_therapy',
@@ -1075,6 +1084,162 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   # Events from this point forward ---- 
   
   # Process passed in session data ----
+
+      # TODO: Remove guided
+    #   observe(guidedQuestionsServe("modalExample"))
+
+   guidedQuestionQuery <- function(performance_status=NULL, gender=NULL) {
+        if(performance_status & gender) {
+            queryString  = "select count(*) from trials where %s='%s' and where "
+        }else if (performance_status) {
+
+        }else if (gender) {
+
+        }
+   }
+
+   nextModal <- function(id, question, answeres, next_button_id){
+        modalDialog(
+            title="Guided Questions",
+            selectInput(id, question, answeres),
+            fluidRow(
+                column(
+                    width=8,
+                    textOutput("guided_total_trials")
+                )
+            ),
+            footer = tagList(
+                modalButton("Cancel"),
+                actionButton(next_button_id, "Next")
+            )
+        )
+        # modalDialog(
+        #     title="Guided Questions",
+        #     selectInput(id, question, answeres),
+        #     footer = tagList(
+        #         modalButton("Cancel"),
+        #         actionButton(next_button_id, "Next")
+        #     )
+        # )
+    }
+    nextTextModal <- function(id, question, next_button_id) {
+        modalDialog(
+            title="Guided Questions",
+            textInput(
+                id,
+                label = question,
+                value = ""
+            ),
+            fluidRow(
+                column(
+                    width=8,
+                    textOutput("guided_total_trials")
+                )
+            ),
+            footer = tagList(
+                modalButton("Cancel"),
+                actionButton(next_button_id, "Next")
+            )
+        )
+    }
+    nextSelectizeModal <- function(id, question, next_button_id) {
+        modalDialog(
+            title="Guided Questions",
+            selectizeInput(id, label=question, NULL, multiple=TRUE),
+            fluidRow(
+                column(
+                    width=8,
+                    textOutput("guided_total_trials")
+                )
+            ),
+            footer = tagList(
+                modalButton("Cancel"),
+                actionButton(next_button_id, "Next")
+            )
+        )
+    }
+
+    observeEvent(input$show_guided_questions, {
+        showModal(
+            nextModal(
+                "performance_status_guided", 
+                "How would you describe your symptoms currently?", 
+                c(
+                    "Unspecified" = "C159685",
+                    "0: Asymptomatic" = "C105722",
+                    "1: Symptomatic, but fully ambulatory" = "C105723",
+                    "2: Symptomatic, in bed less than 50% of day" = "C105725",
+                    "3: Symptomatic, in bed more than 50% of day, but not bed-ridden" = "C105726",
+                    "4: Bed-ridden" = "C105727"
+                ),
+                "guided_question1"
+            )
+        )
+    })
+    observeEvent(input$performance_status_guided, {
+        trialCount <- safe_query(dbGetQuery, "select count(*) from trials;")
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
+        })
+        updatePickerInput(session, "performance_status", selected = input$performance_status_guided)
+    })
+
+    #  observeEvent(input$guided_question1, {
+    #     showModal(nextTextModal("geolocation_guided", "What is your zipcode?", "guided_question2"))
+    # })
+    # observeEvent(input$geolocation_guided, {
+    #     updateTextInput(session, "patient_zipcode", value=input$geolocation_guided)
+    # })
+
+    observeEvent(input$guided_question1, {
+        showModal(nextTextModal("age_guided", "How old are you?", "guided_question2"))
+    })
+    observeEvent(input$age_guided, {
+        if (input$age_guided != ""){
+            trialCount <- safe_query(
+                dbGetQuery, 
+                "select count(*) from trials where max_age_in_years >= $1 and min_age_in_years <= $2;",
+                params = c(input$age_guided, input$age_guided)
+            )
+            output$guided_total_trials <- renderText({
+                paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
+            })
+        }
+        updateTextInput(session, "patient_age", value=input$age_guided)
+    })
+
+    observeEvent(input$guided_question2, {
+        # femaleCount <- safe_query(dbGetQuery, "select count(*) from trials where gender = 'FEMALE';")
+        showModal(nextModal("gender_guided", "What is your gender", c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="BOTH"), "guided_question3"))
+    })
+    observeEvent(input$gender_guided, {
+        qString = sprintf("select count(*) from trials where max_age_in_years >= %s and min_age_in_years <= %s and gender = '%s' or gender = 'BOTH';", input$age_guided, input$age_guided, input$gender_guided)
+        trialCount <- safe_query(
+            dbGetQuery,
+            qString
+        )
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
+        })
+        
+        updateRadioGroupButtons(session, "gender", selected =input$gender_guided)
+    })
+    # Breaks on loading all the objects
+     observeEvent(input$guided_question3, {
+        updateSelectizeInput(session,
+                       'ncit_search',
+                       choices = df_misc_choices,
+                       server = TRUE)
+        showModal(nextSelectizeModal("ncit_search", "NCit Search","guided_question4"))
+    })
+    observeEvent(input$guided_question4, {
+        updateSelectizeInput(session,
+                       'disease_search_guided',
+                       choices = df_disease_choices,
+                       server = TRUE)
+        showModal(nextSelectizeModal("disease_search_guided", "Do you know what disease you have?", "guided_question5"))
+    })
+    # END BREAK
   
   observe(label = "Get Session UUID", {
     query <- parseQueryString(session$clientData$url_search)
@@ -1403,6 +1568,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     #
     sel <- data.frame(matrix(ncol = 2, nrow = 0))
     colnames(sel) <-  c("Code", "Value")
+
+    print(paste("performance status", input$performance_status))
     
     # First check for a valid zipcode
     
@@ -1532,7 +1699,9 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     setProgress(value = 0.2,  detail = 'Examining VA sites')
     
     va_df <- get_api_studies_with_va_sites()
+    print(va_df)
     df_crit$va_match <- df_crit$clean_nct_id %in% va_df$nct_id
+    print(df_crit$va_match)
     
     #Get the NIH CC studies
     nih_cc_df <- get_api_studies_for_postal_code('20892')
@@ -2046,6 +2215,8 @@ order by criteria_column_index "
     print("Show generic disease tree for ")   
     print(input$disease_tree_typer)  
     dt_generic_disease_tree <- getDiseaseTreeData(safe_query, input$disease_tree_typer, use_ctrp_display_name = TRUE, show_staging = input$show_staging_checkbox)
+    print("Show dt generic disease tree")
+    print(dt_generic_disease_tree)
     output$hidden_root_node <- renderText(dt_generic_disease_tree$child[[1]])
     sessionInfo$disease_tree_root_node <- dt_generic_disease_tree$child[[1]]
     output$generic_disease_tree <- renderCollapsibleTree({
