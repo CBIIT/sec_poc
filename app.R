@@ -1177,20 +1177,14 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         )
     })
     observeEvent(input$performance_status_guided, {
+        # performance_status_guided
+        # qString = sprintf("select count(*) from trials where max_age_in_years >= %s and min_age_in_years <= %s and gender = '%s' or gender = 'BOTH';", input$age_guided, input$age_guided, input$gender_guided)
         trialCount <- safe_query(dbGetQuery, "select count(*) from trials;")
         output$guided_total_trials <- renderText({
             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
         })
         updatePickerInput(session, "performance_status", selected = input$performance_status_guided)
     })
-
-    #  observeEvent(input$guided_question1, {
-    #     showModal(nextTextModal("geolocation_guided", "What is your zipcode?", "guided_question2"))
-    # })
-    # observeEvent(input$geolocation_guided, {
-    #     updateTextInput(session, "patient_zipcode", value=input$geolocation_guided)
-    # })
-
     observeEvent(input$guided_question1, {
         showModal(nextTextModal("age_guided", "How old are you?", "guided_question2"))
     })
@@ -1213,7 +1207,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         showModal(nextModal("gender_guided", "What is your gender", c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="BOTH"), "guided_question3"))
     })
     observeEvent(input$gender_guided, {
-        qString = sprintf("select count(*) from trials where max_age_in_years >= %s and min_age_in_years <= %s and gender = '%s' or gender = 'BOTH';", input$age_guided, input$age_guided, input$gender_guided)
+        qString = sprintf("select count(*) from trials where (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided)
+        print(qString)
         trialCount <- safe_query(
             dbGetQuery,
             qString
@@ -1224,21 +1219,144 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         
         updateRadioGroupButtons(session, "gender", selected =input$gender_guided)
     })
-    # Breaks on loading all the objects
-     observeEvent(input$guided_question3, {
-        updateSelectizeInput(session,
-                       'ncit_search',
-                       choices = df_misc_choices,
-                       server = TRUE)
-        showModal(nextSelectizeModal("ncit_search", "NCit Search","guided_question4"))
-    })
-    observeEvent(input$guided_question4, {
+
+    observeEvent(input$guided_question3, {
         updateSelectizeInput(session,
                        'disease_search_guided',
                        choices = df_disease_choices,
                        server = TRUE)
-        showModal(nextSelectizeModal("disease_search_guided", "Do you know what disease you have?", "guided_question5"))
+        showModal(nextSelectizeModal("disease_search_guided", "Do you know what disease you have?", "guided_question4"))
     })
+
+    observeEvent(input$disease_search_guided, {
+        newString = ""
+        for (code in input$disease_search_guided) {
+            newString = paste(newString, paste("'%", code, sed="%',"))
+        }
+        newString = gsub(" ", "", newString)
+        newString = substring(newString, 1, nchar(newString)-1)
+        qString = sprintf("select count(*) from trials where diseases like any(array[%s])", newString)
+        qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        print(qString)
+        trialCount <- safe_query(
+            dbGetQuery,
+            qString
+        )
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
+        })
+    })
+    observeEvent(input$guided_question4, {
+        # qString = paste("with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code from trials ", 
+        #     sprintf("where (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH'))", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        # qString = paste(qString, sprintf(
+        #     "select count(bi.biomarker_inc_code) as num_occurences, bi.biomarker_inc_code,
+        #         coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name
+        #         from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE
+        #         join ncit n on bi.biomarker_inc_code = n.code
+        #             where td.nci_thesaurus_concept_id = '%s'
+        #         group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name)
+        #     order by count(bi.biomarker_inc_code) desc", input$disease_search_guided)
+        # )
+        newString = ""
+        for (code in input$disease_search_guided) {
+            newString = paste(newString, paste("'%", code, sed="%',"))
+        }
+        newString = gsub(" ", "", newString)
+        newString = substring(newString, 1, nchar(newString)-1)
+        qString = sprintf("select biomarker_inc_codes, biomarker_inc_names from trials where diseases like any(array[%s])", newString)
+        qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        qString = paste(qString, "and (biomarker_inc_codes is not null and biomarker_inc_names is not null);")
+        print(qString)
+        biomarkers_inc <- safe_query(
+            dbGetQuery,
+            qString
+        )
+        # print(biomarkers_inc[["biomarker_inc_codes"]])
+        # print(biomarkers_inc[["biomarker_inc_names"]])
+        codes = strsplit(biomarkers_inc[["biomarker_inc_codes"]], ", ")
+        names = strsplit(biomarkers_inc[["biomarker_inc_names"]], ", ")
+        new_codes = data.frame(
+          biomarker_inc_codes = unlist(codes)
+        )
+        new_names = data.frame(
+            biomarker_inc_names = unlist(names)
+        )
+        # print(as.vector(new_codes))
+        # print(new_names[["biomarker_inc_names"]])
+        # print(biomarkers_inc[["biomarker_inc_codes"]])
+        # print(setNames(c(new_codes), c(new_names)))
+        # df_biomarker_list_jv <- setNames(as.vector(biomarkers_inc[["biomarker_inc_codes"]]), as.vector(as.vector(biomarkers_inc[["biomarker_inc_names"]])))
+        # print(setNames(as.vector(biomarkers_inc[["biomarker_inc_codes"]]), as.vector(as.vector(biomarkers_inc[["biomarker_inc_names"]]))))
+        df_biomarker_list_jv <- setNames(as.vector(new_codes[["biomarker_inc_codes"]]), as.vector(new_names[["biomarker_inc_names"]]))
+        updateSelectizeInput(session,
+            'biomarkers_search_guided',
+            choices = df_biomarker_list_jv,
+            server = TRUE
+        )
+        showModal(nextSelectizeModal("biomarkers_search_guided", "Do you have any of these biomarkers?", "guided_question5"))
+    })
+    observeEvent(input$biomarkers_search_guided, {
+        newString = ""
+        for (code in input$disease_search_guided) {
+            newString = paste(newString, paste("'%", code, sed="%',"))
+        }
+        newString = gsub(" ", "", newString)
+        newString = substring(newString, 1, nchar(newString)-1)
+        qString = sprintf("select count(*) from trials where diseases like any(array[%s])", newString)
+        qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        biomarker_search_str = ""
+        for (code in input$biomarkers_search_guided){
+            biomarker_search_str = paste(biomarker_search_str, paste("'%", code, sed="%',"))
+        }
+        biomarker_search_str = gsub(" ", "", biomarker_search_str)
+        biomarker_search_str = substring(biomarker_search_str, 1, nchar(biomarker_search_str)-1)
+        qString = paste(qString, sprintf("and biomarker_inc_codes like any(array[%s]);", biomarker_search_str))
+        print(qString)
+        trialCount <- safe_query(
+            dbGetQuery,
+            qString
+        )
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
+        })
+    })
+
+    # observeEvent(input$disease_search_guided, {
+    #     print(input$disease_search_guided)
+    #     qString = sprintf("select count(*) from trials where diseases like '%%';", input$disease_search_guided)
+    #     trialCount <- safe_query(
+    #             dbGetQuery,
+    #             qString
+    #     )
+    #     output$guided_total_trials <- renderText({
+    #             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
+    #         })
+    #     )
+    # })
+    # observeEvent(input$guided_question4, {
+    #     updateSelectizeInput(session,
+    #     'ncit_search',
+    #     choices = df_misc_choices,
+    #     server = TRUE
+    #     )
+    #     showModal(nextSelectizeModal("ncit_search", "Biomarkers Search","guided_question5"))
+    # })
+    # Breaks on loading all the objects
+    #  observeEvent(input$guided_question3, {
+    #     updateSelectizeInput(session,
+    #                    'ncit_search',
+    #                    choices = df_misc_choices,
+    #                    server = TRUE)
+    #     showModal(nextSelectizeModal("ncit_search", "NCit Search","guided_question4"))
+    # })
+    # observeEvent(input$guided_question4, {
+    #     updateSelectizeInput(session,
+    #                    'disease_search_guided',
+    #                    choices = df_disease_choices,
+    #                    server = TRUE)
+    #     showModal(nextSelectizeModal("disease_search_guided", "Do you know what disease you have?", "guided_question5"))
+    # })
     # END BREAK
   
   observe(label = "Get Session UUID", {
