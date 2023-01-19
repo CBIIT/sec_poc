@@ -14,7 +14,8 @@
 # Hubert Hickman
 
 import sqlite3
-import pandas
+import pandas as pd
+import sqlalchemy
 import zipfile
 import pprint
 import sys
@@ -28,6 +29,16 @@ import psycopg2
 import psycopg2.extras
 import csv
 import io
+import time
+
+#
+# A simple function to yield chunks from a list 
+#
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 
 start_time = datetime.datetime.now()
 pp = pprint.PrettyPrinter(indent=4)
@@ -94,31 +105,80 @@ arch = zipfile.ZipFile(thesaurus_zip, mode='r')
 print("Extracting thesaurus file contents")
 thesaurus_file = arch.open('Thesaurus.txt', mode='r')
 
+
+#
+# Process the file from EVS, then call the EVS API to get the proper preferred term
+#
+
+print("reading tsv file into dataframe")
+ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
+                          names=('code', 'url', 'parents', 'synonyms',
+                                 'definition', 'display_name', 'concept_status', 
+                                 'semantic_type', 'concept_in_subset'))
+ 
+num_concepts_per_evs_call = 575
+concept_list = ncit_df['code'].tolist()
+
+
+concept_url_fstring = "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit?list=%s&include=summary"
+new_column_vals = []
+chunk_count = 0
+record_count = 0
+retry_limit = 3
+
+print("Calling EVS to get preferred terms")
+for ch in chunks(concept_list, num_concepts_per_evs_call):
+    c_codes = list(ch)
+    record_count += len(c_codes)
+    c_codes_string = ','.join(c_codes)
+    concept_url_string = concept_url_fstring % (c_codes_string)
+    retry_count = 0
+
+    while  retry_count < retry_limit:
+        try:
+            r = requests.get(concept_url_string, timeout=(1.0, 15.0))
+        except requests.exceptions.RequestException as e:
+            print("exception -- ", e)
+            print("sleeping")
+            retry_count += 1
+            if retry_count == retry_limit:
+                print("retry max limit hit -- bailing out ")
+                sys.exit()
+            time.sleep(15)
+        else:
+            concept_set = r.json()
+            for newc in concept_set:
+                new_column_vals.append((newc['code'], newc['name']))
+
+            chunk_count = chunk_count + 1
+            print("processing chunk ", chunk_count, " record count = ", record_count )
+            break
+
+#
+print("merging dataframes")
+new_df = pd.DataFrame(data=new_column_vals, columns = ['code', 'pref_name'])
+#
+ncit_df = pd.merge(ncit_df, new_df, on = 'code', how='left')
+
 cur.execute("drop index if exists ncit_code_index")
 cur.execute("drop index if exists lower_pref_name_idx")
-# Names in the dataframe will become columns in the sqlite database
 
-# In[37]:
+
 cur.execute("truncate table ncit")
 con.commit()
-thesaurus_rows = []
-reader = csv.reader(io.TextIOWrapper(thesaurus_file, encoding='utf-8'), delimiter='\t')
-for a_row in reader:
-    t = a_row
-    t.append(a_row[3].split('|')[0])
-    thesaurus_rows.append(t)
 
-con.commit()
+connection_string = f'postgresql://{args.user}:{args.password}@{args.host}:{args.port}/{args.dbname}'
+#
+# create sqlalchemy connection
+#
+print('process_df_crit: getting sqlalchemy connection')
+sqlalchemy_connection = sqlalchemy.create_engine(connection_string)
+ncit_df= ncit_df.set_index('code')
 
-ncit_ins_sql = """
-    insert into ncit(code, url, parents, synonyms, definition, display_name, concept_status, 
-         semantic_type, pref_name) values(%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """
+ncit_df.to_sql(name='ncit', con=sqlalchemy_connection, if_exists='append')
+sqlalchemy_connection.dispose()
+ 
 
-psycopg2.extras.execute_batch(cur, ncit_ins_sql, thesaurus_rows, page_size=1000)
-
-
-con.commit()
 
 
 print("creating thesaurus file indexes")
