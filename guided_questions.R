@@ -46,6 +46,7 @@ guidedQuestionsServe <- function(id) {
     })
 }
 
+# Original query given to me by Hubert
 # with biomarker_inc as (
 #   select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code
 #   from trials)
@@ -56,6 +57,18 @@ guidedQuestionsServe <- function(id) {
 #        where td.nci_thesaurus_concept_id = 'C2991'
 #    group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name)
 #    order by count(bi.biomarker_inc_code) desc;
+
+# Working example 
+# with biomarker_inc as (
+#   select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code, gender, min_age_in_years, max_age_in_years
+#   from trials)
+#   select bi.biomarker_inc_code,
+#    coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name
+#    from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE
+#    join ncit n on bi.biomarker_inc_code = n.code
+#        where td.nci_thesaurus_concept_id in ('C7808') and (bi.max_age_in_years >= 45 and bi.min_age_in_years <= 45) and (bi.gender = 'MALE' or bi.gender = 'BOTH')
+#    group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name);
+
 
 # link trial_diseses to biomarkers_inc(which is trials) to matching nct_id that have lead_diseaseindicator set to TRUE..named bi
 # Than form that join ncit.code to bi.biomarker_inc_code from trials

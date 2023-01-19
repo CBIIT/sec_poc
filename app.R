@@ -769,10 +769,17 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
       order by name_count desc"
     )
   
-
-  
   df_disease_choices <- setNames(
       as.vector(df_disease_choice_data[["code"]]),as.vector(df_disease_choice_data[["preferred_name"]]))
+
+  guided_disease_choices_data <- safe_query(dbGetQuery,
+    "select distinct nci_thesaurus_concept_id, preferred_name from trial_diseases;"
+    # select * from trials inner join trial_diseases on trials.nct_id = trial_diseases.nct_id where trials.max_age_in_years >= 45 and trial_diseases.nci_thesaurus_concept_id in ('C132886') limit 1;
+  )
+
+  guided_disease_choices <- setNames(
+    as.vector(guided_disease_choices_data[["nci_thesaurus_concept_id"]]),as.vector(guided_disease_choices_data[["preferred_name"]])
+  )
   
   #browser()
   df_misc_choice_data <-
@@ -1110,8 +1117,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             ),
             footer = tagList(
                 modalButton("Cancel"),
-                actionButton(next_button_id, "Next")
-            )
+                actionButton(next_button_id, "Next"),
+                actionButton("search_and_match_guided_select", "Finish and Search")
+            ),
+            easyClose = TRUE
         )
         # modalDialog(
         #     title="Guided Questions",
@@ -1138,8 +1147,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             ),
             footer = tagList(
                 modalButton("Cancel"),
-                actionButton(next_button_id, "Next")
-            )
+                actionButton(next_button_id, "Next"),
+                actionButton("search_and_match_guided_text", "Finish and Search")
+            ),
+            easyClose = TRUE
         )
     }
     nextSelectizeModal <- function(id, question, next_button_id) {
@@ -1154,8 +1165,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             ),
             footer = tagList(
                 modalButton("Cancel"),
-                actionButton(next_button_id, "Next")
-            )
+                actionButton(next_button_id, "Next"),
+                actionButton("search_and_match_guided_selectize", "Finish and Search")
+            ),
+            easyClose = TRUE
         )
     }
 
@@ -1177,8 +1190,6 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         )
     })
     observeEvent(input$performance_status_guided, {
-        # performance_status_guided
-        # qString = sprintf("select count(*) from trials where max_age_in_years >= %s and min_age_in_years <= %s and gender = '%s' or gender = 'BOTH';", input$age_guided, input$age_guided, input$gender_guided)
         trialCount <- safe_query(dbGetQuery, "select count(*) from trials;")
         output$guided_total_trials <- renderText({
             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
@@ -1203,12 +1214,10 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     })
 
     observeEvent(input$guided_question2, {
-        # femaleCount <- safe_query(dbGetQuery, "select count(*) from trials where gender = 'FEMALE';")
         showModal(nextModal("gender_guided", "What is your gender", c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="BOTH"), "guided_question3"))
     })
     observeEvent(input$gender_guided, {
         qString = sprintf("select count(*) from trials where (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided)
-        print(qString)
         trialCount <- safe_query(
             dbGetQuery,
             qString
@@ -1216,27 +1225,36 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         output$guided_total_trials <- renderText({
             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
         })
-        
-        updateRadioGroupButtons(session, "gender", selected =input$gender_guided)
+        if (input$gender_guided == 'BOTH'){
+            updateRadioGroupButtons(session, "gender", selected='Unspecified')
+        } else {
+            updateRadioGroupButtons(session, "gender", selected=str_to_title(input$gender_guided))
+        }
     })
 
     observeEvent(input$guided_question3, {
         updateSelectizeInput(session,
                        'disease_search_guided',
-                       choices = df_disease_choices,
+                       choices = guided_disease_choices,
                        server = TRUE)
-        showModal(nextSelectizeModal("disease_search_guided", "Do you know what disease you have?", "guided_question4"))
+        showModal(nextSelectizeModal("disease_search_guided", "Do you have any of these diseases?", "guided_question4"))
     })
 
     observeEvent(input$disease_search_guided, {
         newString = ""
+        # for (code in input$disease_search_guided) {
+        #     newString = paste(newString, paste("'%", code, sed="%',"))
+        # }
         for (code in input$disease_search_guided) {
-            newString = paste(newString, paste("'%", code, sed="%',"))
+            newString = paste(newString, paste("'", code, sed="',"))
         }
         newString = gsub(" ", "", newString)
         newString = substring(newString, 1, nchar(newString)-1)
-        qString = sprintf("select count(*) from trials where diseases like any(array[%s])", newString)
-        qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        qString = sprintf("select count(*) from trials inner join trial_diseases on trials.nct_id = trial_diseases.nct_id where (trials.max_age_in_years >= %s and trials.min_age_in_years <= %s) and (trials.gender = '%s' or trials.gender = 'BOTH')", input$age_guided, input$age_guided, input$gender_guided)
+        qString = paste(qString, sprintf("and trial_diseases.nci_thesaurus_concept_id in (%s)", newString))
+        # sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        # qString = sprintf("select count(*) from trials where diseases like any(array[%s])", newString)
+        # qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
         print(qString)
         trialCount <- safe_query(
             dbGetQuery,
@@ -1245,50 +1263,37 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         output$guided_total_trials <- renderText({
             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
         })
+        updateSelectizeInput(session, "diseases", selected = input$disease_search_guided)
     })
     observeEvent(input$guided_question4, {
-        # qString = paste("with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code from trials ", 
-        #     sprintf("where (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH'))", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
-        # qString = paste(qString, sprintf(
-        #     "select count(bi.biomarker_inc_code) as num_occurences, bi.biomarker_inc_code,
-        #         coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name
-        #         from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE
-        #         join ncit n on bi.biomarker_inc_code = n.code
-        #             where td.nci_thesaurus_concept_id = '%s'
-        #         group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name)
-        #     order by count(bi.biomarker_inc_code) desc", input$disease_search_guided)
-        # )
         newString = ""
         for (code in input$disease_search_guided) {
-            newString = paste(newString, paste("'%", code, sed="%',"))
+            newString = paste(newString, paste("'", code, sed="',"))
         }
         newString = gsub(" ", "", newString)
         newString = substring(newString, 1, nchar(newString)-1)
-        qString = sprintf("select biomarker_inc_codes, biomarker_inc_names from trials where diseases like any(array[%s])", newString)
-        qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
-        qString = paste(qString, "and (biomarker_inc_codes is not null and biomarker_inc_names is not null);")
-        print(qString)
+        batmanString = "with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code, gender, min_age_in_years, max_age_in_years from trials) select bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE join ncit n on bi.biomarker_inc_code = n.code "
+        batmanString = paste(batmanString, sprintf("where td.nci_thesaurus_concept_id in (%s) ", newString))
+        batmanString = paste(batmanString, sprintf("and (bi.max_age_in_years >= %s and bi.min_age_in_years <= %s) and (bi.gender = '%s' or bi.gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided))
+        batmanString = paste(batmanString, "group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name);")
+        print(batmanString)
+        # qString = sprintf("select biomarker_inc_codes, biomarker_inc_names from trials where diseases like any(array[%s])", newString)
+        # qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        # qString = paste(qString, "and (biomarker_inc_codes is not null and biomarker_inc_names is not null);")
         biomarkers_inc <- safe_query(
             dbGetQuery,
-            qString
+            batmanString
         )
-        # print(biomarkers_inc[["biomarker_inc_codes"]])
-        # print(biomarkers_inc[["biomarker_inc_names"]])
-        codes = strsplit(biomarkers_inc[["biomarker_inc_codes"]], ", ")
-        names = strsplit(biomarkers_inc[["biomarker_inc_names"]], ", ")
-        new_codes = data.frame(
-          biomarker_inc_codes = unlist(codes)
-        )
-        new_names = data.frame(
-            biomarker_inc_names = unlist(names)
-        )
-        # print(as.vector(new_codes))
-        # print(new_names[["biomarker_inc_names"]])
-        # print(biomarkers_inc[["biomarker_inc_codes"]])
-        # print(setNames(c(new_codes), c(new_names)))
-        # df_biomarker_list_jv <- setNames(as.vector(biomarkers_inc[["biomarker_inc_codes"]]), as.vector(as.vector(biomarkers_inc[["biomarker_inc_names"]])))
-        # print(setNames(as.vector(biomarkers_inc[["biomarker_inc_codes"]]), as.vector(as.vector(biomarkers_inc[["biomarker_inc_names"]]))))
-        df_biomarker_list_jv <- setNames(as.vector(new_codes[["biomarker_inc_codes"]]), as.vector(new_names[["biomarker_inc_names"]]))
+        print(biomarkers_inc)
+        # codes = strsplit(biomarkers_inc[["biomarker_inc_code"]], ", ")
+        # names = strsplit(biomarkers_inc[["biomarker_name"]], ", ")
+        # new_codes = data.frame(
+        #   biomarker_inc_codes = unlist(codes)
+        # )
+        # new_names = data.frame(
+        #     biomarker_inc_names = unlist(names)
+        # )
+        df_biomarker_list_jv <- setNames(as.vector(biomarkers_inc[["biomarker_inc_code"]]), as.vector(biomarkers_inc[["biomarker_name"]]))
         updateSelectizeInput(session,
             'biomarkers_search_guided',
             choices = df_biomarker_list_jv,
@@ -1299,12 +1304,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     observeEvent(input$biomarkers_search_guided, {
         newString = ""
         for (code in input$disease_search_guided) {
-            newString = paste(newString, paste("'%", code, sed="%',"))
+            newString = paste(newString, paste("'", code, sed="',"))
         }
         newString = gsub(" ", "", newString)
         newString = substring(newString, 1, nchar(newString)-1)
-        qString = sprintf("select count(*) from trials where diseases like any(array[%s])", newString)
-        qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        qString = sprintf("select count(*) from trials inner join trial_diseases on trials.nct_id = trial_diseases.nct_id where (trials.max_age_in_years >= %s and trials.min_age_in_years <= %s) and (trials.gender = '%s' or trials.gender = 'BOTH')", input$age_guided, input$age_guided, input$gender_guided)
+        qString = paste(qString, sprintf("and trial_diseases.nci_thesaurus_concept_id in (%s)", newString))
         biomarker_search_str = ""
         for (code in input$biomarkers_search_guided){
             biomarker_search_str = paste(biomarker_search_str, paste("'%", code, sed="%',"))
@@ -1320,6 +1325,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         output$guided_total_trials <- renderText({
             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
         })
+        updateSelectizeInput(session, 'biomarkers', input$biomarkers_search_guided)
     })
 
     # observeEvent(input$disease_search_guided, {
@@ -1670,11 +1676,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
     
   })
-  
-  # 
-  # Search and match button event handler ----
-  
-  observeEvent(input$search_and_match, label = 'search and match', {
+
+  search_for_trials <- function() {
     print("search and match")
     print(paste("age : ", input$patient_age))
     print("diseases : ")
@@ -2238,7 +2241,23 @@ order by criteria_column_index "
     }
     )
   }
-  )
+  
+  # 
+  # Search and match button event handler ----
+  observeEvent(input$search_and_match, label = 'search and match', search_for_trials())
+  observeEvent(input$search_and_match_guided_select, label = 'search and match', {
+    removeModal()
+    search_for_trials()
+  })
+  observeEvent(input$search_and_match_guided_text, label = 'search and match', {
+    removeModal()
+    search_for_trials()
+  })
+  observeEvent(input$search_and_match_guided_selectize, label = 'search and match', {
+    removeModal()
+    search_for_trials()
+  })
+
   
  
   
