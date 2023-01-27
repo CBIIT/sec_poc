@@ -1095,14 +1095,51 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       # TODO: Remove guided
     #   observe(guidedQuestionsServe("modalExample"))
 
-   guidedQuestionQuery <- function(performance_status=NULL, gender=NULL) {
-        if(performance_status & gender) {
-            queryString  = "select count(*) from trials where %s='%s' and where "
-        }else if (performance_status) {
-
-        }else if (gender) {
-
+   guidedQuestionQuery <- function(performance_status=NULL, gender=NULL, age=NULL, disease=NULL, biomarker=NULL) {
+        queryString = "select count(distinct trials.nct_id) from trials join trial_diseases on trials.nct_id = trial_diseases.nct_id join trial_criteria on trials.nct_id = trial_criteria.nct_id where "
+        if (!is.null(performance_status)) {
+            lookup = c(
+                'C159685' = "",
+                'C105722' = "(trial_criteria.trial_criteria_refined_text in ('Performance Status =< 0')) and",
+                'C105723' = "(trial_criteria.trial_criteria_refined_text in ('Performance Status =< 1', 'Performance Status =< 0')) and",
+                'C105725' = "(trial_criteria.trial_criteria_refined_text in ('Performance Status =< 2', 'Performance Status =< 1', 'Performance Status =< 0')) and",
+                'C105726' = "(trial_criteria.trial_criteria_refined_text in ('Performance Status =< 3', 'Performance Status =< 2', 'Performance Status =< 1', 'Performance Status =< 0')) and",
+                'C105727' = "(trial_criteria.trial_criteria_refined_text in ('Performance Status =< 4', 'Performance Status =< 3', 'Performance Status =< 2', 'Performance Status =< 1', 'Performance Status =< 0')) and"
+            )
+            queryString = paste(queryString, lookup[performance_status])
         }
+        if (!is.null(gender)) {
+            queryString = paste(queryString, sprintf( "(trials.gender = '%s' or trials.gender = 'BOTH') and", gender))
+        }
+        if (!is.null(age) && age != "") {
+            queryString = paste(queryString, sprintf( "(trials.max_age_in_years >= %s and trials.min_age_in_years <= %s) and", age, age))
+        }
+        if (!is.null(disease)) {
+            diseaseString = ""
+            for (code in input$disease_search_guided) {
+                diseaseString = paste(diseaseString, paste("'", code, sed="',"))
+            }
+            diseaseString = gsub(" ", "", diseaseString)
+            diseaseString = substring(diseaseString, 1, nchar(diseaseString)-1)
+            queryString = paste(queryString, sprintf("trial_diseases.nci_thesaurus_concept_id in (%s) and", diseaseString))
+        }
+        if (!is.null(biomarker)){
+            biomarker_search_str = ""
+            for (code in input$biomarkers_search_guided){
+                biomarker_search_str = paste(biomarker_search_str, paste("'%", code, sed="%',"))
+            }
+            biomarker_search_str = gsub(" ", "", biomarker_search_str)
+            biomarker_search_str = substring(biomarker_search_str, 1, nchar(biomarker_search_str)-1)
+            queryString = paste(queryString, sprintf("trials.biomarker_inc_codes like any(array[%s]) and", biomarker_search_str))
+        }
+        if ((nchar(queryString) - 1) == stri_locate_last_fixed(queryString, " where ")[2]){
+            loc = stri_locate_last_fixed(queryString, " where ")
+            queryString = paste(substr(queryString, 0, loc[1]), ";")
+        }else {
+            loc = stri_locate_last_fixed(queryString, " and")
+            queryString = paste(substr(queryString, 0, loc[1]), ";")
+        }
+        return(queryString)
    }
 
    nextModal <- function(id, question, answeres, next_button_id){
@@ -1190,7 +1227,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         )
     })
     observeEvent(input$performance_status_guided, {
-        trialCount <- safe_query(dbGetQuery, "select count(*) from trials;")
+        qString = guidedQuestionQuery(performance_status=input$performance_status_guided)
+        trialCount <- safe_query(dbGetQuery, qString)
         output$guided_total_trials <- renderText({
             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
         })
@@ -1200,11 +1238,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         showModal(nextTextModal("age_guided", "How old are you?", "guided_question2"))
     })
     observeEvent(input$age_guided, {
-        if (input$age_guided != ""){
+        if (input$age_guided != "") {
+            qString = guidedQuestionQuery(performance_status=input$performance_status_guided, age=input$age_guided)
             trialCount <- safe_query(
-                dbGetQuery, 
-                "select count(*) from trials where max_age_in_years >= $1 and min_age_in_years <= $2;",
-                params = c(input$age_guided, input$age_guided)
+                dbGetQuery,
+                qString
             )
             output$guided_total_trials <- renderText({
                 paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
@@ -1217,7 +1255,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         showModal(nextModal("gender_guided", "What is your gender", c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="BOTH"), "guided_question3"))
     })
     observeEvent(input$gender_guided, {
-        qString = sprintf("select count(*) from trials where (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided)
+        qString = guidedQuestionQuery(
+            performance_status=input$performance_status_guided,
+            gender=input$gender_guided,
+            age=input$age_guided
+        )
         trialCount <- safe_query(
             dbGetQuery,
             qString
@@ -1241,20 +1283,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     })
 
     observeEvent(input$disease_search_guided, {
-        newString = ""
-        # for (code in input$disease_search_guided) {
-        #     newString = paste(newString, paste("'%", code, sed="%',"))
-        # }
-        for (code in input$disease_search_guided) {
-            newString = paste(newString, paste("'", code, sed="',"))
-        }
-        newString = gsub(" ", "", newString)
-        newString = substring(newString, 1, nchar(newString)-1)
-        qString = sprintf("select count(*) from trials inner join trial_diseases on trials.nct_id = trial_diseases.nct_id where (trials.max_age_in_years >= %s and trials.min_age_in_years <= %s) and (trials.gender = '%s' or trials.gender = 'BOTH')", input$age_guided, input$age_guided, input$gender_guided)
-        qString = paste(qString, sprintf("and trial_diseases.nci_thesaurus_concept_id in (%s)", newString))
-        # sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
-        # qString = sprintf("select count(*) from trials where diseases like any(array[%s])", newString)
-        # qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH');", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
+        qString = guidedQuestionQuery(
+            performance_status=input$performance_status_guided,
+            gender=input$gender_guided, 
+            age=input$age_guided, 
+            disease=input$disease_search_guided
+        )
         print(qString)
         trialCount <- safe_query(
             dbGetQuery,
@@ -1263,7 +1297,19 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         output$guided_total_trials <- renderText({
             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
         })
-        updateSelectizeInput(session, "diseases", selected = input$disease_search_guided)
+        diseaseString = ""
+        for (code in input$disease_search_guided) {
+            diseaseString = paste(diseaseString, paste("'", code, sed="',"))
+        }
+        diseaseString = gsub(" ", "", diseaseString)
+        diseaseString = substring(diseaseString, 1, nchar(diseaseString)-1)
+        add_disease_sql <- "select distinct code as \"Code\" , 'YES' as \"Value\", pref_name as \"Diseases\" from  ncit where code in (%s);"
+        df_new_disease <- safe_query(
+            dbGetQuery,
+            sprintf(add_disease_sql, diseaseString)
+        )
+        # rbind is another option but if done than we dont remove values if the deselect
+        sessionInfo$disease_df <- df_new_disease
     })
     observeEvent(input$guided_question4, {
         newString = ""
@@ -1272,27 +1318,17 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         }
         newString = gsub(" ", "", newString)
         newString = substring(newString, 1, nchar(newString)-1)
-        batmanString = "with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code, gender, min_age_in_years, max_age_in_years from trials) select bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE join ncit n on bi.biomarker_inc_code = n.code "
+        batmanString = "with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code, gender, min_age_in_years, max_age_in_years from trials) select bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id join trial_criteria tc on bi.nct_id = tc.nct_id join ncit n on bi.biomarker_inc_code = n.code "
         batmanString = paste(batmanString, sprintf("where td.nci_thesaurus_concept_id in (%s) ", newString))
-        batmanString = paste(batmanString, sprintf("and (bi.max_age_in_years >= %s and bi.min_age_in_years <= %s) and (bi.gender = '%s' or bi.gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided))
+        if (input$age_guided != "" && input$gender_guided != ""){
+            batmanString = paste(batmanString, sprintf("and (bi.max_age_in_years >= %s and bi.min_age_in_years <= %s) and (bi.gender = '%s' or bi.gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided))
+        }
         batmanString = paste(batmanString, "group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name);")
         print(batmanString)
-        # qString = sprintf("select biomarker_inc_codes, biomarker_inc_names from trials where diseases like any(array[%s])", newString)
-        # qString = paste(qString, sprintf("and (max_age_in_years >= %s and min_age_in_years <= %s) and (gender = '%s' or gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided), sep=" ")
-        # qString = paste(qString, "and (biomarker_inc_codes is not null and biomarker_inc_names is not null);")
         biomarkers_inc <- safe_query(
             dbGetQuery,
             batmanString
         )
-        print(biomarkers_inc)
-        # codes = strsplit(biomarkers_inc[["biomarker_inc_code"]], ", ")
-        # names = strsplit(biomarkers_inc[["biomarker_name"]], ", ")
-        # new_codes = data.frame(
-        #   biomarker_inc_codes = unlist(codes)
-        # )
-        # new_names = data.frame(
-        #     biomarker_inc_names = unlist(names)
-        # )
         df_biomarker_list_jv <- setNames(as.vector(biomarkers_inc[["biomarker_inc_code"]]), as.vector(biomarkers_inc[["biomarker_name"]]))
         updateSelectizeInput(session,
             'biomarkers_search_guided',
@@ -1302,22 +1338,12 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         showModal(nextSelectizeModal("biomarkers_search_guided", "Do you have any of these biomarkers?", "guided_question5"))
     })
     observeEvent(input$biomarkers_search_guided, {
-        newString = ""
-        for (code in input$disease_search_guided) {
-            newString = paste(newString, paste("'", code, sed="',"))
-        }
-        newString = gsub(" ", "", newString)
-        newString = substring(newString, 1, nchar(newString)-1)
-        qString = sprintf("select count(*) from trials inner join trial_diseases on trials.nct_id = trial_diseases.nct_id where (trials.max_age_in_years >= %s and trials.min_age_in_years <= %s) and (trials.gender = '%s' or trials.gender = 'BOTH')", input$age_guided, input$age_guided, input$gender_guided)
-        qString = paste(qString, sprintf("and trial_diseases.nci_thesaurus_concept_id in (%s)", newString))
-        biomarker_search_str = ""
-        for (code in input$biomarkers_search_guided){
-            biomarker_search_str = paste(biomarker_search_str, paste("'%", code, sed="%',"))
-        }
-        biomarker_search_str = gsub(" ", "", biomarker_search_str)
-        biomarker_search_str = substring(biomarker_search_str, 1, nchar(biomarker_search_str)-1)
-        qString = paste(qString, sprintf("and biomarker_inc_codes like any(array[%s]);", biomarker_search_str))
-        print(qString)
+        qString = guidedQuestionQuery(
+            gender=input$gender_guided,
+            age=input$age_guided,
+            disease=input$disease_search_guided,
+            biomarker=input$biomarkers_search_guided
+        )
         trialCount <- safe_query(
             dbGetQuery,
             qString
@@ -1325,7 +1351,18 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         output$guided_total_trials <- renderText({
             paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
         })
-        updateSelectizeInput(session, 'biomarkers', input$biomarkers_search_guided)
+        add_biomarker_sql <-  "select code as \"Code\" , 'YES' as \"Value\", pref_name as \"Biomarkers\" from ncit where code in (%s);"
+        biomarker_search_str = ""
+        for (code in input$biomarkers_search_guided){
+            biomarker_search_str = paste(biomarker_search_str, paste("'", code, sed="',"))
+        }
+        biomarker_search_str = gsub(" ", "", biomarker_search_str)
+        biomarker_search_str = substring(biomarker_search_str, 1, nchar(biomarker_search_str)-1)
+        df_new_biomarkers <- safe_query(
+            dbGetQuery,
+            sprintf(add_biomarker_sql, biomarker_search_str)
+        )
+        sessionInfo$biomarker_df <- df_new_biomarkers
     })
 
     # observeEvent(input$disease_search_guided, {
@@ -2620,6 +2657,7 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
     add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
     df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
     #browser()
+    print(df_new_disease)
     sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
     print(sessionInfo$disease_df)
     
