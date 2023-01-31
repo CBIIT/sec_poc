@@ -166,6 +166,7 @@ source('get_api_studies_with_va_sites.R')
 source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
 source('get_biomarkers_from_evs.R')
+source('get_biomarker_trial_counts_for_diseases.R')
 
 # source('guided_questions.R')
 
