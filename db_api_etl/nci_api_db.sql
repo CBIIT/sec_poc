@@ -142,6 +142,20 @@ ncit_tokenizer bytea
 );
 
 
+drop table if exists ncit;
+create table ncit(code varchar(25) primary key,
+                       url text,
+                       parents text,
+                       synonyms text,
+                       definition text,
+                       display_name text,
+                       concept_status text,
+                       semantic_type text,
+                       pref_name text
+);
+
+
+
 drop table if exists disease_tree ;
 create table disease_tree (
     code text,

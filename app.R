@@ -166,7 +166,9 @@ source('get_api_studies_with_va_sites.R')
 source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
 source('get_biomarkers_from_evs.R')
+
 # source('guided_questions.R')
+
 
 ui <- fluidPage(
   useShinyjs(),
@@ -347,11 +349,14 @@ background-color: #FFCCCC;
     selectizeInput("misc_typer", label = "NCIt Search", NULL, multiple = TRUE),
     actionButton("show_crosswalk", "Add non-NCI codes"),
     DTOutput('crosswalk_codes'),
-        actionButton("search_and_match", "SEARCH AND MATCH")
+    actionButton("search_and_match", "SEARCH AND MATCH"),
+    tags$p(""),
+    tags$p("Search over active treatment or screening trials with at least 1 site recruiting patients",
+           style = "font-size:10px;")
       ),
-    actionButton("show_generic_disease_tree_modal", "s")
+  actionButton("show_generic_disease_tree_modal", "s")
     )
-    
+  
     ,
     mainPanel(
       id = "Main",
@@ -1720,7 +1725,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     print("diseases : ")
     print(input$disease_typer)
     print(paste("gender : ", input$gender))
-   
+   # browser()
     #
     # Make a new dataframe for the patient data 
     #
@@ -1850,6 +1855,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     #
     disease_df <-
       get_api_studies_for_disease(possible_disease_codes_df$Code)
+   # browser()
     df_crit$api_disease_match <-
       df_crit$clean_nct_id %in% disease_df$nct_id  # will set T/F for each row
     
@@ -2728,7 +2734,7 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
     } else if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
       # No subtype, get the maintype and add that in.
       print(paste("add maintype as disease - ", input$maintype_typer))
-      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
       new_disease <- input$maintype_typer
       df_new_disease <-
         safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
@@ -2744,7 +2750,7 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
     #See if we have subtypes, if so use them, otherwise see if we have a maintype/subtype 
     # and use that
     if(length(input$stage_typer) > 0  ){
-      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
       for (row in 1:length(input$stage_typer)) {
         new_disease <- input$stage_typer[row]
         df_new_disease <-
@@ -2832,6 +2838,11 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
   
   observe( {
   print('sessionInfo$disease_df changed')  
+    #browser()
+    if (nrow(sessionInfo$disease_df) > 0) {
+        biomarker_df <- get_biomarker_trial_counts_for_diseases(safe_query, sessionInfo$disease_df$Code)
+    }
+    
   show_disease_dt <- datatable(
     sessionInfo$disease_df,
     class = 'cell-border stripe compact wrap ',
