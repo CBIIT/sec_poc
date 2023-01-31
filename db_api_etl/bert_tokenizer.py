@@ -25,7 +25,7 @@ UNIT_OF_MEASURE_TREE = "'C25709'"
 PYSICAL_FEELINGS_QUESTION_TREE = "'C173219'"
 PERSONAL_ATTRIBUTE_TREE = "'C19332'"
 
-BERT_MODEL_LOCATION = '/local/models/content/model'
+BERT_MODEL_LOCATION = '/Users/verbeckjb/git/sec/nlp_sec_ner/content/model'
 CRITERIA_TYPE_INSERT = '''insert into criteria_types 
     (
         criteria_type_id, criteria_type_code, criteria_type_title, 
@@ -40,8 +40,16 @@ REFINED_BERT_CANDIDATE_CRITERIA = """insert into bert_candidate_criteria
         generated_date, marked_done_date
     ) values (%s, %s, %s, %s, %s, %s, %s, %s, %s);"""
 
-CANDIDATE_CRITERIA_SELECT = '''select * from candidate_criteria
-    where criteria_type_id=12 OR criteria_type_id=18;'''
+CANDIDATE_CRITERIA_SELECT = '''SELECT * FROM candidate_criteria c WHERE
+    not exists ( 
+        SELECT 1 FROM bert_candidate_criteria b WHERE c.nct_id = b.nct_id AND c.display_order = b.display_order
+    ) AND (criteria_type_id=12 OR criteria_type_id=18);
+'''
+
+# CANDIDATE_CRITERIA_SELECT = '''select * from candidate_criteria
+#     where criteria_type_id=12 OR criteria_type_id=18 limit 500;'''
+
+
 
 ## gilbert's disease is being broken into multiple findings...breaks sql insert 
 # CANDIDATE_CRITERIA_SELECT = '''select * from candidate_criteria
@@ -50,6 +58,8 @@ CANDIDATE_CRITERIA_SELECT = '''select * from candidate_criteria
 
 # CREATE TABLE bert_candidate_criteria(LIKE candidate_criteria INCLUDING ALL);
 
+
+# select count(*) from candidate_criteria c where not exists ( select 1 from bert_candidate_criteria b where c.nct_id = b.nct_id and c.display_order = b.display_order) and (criteria_type_id=12 OR criteria_type_id=18);
 
 def get_db(host: str, port: str, user: str, password: str, dbname: str) -> connect:
      return connect(
@@ -201,7 +211,8 @@ if __name__ == '__main__':
     unstructered_trials_data = get_all(db, CANDIDATE_CRITERIA_SELECT)
     
     # tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-    tokenizer = AutoTokenizer.from_pretrained('/local/models/distilbert-base-uncased', local_files_only=True)
+    # tokenizer = AutoTokenizer.from_pretrained('/local/models/distilbert-base-uncased', local_files_only=True)
+    tokenizer = AutoTokenizer.from_pretrained('./tmp/distilbert-base-uncased')
     model = TFAutoModelForTokenClassification.from_pretrained(BERT_MODEL_LOCATION)
     bert_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
 
@@ -290,6 +301,7 @@ if __name__ == '__main__':
     db.close()
     end_time = datetime.now()
     print("BERT Tokenizer Completed in ", end_time - start_time)
+
 
 
 #     criteria_type_id | criteria_type_code |   criteria_type_title    |                            criteria_type_desc                            | criteria_type_active | criteria_type_sense | criteria_column_index 
