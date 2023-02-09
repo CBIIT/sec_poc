@@ -196,4 +196,15 @@ CREATE TABLE curated_crosswalk (
 create index crosswalk_ind1 on curated_crosswalk(code_system, disease_code);
 create index crosswalk_ind2 on curated_crosswalk(evs_c_code);
 
+create table bad_ncit_syns
+(
+code varchar(100),
+syn_name text
+);
+
+insert into bad_ncit_syns(code, syn_name) values ('C116664', 'ECoG');
+insert into bad_ncit_syns(code, syn_name) values ('C161964', 'ECOG');
+
+
+
 
