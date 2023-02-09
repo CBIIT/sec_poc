@@ -43,7 +43,7 @@ def chunks(lst, n):
 start_time = datetime.datetime.now()
 pp = pprint.PrettyPrinter(indent=4)
 
-parser = argparse.ArgumentParser(description='Download the NCIT Thesaurus Zip file and create transitive closure tables in a sqlite database.')
+parser = argparse.ArgumentParser(description='Download the NCIT Thesaurus Zip file and create transitive closure tables in a database.')
 
 parser.add_argument('--dbname', action='store', type=str, required=False)
 parser.add_argument('--host', action='store', type=str, required=False)
@@ -51,7 +51,6 @@ parser.add_argument('--user', action='store', type=str, required=False)
 parser.add_argument('--password', action='store', type=str, required=False)
 parser.add_argument('--port', action='store', type=str, required=False)
 
-# You are here
 
 args = parser.parse_args()
 
@@ -66,7 +65,7 @@ url_fstring = "https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/archive/%s_Release/The
 r = requests.get('https://api-evsrest.nci.nih.gov/api/v1/concept/ncit',
                  params={'include': 'minimal', 'list': 'C2991'}, timeout=(.4, 7.0))
 evs_results = r.json()
-print(evs_results)
+#print(evs_results)
 if len(evs_results) != 1 or 'version' not in evs_results[0]:
     print("NO VERSION NUMBER in returned info from EVS", evs_results)
     sys.exit(0)
@@ -427,6 +426,17 @@ print("done inserting synonyms in database")
 cur.execute('create index ncit_syns_code_idx on ncit_syns(code)')
 cur.execute('create index ncit_syns_syn_name on ncit_syns(syn_name)')
 cur.execute('create index ncit_lsyns_syn_name on ncit_syns(l_syn_name)')
+
+# Delete the bad synonyms from the synonym table
+
+cur.execute("""
+DELETE FROM ncit_syns ns
+WHERE EXISTS
+  (SELECT 1
+    FROM bad_ncit_syns bns 
+    WHERE ns.code = bns.code and ns.syn_name = bns.syn_name  );
+""");
+con.commit();
 
 # First make sure other versions are not marked as active
 
