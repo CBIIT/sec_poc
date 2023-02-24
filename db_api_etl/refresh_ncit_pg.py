@@ -50,6 +50,7 @@ parser.add_argument('--host', action='store', type=str, required=False)
 parser.add_argument('--user', action='store', type=str, required=False)
 parser.add_argument('--password', action='store', type=str, required=False)
 parser.add_argument('--port', action='store', type=str, required=False)
+parser.add_argument('--use_evs_api_for_pref_name' , action='store_true')
 
 
 args = parser.parse_args()
@@ -106,59 +107,68 @@ thesaurus_file = arch.open('Thesaurus.txt', mode='r')
 
 
 #
-# Process the file from EVS, then call the EVS API to get the proper preferred term
+# Process the file from EVS, then call the EVS API to get the preferred
+# term if the flag is set 
 #
 
 print("reading tsv file into dataframe")
-ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
-                          names=('code', 'url', 'parents', 'synonyms',
-                                 'definition', 'display_name', 'concept_status', 
-                                 'semantic_type', 'concept_in_subset'))
- 
-num_concepts_per_evs_call = 575
-concept_list = ncit_df['code'].tolist()
-
-
-concept_url_fstring = "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit?list=%s&include=summary"
-new_column_vals = []
-chunk_count = 0
-record_count = 0
-retry_limit = 3
-
-print("Calling EVS to get preferred terms")
-for ch in chunks(concept_list, num_concepts_per_evs_call):
-    c_codes = list(ch)
-    record_count += len(c_codes)
-    c_codes_string = ','.join(c_codes)
-    concept_url_string = concept_url_fstring % (c_codes_string)
-    retry_count = 0
-
-    while  retry_count < retry_limit:
-        try:
-            r = requests.get(concept_url_string, timeout=(1.0, 15.0))
-        except requests.exceptions.RequestException as e:
-            print("exception -- ", e)
-            print("sleeping")
-            retry_count += 1
-            if retry_count == retry_limit:
-                print("retry max limit hit -- bailing out ")
-                sys.exit()
-            time.sleep(15)
-        else:
-            concept_set = r.json()
-            for newc in concept_set:
-                new_column_vals.append((newc['code'], newc['name']))
-
-            chunk_count = chunk_count + 1
-            print("processing chunk ", chunk_count, " record count = ", record_count )
-            break
-
-#
-print("merging dataframes")
-new_df = pd.DataFrame(data=new_column_vals, columns = ['code', 'pref_name'])
-#
-ncit_df = pd.merge(ncit_df, new_df, on = 'code', how='left')
-
+if args.use_evs_api_for_pref_name:
+    ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
+                              names=('code', 'url', 'parents', 'synonyms',
+                                     'definition', 'display_name', 'concept_status', 
+                                     'semantic_type', 'concept_in_subset'))
+     
+    num_concepts_per_evs_call = 575
+    concept_list = ncit_df['code'].tolist()
+    
+    
+    concept_url_fstring = "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit?list=%s&include=summary"
+    new_column_vals = []
+    chunk_count = 0
+    record_count = 0
+    retry_limit = 3
+    
+    print("Calling EVS to get preferred terms")
+    for ch in chunks(concept_list, num_concepts_per_evs_call):
+        c_codes = list(ch)
+        record_count += len(c_codes)
+        c_codes_string = ','.join(c_codes)
+        concept_url_string = concept_url_fstring % (c_codes_string)
+        retry_count = 0
+    
+        while  retry_count < retry_limit:
+            try:
+                r = requests.get(concept_url_string, timeout=(1.0, 15.0))
+            except requests.exceptions.RequestException as e:
+                print("exception -- ", e)
+                print("sleeping")
+                retry_count += 1
+                if retry_count == retry_limit:
+                    print("retry max limit hit -- bailing out ")
+                    sys.exit()
+                time.sleep(15)
+            else:
+                concept_set = r.json()
+                for newc in concept_set:
+                    new_column_vals.append((newc['code'], newc['name']))
+    
+                chunk_count = chunk_count + 1
+                print("processing chunk ", chunk_count, " record count = ", record_count )
+                break
+    
+    #
+    print("merging dataframes")
+    new_df = pd.DataFrame(data=new_column_vals, columns = ['code', 'pref_name'])
+    #
+    ncit_df = pd.merge(ncit_df, new_df, on = 'code', how='left')
+  
+else:
+    ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
+                              names=('code', 'url', 'parents', 'synonyms',
+                                     'definition', 'display_name', 'concept_status', 
+                                     'semantic_type', 'concept_in_subset', 'pref_name'))
+    ncit_df['pref_name'] = ncit_df.apply(lambda row: row['synonyms'].split('|')[0], axis=1)
+  
 cur.execute("drop index if exists ncit_code_index")
 cur.execute("drop index if exists lower_pref_name_idx")
 
@@ -420,7 +430,8 @@ for rec in r:
 
 print("inserting synonmyms in database")
 cur.execute("BEGIN TRANSACTION")
-cur.executemany(insert_sql, biglist )
+#cur.executemany(insert_sql, biglist )
+psycopg2.extras.execute_batch(cur, insert_sql, biglist, page_size=500)
 con.commit()
 print("done inserting synonyms in database")
 cur.execute('create index ncit_syns_code_idx on ncit_syns(code)')
@@ -446,9 +457,33 @@ cur.execute("""insert into ncit_version(version_id, downloaded_url, transitive_c
    """, [current_evs_version, url_string, datetime.datetime.now(), 'Y'])
 con.commit()
 
+#
+# Now add in permissions for the sec_read user
+#
+cur.execute('grant select on trial_unstructured_criteria to sec_read')
+cur.execute('grant select on maintypes to sec_read')
+cur.execute('grant select on distinct_trial_diseases to sec_read')
+cur.execute('grant select on nlp_data_tab to sec_read')
+cur.execute('grant select on trials to sec_read')
+cur.execute('grant select on ncit_tc_with_path to sec_read')
+cur.execute('grant select on trial_sites to sec_read');
+cur.execute('grant select on trial_maintypes to sec_read')
+cur.execute('grant select on curated_crosswalk to sec_read')
+cur.execute( 'grant select on disease_tree to sec_read')
+cur.execute( 'grant select on nlp_data_view to sec_read')
+cur.execute( 'grant select on ncit to sec_read')
+cur.execute( 'grant select on disease_tree_nostage to sec_read')
+cur.execute( 'grant select on candidate_criteria to sec_read')
+cur.execute( 'grant select on ncit_nlp_concepts to sec_read')
+cur.execute( 'grant select on trial_criteria to sec_read')
+cur.execute( 'grant select on ncit_tc to sec_read')
+cur.execute( 'grant select on trial_diseases to sec_read')
+cur.execute( 'grant select on trial_nlp_dates to sec_read')
+cur.execute( 'grant select on ncit_syns to sec_read')
+cur.execute('grant select on ncit_version_view to sec_read')
 
+con.commit()
 
-    
 end_time = datetime.datetime.now()
 print("Process complete in ", end_time - start_time)
 

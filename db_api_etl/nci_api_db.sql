@@ -196,6 +196,13 @@ CREATE TABLE curated_crosswalk (
 create index crosswalk_ind1 on curated_crosswalk(code_system, disease_code);
 create index crosswalk_ind2 on curated_crosswalk(evs_c_code);
 
+
+create view ncit_version_view as
+select version_id, downloaded_url, 
+       transitive_closure_generation_date, 
+       ncit_tokenizer_generation_date,
+       active_version from ncit_version;
+
 create table bad_ncit_syns
 (
 code varchar(100),
@@ -205,6 +212,6 @@ syn_name text
 insert into bad_ncit_syns(code, syn_name) values ('C116664', 'ECoG');
 insert into bad_ncit_syns(code, syn_name) values ('C161964', 'ECOG');
 
-
+c
 
 
