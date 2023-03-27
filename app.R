@@ -166,9 +166,9 @@ source('get_api_studies_with_va_sites.R')
 source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
 source('get_biomarkers_from_evs.R')
-source('get_biomarker_trial_counts_for_diseases.R')
+# source('get_biomarker_trial_counts_for_diseases.R')
 
-# source('guided_questions.R')
+source('guided_questions.R')
 
 
 ui <- fluidPage(
@@ -1103,6 +1103,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
 
    guidedQuestionQuery <- function(performance_status=NULL, gender=NULL, age=NULL, disease=NULL, biomarker=NULL) {
         queryString = "select count(distinct trials.nct_id) from trials join trial_diseases on trials.nct_id = trial_diseases.nct_id join trial_criteria on trials.nct_id = trial_criteria.nct_id where "
+        # queryString = "select count(distinct t.nct_id) from trials t join trial_diseases td on t.nct_id = td.nct_id join trial_criteria tc on t.nct_id = tc.nct_id where"  
         if (!is.null(performance_status)) {
             lookup = c(
                 'C159685' = "",
@@ -1214,64 +1215,153 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             easyClose = TRUE
         )
     }
-
+    # Return from this will contain each model setup
+    testList = getGuidedQuestionDataFrames(safe_query)
+    testDf2 = reactiveVal(testList[[2]])
     observeEvent(input$show_guided_questions, {
+        if(testList[[1]][[1]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testList[[1]][[1]][[3]][[1]],
+                choices = testList[[1]][[1]][[6]],
+                server = TRUE
+            )
+        }
         showModal(
-            nextModal(
-                "performance_status_guided", 
-                "How would you describe your symptoms currently?", 
-                c(
-                    "Unspecified" = "C159685",
-                    "0: Asymptomatic" = "C105722",
-                    "1: Symptomatic, but fully ambulatory" = "C105723",
-                    "2: Symptomatic, in bed less than 50% of day" = "C105725",
-                    "3: Symptomatic, in bed more than 50% of day, but not bed-ridden" = "C105726",
-                    "4: Bed-ridden" = "C105727"
-                ),
-                "guided_question1"
+            do.call(
+                testList[[1]][[1]][[2]],
+                testList[[1]][[1]][[3]]
             )
         )
-    })
-    observeEvent(input$performance_status_guided, {
-        qString = guidedQuestionQuery(performance_status=input$performance_status_guided)
-        trialCount <- safe_query(dbGetQuery, qString)
-        output$guided_total_trials <- renderText({
-            paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
-        })
-        updatePickerInput(session, "performance_status", selected = input$performance_status_guided)
     })
     observeEvent(input$guided_question1, {
-        showModal(nextTextModal("age_guided", "How old are you?", "guided_question2"))
+        testDf2(testList[[1]][[1]][[5]](testList[[2]], input[[testList[[1]][[1]][[3]][[1]]]]))
+        if(testList[[1]][[2]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testList[[1]][[2]][[3]][[1]],
+                choices = testList[[1]][[2]][[6]],
+                server = TRUE
+            )
+        }
+        showModal(
+            do.call(
+                testList[[1]][[2]][[2]],
+                testList[[1]][[2]][[3]]
+            )
+        )
+        # showModal(nextTextModal("age_guided", "How old are you?", "guided_question2"))
+    })
+    observeEvent(input$guided_question2, {
+        testDf2(testList[[1]][[2]][[5]](testDf2(), input[[testList[[1]][[2]][[3]][[1]]]]))
+        if(testList[[1]][[3]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testList[[1]][[3]][[3]][[1]],
+                choices = testList[[1]][[3]][[6]],
+                server = TRUE
+            )
+        }
+        showModal(
+            do.call(
+                testList[[1]][[3]][[2]],
+                testList[[1]][[3]][[3]]
+            )
+        )
+        # showModal(nextModal("gender_guided", "What is your gender", c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="BOTH"), "guided_question3"))
+    })
+    observeEvent(input$guided_question3, {
+        testDf2(testList[[1]][[3]][[5]](testDf2(), input[[testList[[1]][[3]][[3]][[1]]]]))
+        if(testList[[1]][[4]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testList[[1]][[4]][[3]][[1]],
+                choices = testList[[1]][[4]][[6]],
+                server = TRUE
+            )
+        }
+        # updateSelectizeInput(session,
+        #                'disease_search_guided',
+        #                choices = guided_disease_choices,
+        #                server = TRUE)
+        showModal(
+            do.call(
+                testList[[1]][[4]][[2]],
+                testList[[1]][[4]][[3]]
+            )
+        )
+        # showModal(nextSelectizeModal("disease_search_guided", "Do you have any of these diseases?", "guided_question4"))
+    })
+    observeEvent(input$guided_question4, {
+        testDf2(testList[[1]][[4]][[5]](testDf2(), input[[testList[[1]][[4]][[3]][[1]]]]))
+        if(testList[[1]][[5]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testList[[1]][[5]][[3]][[1]],
+                choices = testList[[1]][[5]][[6]],
+                server = TRUE
+            )
+        }
+        # newString = ""
+        # for (code in input$disease_search_guided) {
+        #     newString = paste(newString, paste("'", code, sed="',"))
+        # }
+        # newString = gsub(" ", "", newString)
+        # newString = substring(newString, 1, nchar(newString)-1)
+        # batmanString = "with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code, gender, min_age_in_years, max_age_in_years from trials) select bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id join trial_criteria tc on bi.nct_id = tc.nct_id join ncit n on bi.biomarker_inc_code = n.code "
+        # batmanString = paste(batmanString, sprintf("where td.nci_thesaurus_concept_id in (%s) ", newString))
+        # if (input$age_guided != "" && input$gender_guided != ""){
+        #     batmanString = paste(batmanString, sprintf("and (bi.max_age_in_years >= %s and bi.min_age_in_years <= %s) and (bi.gender = '%s' or bi.gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided))
+        # }
+        # batmanString = paste(batmanString, "group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name);")
+        # print(batmanString)
+        # biomarkers_inc <- safe_query(
+        #     dbGetQuery,
+        #     batmanString
+        # )
+        # df_biomarker_list_jv <- setNames(as.vector(biomarkers_inc[["biomarker_inc_code"]]), as.vector(biomarkers_inc[["biomarker_name"]]))
+        # updateSelectizeInput(session,
+        #     'biomarkers_search_guided',
+        #     choices = df_biomarker_list_jv,
+        #     server = TRUE
+        # )
+        showModal(
+            do.call(
+                testList[[1]][[5]][[2]],
+                testList[[1]][[5]][[3]]
+            )
+        )
+        # showModal(nextSelectizeModal("biomarkers_search_guided", "Do you have any of these biomarkers?", "guided_question5"))
+    })
+    observeEvent(input$update_guided_question1, {
+        holder <- testList[[1]][[1]][[5]](testList[[2]], input$update_guided_question1)
+        # print(testList[[1]][[1]][[6]](testList[[2]], input$update_guided_question1) )
+        # print(str_detect(testList[[2]]['BiomarkersInc'], input$update_guided_question1))
+        # print(testList[[2]][str_detect(df$BiomarkersInc, input$update_guided_question1), ])
+        # print(testList[[2]][grep(input$update_guided_question1, testList[[2]]['BiomarkersInc'])])
+        # print(testList[[2]] %>% filter(str_detect(testList[[2]]['BiomarkersInc'], paste(input$update_guided_question1, collapse="|"))))
+        # print(testList[[2]] %>% filter(str_detect(BiomarkersInc, paste(input$update_guided_question1, collapse="|"))))
+
+        # str_detect(df$conf, paste(c('West', 'North'), collapse="|"))
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+        })
     })
     observeEvent(input$age_guided, {
-        if (input$age_guided != "") {
-            qString = guidedQuestionQuery(performance_status=input$performance_status_guided, age=input$age_guided)
-            trialCount <- safe_query(
-                dbGetQuery,
-                qString
-            )
-            output$guided_total_trials <- renderText({
-                paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
-            })
-        }
+        # holder <- testList[[1]][['age']][[5]](testList[[2]], input$age_guided)
+        holder <- testList[[1]][['age']][[5]](testDf2(), input$age_guided)
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+        })
         updateTextInput(session, "patient_age", value=input$age_guided)
     })
-
-    observeEvent(input$guided_question2, {
-        showModal(nextModal("gender_guided", "What is your gender", c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="BOTH"), "guided_question3"))
+    observeEvent(input$performance_guided, {
+        # holder <- testList[[1]][['performanceStatus']][[5]](testList[[2]], input$performance_guided)
+        holder <- testList[[1]][['performanceStatus']][[5]](testDf2(), input$performance_guided)
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+        })
     })
     observeEvent(input$gender_guided, {
-        qString = guidedQuestionQuery(
-            performance_status=input$performance_status_guided,
-            gender=input$gender_guided,
-            age=input$age_guided
-        )
-        trialCount <- safe_query(
-            dbGetQuery,
-            qString
-        )
+        # holder <- testList[[1]][['gender']][[5]](testList[[2]], input$gender_guided)
+        holder <- testList[[1]][['gender']][[5]](testDf2(), input$gender_guided)
         output$guided_total_trials <- renderText({
-            paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
+            paste(sprintf("%s Trials match your criteria", nrow(holder)))
         })
         if (input$gender_guided == 'BOTH'){
             updateRadioGroupButtons(session, "gender", selected='Unspecified')
@@ -1280,69 +1370,26 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         }
     })
 
-    observeEvent(input$guided_question3, {
-        updateSelectizeInput(session,
-                       'disease_search_guided',
-                       choices = guided_disease_choices,
-                       server = TRUE)
-        showModal(nextSelectizeModal("disease_search_guided", "Do you have any of these diseases?", "guided_question4"))
+    observeEvent(input$disease_search_guided, {
+        holder <- testList[[1]][['diseases']][[5]](testDf2(), input$disease_search_guided)
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+        })
+        # diseaseString = ""
+        # for (code in input$disease_search_guided) {
+        #     diseaseString = paste(diseaseString, paste("'", code, sed="',"))
+        # }
+        # diseaseString = gsub(" ", "", diseaseString)
+        # diseaseString = substring(diseaseString, 1, nchar(diseaseString)-1)
+        # add_disease_sql <- "select distinct code as \"Code\" , 'YES' as \"Value\", pref_name as \"Diseases\" from  ncit where code in (%s);"
+        # df_new_disease <- safe_query(
+        #     dbGetQuery,
+        #     sprintf(add_disease_sql, diseaseString)
+        # )
+        # # rbind is another option but if done than we dont remove values if the deselect
+        # sessionInfo$disease_df <- df_new_disease
     })
 
-    observeEvent(input$disease_search_guided, {
-        qString = guidedQuestionQuery(
-            performance_status=input$performance_status_guided,
-            gender=input$gender_guided, 
-            age=input$age_guided, 
-            disease=input$disease_search_guided
-        )
-        print(qString)
-        trialCount <- safe_query(
-            dbGetQuery,
-            qString
-        )
-        output$guided_total_trials <- renderText({
-            paste(sprintf("%s Trials match your criteria", trialCount[[1]]))
-        })
-        diseaseString = ""
-        for (code in input$disease_search_guided) {
-            diseaseString = paste(diseaseString, paste("'", code, sed="',"))
-        }
-        diseaseString = gsub(" ", "", diseaseString)
-        diseaseString = substring(diseaseString, 1, nchar(diseaseString)-1)
-        add_disease_sql <- "select distinct code as \"Code\" , 'YES' as \"Value\", pref_name as \"Diseases\" from  ncit where code in (%s);"
-        df_new_disease <- safe_query(
-            dbGetQuery,
-            sprintf(add_disease_sql, diseaseString)
-        )
-        # rbind is another option but if done than we dont remove values if the deselect
-        sessionInfo$disease_df <- df_new_disease
-    })
-    observeEvent(input$guided_question4, {
-        newString = ""
-        for (code in input$disease_search_guided) {
-            newString = paste(newString, paste("'", code, sed="',"))
-        }
-        newString = gsub(" ", "", newString)
-        newString = substring(newString, 1, nchar(newString)-1)
-        batmanString = "with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code, gender, min_age_in_years, max_age_in_years from trials) select bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id join trial_criteria tc on bi.nct_id = tc.nct_id join ncit n on bi.biomarker_inc_code = n.code "
-        batmanString = paste(batmanString, sprintf("where td.nci_thesaurus_concept_id in (%s) ", newString))
-        if (input$age_guided != "" && input$gender_guided != ""){
-            batmanString = paste(batmanString, sprintf("and (bi.max_age_in_years >= %s and bi.min_age_in_years <= %s) and (bi.gender = '%s' or bi.gender = 'BOTH') ", input$age_guided, input$age_guided, input$gender_guided))
-        }
-        batmanString = paste(batmanString, "group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name);")
-        print(batmanString)
-        biomarkers_inc <- safe_query(
-            dbGetQuery,
-            batmanString
-        )
-        df_biomarker_list_jv <- setNames(as.vector(biomarkers_inc[["biomarker_inc_code"]]), as.vector(biomarkers_inc[["biomarker_name"]]))
-        updateSelectizeInput(session,
-            'biomarkers_search_guided',
-            choices = df_biomarker_list_jv,
-            server = TRUE
-        )
-        showModal(nextSelectizeModal("biomarkers_search_guided", "Do you have any of these biomarkers?", "guided_question5"))
-    })
     observeEvent(input$biomarkers_search_guided, {
         qString = guidedQuestionQuery(
             gender=input$gender_guided,
