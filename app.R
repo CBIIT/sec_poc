@@ -2743,9 +2743,9 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
   observe( {
   print('sessionInfo$disease_df changed')  
     #browser()
-    if (nrow(sessionInfo$disease_df) > 0) {
-        biomarker_df <- get_biomarker_trial_counts_for_diseases(safe_query, sessionInfo$disease_df$Code)
-    }
+    # if (nrow(sessionInfo$disease_df) > 0) {
+    #     biomarker_df <- get_biomarker_trial_counts_for_diseases(safe_query, sessionInfo$disease_df$Code)
+    # }
     
   show_disease_dt <- datatable(
     sessionInfo$disease_df,
