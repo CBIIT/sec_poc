@@ -1217,7 +1217,9 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     }
     # Return from this will contain each model setup
     testList = getGuidedQuestionDataFrames(safe_query)
+    testDf1 = reactiveVal(testList[1])
     testDf2 = reactiveVal(testList[[2]])
+    holder = reactiveVal(NULL)
     observeEvent(input$show_guided_questions, {
         if(testList[[1]][[1]][[4]] == TRUE){
             updateSelectizeInput(session,
@@ -1234,45 +1236,48 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         )
     })
     observeEvent(input$guided_question1, {
-        testDf2(testList[[1]][[1]][[5]](testList[[2]], input[[testList[[1]][[1]][[3]][[1]]]]))
-        if(testList[[1]][[2]][[4]] == TRUE){
+        testDf1(recalculate_freq_from_dataframe(holder(), testDf1()[[1]], 1))
+        testDf2(testList[[1]][[1]][[5]](testList[[2]], input[[testDf1()[[1]][[1]][[3]][[1]]]]))
+        if(testDf1()[[1]][[2]][[4]] == TRUE){
             updateSelectizeInput(session,
-                testList[[1]][[2]][[3]][[1]],
-                choices = testList[[1]][[2]][[6]],
+                testDf1()[[1]][[2]][[3]][[1]],
+                choices = testDf1()[[1]][[2]][[6]],
                 server = TRUE
             )
         }
         showModal(
             do.call(
-                testList[[1]][[2]][[2]],
-                testList[[1]][[2]][[3]]
+                testDf1()[[1]][[2]][[2]],
+                testDf1()[[1]][[2]][[3]]
             )
         )
         # showModal(nextTextModal("age_guided", "How old are you?", "guided_question2"))
     })
     observeEvent(input$guided_question2, {
-        testDf2(testList[[1]][[2]][[5]](testDf2(), input[[testList[[1]][[2]][[3]][[1]]]]))
-        if(testList[[1]][[3]][[4]] == TRUE){
+        testDf1(recalculate_freq_from_dataframe(holder(), testDf1()[[1]], 2))
+        testDf2(testList[[1]][[2]][[5]](testDf2(), input[[testDf1()[[1]][[2]][[3]][[1]]]]))
+        if(testDf1()[[1]][[3]][[4]] == TRUE){
             updateSelectizeInput(session,
-                testList[[1]][[3]][[3]][[1]],
-                choices = testList[[1]][[3]][[6]],
+                testDf1()[[1]][[3]][[3]][[1]],
+                choices = testDf1()[[1]][[3]][[6]],
                 server = TRUE
             )
         }
         showModal(
             do.call(
-                testList[[1]][[3]][[2]],
-                testList[[1]][[3]][[3]]
+                testDf1()[[1]][[3]][[2]],
+                testDf1()[[1]][[3]][[3]]
             )
         )
         # showModal(nextModal("gender_guided", "What is your gender", c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="BOTH"), "guided_question3"))
     })
     observeEvent(input$guided_question3, {
-        testDf2(testList[[1]][[3]][[5]](testDf2(), input[[testList[[1]][[3]][[3]][[1]]]]))
-        if(testList[[1]][[4]][[4]] == TRUE){
+        testDf1(recalculate_freq_from_dataframe(holder(), testDf1()[[1]], 3))
+        testDf2(testList[[1]][[3]][[5]](testDf2(), input[[testDf1()[[1]][[3]][[3]][[1]]]]))
+        if(testDf1()[[1]][[4]][[4]] == TRUE){
             updateSelectizeInput(session,
-                testList[[1]][[4]][[3]][[1]],
-                choices = testList[[1]][[4]][[6]],
+                testDf1()[[1]][[4]][[3]][[1]],
+                choices = testDf1()[[1]][[4]][[6]],
                 server = TRUE
             )
         }
@@ -1282,18 +1287,19 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         #                server = TRUE)
         showModal(
             do.call(
-                testList[[1]][[4]][[2]],
-                testList[[1]][[4]][[3]]
+                testDf1()[[1]][[4]][[2]],
+                testDf1()[[1]][[4]][[3]]
             )
         )
         # showModal(nextSelectizeModal("disease_search_guided", "Do you have any of these diseases?", "guided_question4"))
     })
     observeEvent(input$guided_question4, {
-        testDf2(testList[[1]][[4]][[5]](testDf2(), input[[testList[[1]][[4]][[3]][[1]]]]))
-        if(testList[[1]][[5]][[4]] == TRUE){
+        testDf1(recalculate_freq_from_dataframe(holder(), testDf1()[[1]], 4))
+        testDf2(testList[[1]][[4]][[5]](testDf2(), input[[testDf1()[[1]][[4]][[3]][[1]]]]))
+        if(testDf1()[[1]][[5]][[4]] == TRUE){
             updateSelectizeInput(session,
-                testList[[1]][[5]][[3]][[1]],
-                choices = testList[[1]][[5]][[6]],
+                testDf1()[[1]][[5]][[3]][[1]],
+                choices = testDf1()[[1]][[5]][[6]],
                 server = TRUE
             )
         }
@@ -1322,14 +1328,14 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         # )
         showModal(
             do.call(
-                testList[[1]][[5]][[2]],
-                testList[[1]][[5]][[3]]
+                testDf1()[[1]][[5]][[2]],
+                testDf1()[[1]][[5]][[3]]
             )
         )
         # showModal(nextSelectizeModal("biomarkers_search_guided", "Do you have any of these biomarkers?", "guided_question5"))
     })
     observeEvent(input$update_guided_question1, {
-        holder <- testList[[1]][[1]][[5]](testList[[2]], input$update_guided_question1)
+        holder(testList[[1]][[1]][[5]](testList[[2]], input$update_guided_question1))
         # print(testList[[1]][[1]][[6]](testList[[2]], input$update_guided_question1) )
         # print(str_detect(testList[[2]]['BiomarkersInc'], input$update_guided_question1))
         # print(testList[[2]][str_detect(df$BiomarkersInc, input$update_guided_question1), ])
@@ -1339,29 +1345,29 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
 
         # str_detect(df$conf, paste(c('West', 'North'), collapse="|"))
         output$guided_total_trials <- renderText({
-            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
         })
     })
     observeEvent(input$age_guided, {
         # holder <- testList[[1]][['age']][[5]](testList[[2]], input$age_guided)
-        holder <- testList[[1]][['age']][[5]](testDf2(), input$age_guided)
+        holder(testList[[1]][['age']][[5]](testDf2(), input$age_guided))
         output$guided_total_trials <- renderText({
-            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
         })
         updateTextInput(session, "patient_age", value=input$age_guided)
     })
     observeEvent(input$performance_guided, {
         # holder <- testList[[1]][['performanceStatus']][[5]](testList[[2]], input$performance_guided)
-        holder <- testList[[1]][['performanceStatus']][[5]](testDf2(), input$performance_guided)
+        holder(testList[[1]][['performanceStatus']][[5]](testDf2(), input$performance_guided))
         output$guided_total_trials <- renderText({
-            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
         })
     })
     observeEvent(input$gender_guided, {
         # holder <- testList[[1]][['gender']][[5]](testList[[2]], input$gender_guided)
-        holder <- testList[[1]][['gender']][[5]](testDf2(), input$gender_guided)
+        holder(testList[[1]][['gender']][[5]](testDf2(), input$gender_guided))
         output$guided_total_trials <- renderText({
-            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
         })
         if (input$gender_guided == 'BOTH'){
             updateRadioGroupButtons(session, "gender", selected='Unspecified')
@@ -1371,9 +1377,9 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     })
 
     observeEvent(input$disease_search_guided, {
-        holder <- testList[[1]][['diseases']][[5]](testDf2(), input$disease_search_guided)
+        holder(testList[[1]][['diseases']][[5]](testDf2(), input$disease_search_guided))
         output$guided_total_trials <- renderText({
-            paste(sprintf("%s Trials match your criteria", nrow(holder)))
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
         })
         # diseaseString = ""
         # for (code in input$disease_search_guided) {
