@@ -135,6 +135,43 @@ calculate_ccode_frequency <- function(data){
     return(calculate_standard_devation(unname(unlist(freq))))
 }
 
+recalculate_freq_from_dataframe <- function(dataframe, listManager, questionNumber) {
+    freq_min_age = calculate_frequency(dataframe['MinAge'])
+    freq_max_age = calculate_frequency(dataframe['MaxAge'])
+    freq_gender = calculate_frequency(dataframe['Gender'])
+    freq_phase = calculate_frequency(dataframe['Phase'])
+    freq_performanceStatus = calculate_frequency(dataframe['PrefStat'])
+    freq_diseases = calculate_ccode_frequency(dataframe['Diseases'])
+    freq_biomarkers = calculate_frequency(dataframe['BiomarkersInc'])
+    freq_age = ((freq_max_age + freq_min_age) / 2)
+    print(length(listManager))
+    firstnames = names(listManager)[1:questionNumber]
+    print(firstnames)
+    # listManager[[firstname]][['freq']] <- 0
+    # listManager = listManager[- 1]
+    # print(names(listManager))
+    for(name in names(listManager)){
+        # print(name)
+        # print(listManager[[name]][['freq']])
+        listManager[[name]][['freq']] <- eval(as.name(paste0('freq_', name)))
+        # print(listManager[[name]][['freq']])
+    }
+    for(name in firstnames){
+        listManager[[name]][['freq']] <- 0
+    }
+    listManager = listManager[order(sapply(listManager, '[[', 1))]
+    questionNumber = questionNumber + 1
+    for(i in questionNumber:length(listManager)){
+        if(length(listManager[[i]][[3]]) > 3){
+            listManager[[i]][[3]][[4]] = str_c("guided_question", i)
+        }else {
+            listManager[[i]][[3]][[3]] = str_c("guided_question", i)
+        }
+    }
+    print(length(listManager))
+    return(list(listManager))
+}
+
 
 # find lowest value return name of dataframe
 # colnames(df1)[apply(df1, 1, which.min)]
