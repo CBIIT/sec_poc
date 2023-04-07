@@ -1,42 +1,5 @@
 library(shinyBS)
 
-guidedQuestionsUI <- function(id, label = 'Guided Questions') {
-    ns <- NS(id)
-    bsModal(ns("modalExample"), "Guided Questions", "show_guided_questions", size="large", 
-        # fluidPage(id = ns("distTable"),
-        selectInput(ns("performance_status"), "How would you describe your symptoms currently?", c(
-            "Unspecified" = "C159685",
-            "0: Asymptomatic" = "C105722",
-            "1: Symptomatic, but fully ambulatory" = "C105723",
-            "2: Symptomatic, in bed less than 50% of day" = "C105725",
-            "3: Symptomatic, in bed more than 50% of day, but not bed-ridden" = "C105726",
-            "4: Bed-ridden" = "C105727"
-        ))
-        # pickerInput(
-        #   inputId = ns("performance_status2"),
-        #   label = "How would you describe your symptoms currently?",
-        #   choices = c(
-        #     "Unspecified" = "C159685",
-        #     "0: Asymptomatic" = "C105722",
-        #     "1: Symptomatic, but fully ambulatory" = "C105723",
-        #     "2: Symptomatic, in bed less than 50% of day" = "C105725",
-        #     "3: Symptomatic, in bed more than 50% of day, but not bed-ridden" = "C105726",
-        #     "4: Bed-ridden" = "C105727"
-        #   ),
-        #   selected =  "Unspecified",
-        #   multiple = FALSE,
-        #   options = list(width = "72px"),
-        #   choicesOpt = NULL,
-        #   width = 'auto',
-        #   inline = FALSE
-        # ) 
-        # fluidRow(column(2, ':')),
-        # )
-    )
-}
-
-
-
 calculate_mean <- function(data) {
     total = 0
     for(d in data){ # Where d is the freq values for all values in collection
@@ -75,7 +38,6 @@ calculate_frequency <- function(data){
             }
         }
     }
-    # print(freq)
     return(calculate_standard_devation(unname(unlist(freq))))
 }
 
@@ -97,13 +59,13 @@ normalize_performance_status <- function(data){
     return(normalized_list)
 }
 
-normalize_ccode_string <- function(data){
+normalize_ccode_string <- function(datas){
     normalized_list = list()
-    for(value in data){
-        for(fuckyouR in value){
-            if(!is.null(fuckyouR) && fuckyouR != "" && !is.na(fuckyouR)){
-                newString = gsub("'", '', fuckyouR)
-                newString = gsub(" ", '', fuckyouR)
+    for(data in datas){
+        for(value in data){
+            if(!is.null(value) && value != "" && !is.na(value)){
+                newString = gsub("'", '', value)
+                newString = gsub(" ", '', value)
                 newValues = strsplit(newString, ",")
                 normalized_list = append(normalized_list, list(newValues))
             }else{
@@ -144,9 +106,7 @@ recalculate_freq_from_dataframe <- function(dataframe, listManager, questionNumb
     freq_diseases = calculate_ccode_frequency(dataframe['Diseases'])
     freq_biomarkers = calculate_frequency(dataframe['BiomarkersInc'])
     freq_age = ((freq_max_age + freq_min_age) / 2)
-    print(length(listManager))
     firstnames = names(listManager)[1:questionNumber]
-    print(firstnames)
     # listManager[[firstname]][['freq']] <- 0
     # listManager = listManager[- 1]
     # print(names(listManager))
@@ -221,7 +181,7 @@ getGuidedQuestionDataFrames <-  function(safe_query){
             ),
             isSelectizeInput=FALSE,
             calc=function(df, x){ 
-                if(x != ""){ 
+                if(x != "" || !is.null(x)){ 
                     df <- df %>% filter(MinAge <= as.numeric(x) | is.na(MinAge) )
                     df <- df %>% filter(MaxAge >= as.numeric(x) | is.na(MaxAge) )
                     return(df)
@@ -238,7 +198,13 @@ getGuidedQuestionDataFrames <-  function(safe_query){
                 'guided_question2'
             ),
             isSelectizeInput=FALSE,
-            calc=function(df, x){ df %>% filter(str_detect(Gender, paste(x, collapse="|")) | is.na(Gender)) }
+            calc=function(df, x){
+                search_value = x
+                if(x == 'BOTH'){
+                    search_value = c('FEMALE', 'MALE', 'BOTH')
+                }
+                df %>% filter(str_detect(Gender, paste(search_value, collapse="|")) | is.na(Gender)) 
+            }
         ),
         performanceStatus=list(
             freq=freq_perf,
@@ -337,65 +303,3 @@ guidedQuestionsServe <- function(id) {
         return(performanceStatus)
     })
 }
-
-# Original query given to me by Hubert
-# with biomarker_inc as (
-#   select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code
-#   from trials)
-#   select count(bi.biomarker_inc_code) as num_occurences, bi.biomarker_inc_code,
-#    coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name
-#    from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE
-#    join ncit n on bi.biomarker_inc_code = n.code
-#        where td.nci_thesaurus_concept_id = 'C2991'
-#    group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name)
-#    order by count(bi.biomarker_inc_code) desc;
-
-# Working example 
-# with biomarker_inc as (
-#   select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code, gender, min_age_in_years, max_age_in_years
-#   from trials)
-#   select bi.biomarker_inc_code,
-#    coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name
-#    from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE
-#    join ncit n on bi.biomarker_inc_code = n.code
-#        where td.nci_thesaurus_concept_id in ('C7808') and (bi.max_age_in_years >= 45 and bi.min_age_in_years <= 45) and (bi.gender = 'MALE' or bi.gender = 'BOTH')
-#    group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name);
-
-
-# link trial_diseses to biomarkers_inc(which is trials) to matching nct_id that have lead_diseaseindicator set to TRUE..named bi
-# Than form that join ncit.code to bi.biomarker_inc_code from trials
-
-#  
-
-# EGFR POSITIVE
-# C134501 EGFR Positive
-# C98357 EGFR Gene Mutation
-
-# EGFR Negative
-# C150501 EGFR Negative
-
-# ALK Positive
-# C128831 ALK Positive
-# C81945 ALK Gene Mutation
-
-# ALK Negative
-# C133707 ALK Negative
-
-# select count(*) from trials where diseases IN ('C105722');
-# select count(*) from trial_criteria where trial_criteria_expression like '%exists(''C105722'')%' limit 1;
-# select count(*) from trial_criteria where criteria_type_id = 8 and trial_criteria_refined_text like any(array['%=< 2%', '%=< 1%', '%=< 0%', '%=< 4%', '%=< 3%']);
-# select nct_id from trial_criteria where criteria_type_id = 8 and trial_criteria_refined_text like any(array['%=< 2%', '%=< 1%', '%=< 0%', '%=< 4%', '%=< 3%']);
-# TODO: Look into making a graph for biomarks in R
-
-# select biomarker_inc_names from trials where diseases like any(array['%C4878%']) and (max_age_in_years >= 45 and min_age_in_years <= 45) and (gender = 'BOTH' or gender = 'BOTH');
-
-# select * from trials where biomarker_inc_codes like any(array['%C129700%']) limit 1;
-
-# select count(*) from trials join trial_criteria on trials.nct_id = trial_criteria.nct_id where (trial_criteria.trial_criteria_refined_text = 'Performance Status =< 2'
-# select count(*) from trials join trial_criteria on trials.nct_id = trial_criteria.nct_id where (trial_criteria.trial_criteria_refined_text in ('Performance Status =< 2', 'Performance Status =< 1', 'Performance Status =< 0'));
-
-
-
-# Adding the rest of the and clause to the query Hubert gave me.  This should take all the other guided questions into account 
-# with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code from trials HERE) select count(bi.biomarker_inc_code) as num_occurences, bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE join ncit n on bi.biomarker_inc_code = n.code where td.nci_thesaurus_concept_id = 'C9305' group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) order by count(bi.biomarker_inc_code) desc;
-# with biomarker_inc as (select nct_id, trim(unnest(string_to_array(biomarker_inc_codes, ','))) as biomarker_inc_code from trials where (max_age_in_years >= 1 and min_age_in_years <= 1) and (gender = 'BOTH' or gender = 'BOTH')) select count(bi.biomarker_inc_code) as num_occurences, bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) as biomarker_name from trial_diseases td  join biomarker_inc bi on bi.nct_id = td.nct_id and lead_disease_indicator = TRUE join ncit n on bi.biomarker_inc_code = n.code where td.nci_thesaurus_concept_id = 'C9305' group by bi.biomarker_inc_code, coalesce(nullif(n.display_name,''), n.pref_name) order by count(bi.biomarker_inc_code) desc;
