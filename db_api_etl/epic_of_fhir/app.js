@@ -10,7 +10,6 @@ var indexRouter = require('./routes/index');
 var launchRouter = require('./routes/launch');
 var cernerRouter = require('./routes/cerner');
 var appRouter = require('./routes/app');
-var bulkRouter = require('./routes/bulk.js');
 
 var app = express();
 
