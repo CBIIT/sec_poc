@@ -1,0 +1,417 @@
+[
+  {
+      "resourceType": "Patient",
+      "id": "eAB3mDIBBcyUKviyzrxsnAw3",
+      "extension": [
+          {
+              "extension": [
+                  {
+                      "valueCoding": {
+                          "system": "urn:oid:2.16.840.1.113883.6.238",
+                          "code": "2054-5",
+                          "display": "Black or African American"
+                      },
+                      "url": "ombCategory"
+                  },
+                  {
+                      "valueCoding": {
+                          "system": "urn:oid:2.16.840.1.113883.6.238",
+                          "code": "2106-3",
+                          "display": "White"
+                      },
+                      "url": "ombCategory"
+                  },
+                  {
+                      "valueString": "Black or African American, White",
+                      "url": "text"
+                  }
+              ],
+              "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
+          },
+          {
+              "extension": [
+                  {
+                      "valueString": "Unknown",
+                      "url": "text"
+                  }
+              ],
+              "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"
+          },
+          {
+              "valueCodeableConcept": {
+                  "coding": [
+                      {
+                          "system": "urn:oid:1.2.840.114350.1.13.0.1.7.10.698084.130.657370.19999000",
+                          "code": "female",
+                          "display": "female"
+                      }
+                  ]
+              },
+              "url": "http://open.epic.com/FHIR/StructureDefinition/extension/legal-sex"
+          },
+          {
+              "valueCode": "F",
+              "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex"
+          }
+      ],
+      "identifier": [
+          {
+              "use": "usual",
+              "type": {
+                  "text": "EPIC"
+              },
+              "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.0",
+              "value": "E4008"
+          },
+          {
+              "use": "usual",
+              "type": {
+                  "text": "EXTERNAL"
+              },
+              "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.698084",
+              "value": "Z6130"
+          },
+          {
+              "use": "usual",
+              "type": {
+                  "text": "FHIR"
+              },
+              "system": "http://open.epic.com/FHIR/StructureDefinition/patient-dstu2-fhir-id",
+              "value": "TJxi4Rbf6Cp1aiFxX0ua9XXyVGa2a67Qhz2LcPzxdmAoB"
+          },
+          {
+              "use": "usual",
+              "type": {
+                  "text": "FHIR STU3"
+              },
+              "system": "http://open.epic.com/FHIR/StructureDefinition/patient-fhir-id",
+              "value": "eAB3mDIBBcyUKviyzrxsnAw3"
+          },
+          {
+              "use": "usual",
+              "type": {
+                  "text": "INTERNAL"
+              },
+              "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.698084",
+              "value": "     Z6130"
+          },
+          {
+              "use": "usual",
+              "type": {
+                  "text": "EPI"
+              },
+              "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.14",
+              "value": "203714"
+          },
+          {
+              "use": "usual",
+              "type": {
+                  "text": "MYCHARTLOGIN"
+              },
+              "system": "urn:oid:1.2.840.114350.1.13.0.1.7.3.878082.110",
+              "value": "FHIRDESIREE"
+          },
+          {
+              "use": "usual",
+              "type": {
+                  "text": "WPRINTERNAL"
+              },
+              "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.878082",
+              "value": "737"
+          }
+      ],
+      "active": true,
+      "name": [
+          {
+              "use": "official",
+              "text": "Desiree Caroline Powell",
+              "family": "Powell",
+              "given": [
+                  "Desiree",
+                  "Caroline"
+              ]
+          },
+          {
+              "use": "usual",
+              "text": "Desiree Caroline Powell",
+              "family": "Powell",
+              "given": [
+                  "Desiree",
+                  "Caroline"
+              ]
+          }
+      ],
+      "telecom": [
+          {
+              "system": "phone",
+              "value": "904-555-5555",
+              "use": "home"
+          },
+          {
+              "system": "phone",
+              "value": "608-555-5555",
+              "use": "mobile"
+          }
+      ],
+      "gender": "female",
+      "birthDate": "2014-11-14",
+      "deceasedBoolean": false,
+      "address": [
+          {
+              "use": "old",
+              "line": [
+                  "156 Kingston Drive"
+              ],
+              "city": "JACKSONVILLE",
+              "district": "DUVAL",
+              "state": "FL",
+              "postalCode": "32205",
+              "country": "US"
+          },
+          {
+              "use": "home",
+              "line": [
+                  "156 Kingston Drive"
+              ],
+              "city": "JACKSONVILLE",
+              "district": "DUVAL",
+              "state": "FL",
+              "postalCode": "32205",
+              "country": "US",
+              "period": {
+                  "start": "2019-05-24"
+              }
+          }
+      ],
+      "maritalStatus": {
+          "text": "Single"
+      },
+      "communication": [
+          {
+              "language": {
+                  "coding": [
+                      {
+                          "system": "urn:ietf:bcp:47",
+                          "code": "en",
+                          "display": "English"
+                      }
+                  ],
+                  "text": "English"
+              },
+              "preferred": true
+          }
+      ],
+      "generalPractitioner": [
+          {
+              "reference": "Practitioner/eoScyX3bs1SY.2lMoHCGcVw3",
+              "type": "Practitioner",
+              "display": "Physician"
+          }
+      ],
+      "managingOrganization": {
+          "reference": "Organization/enRyWnSP963FYDpoks4NHOA3",
+          "display": "EHS Service Area"
+      }
+  },
+  {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "total": 0,
+      "link": [
+          {
+              "relation": "self",
+              "url": "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/Observation?category=laboratory&limit=50&subject=eAB3mDIBBcyUKviyzrxsnAw3"
+          }
+      ],
+      "entry": [
+          {
+              "fullUrl": "urn:uuid:00000000-0007-49f6-746e-3f687d642f98",
+              "resource": {
+                  "resourceType": "OperationOutcome",
+                  "issue": [
+                      {
+                          "severity": "information",
+                          "code": "invalid",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "59100",
+                                      "display": "Content invalid against the specification or a profile."
+                                  }
+                              ],
+                              "text": "Content invalid against the specification or a profile."
+                          },
+                          "diagnostics": "Unknown parameter: LIMIT. Parameter has been ignored."
+                      },
+                      {
+                          "severity": "warning",
+                          "code": "processing",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "4101",
+                                      "display": "Resource request returns no results."
+                                  }
+                              ],
+                              "text": "Resource request returns no results."
+                          }
+                      },
+                      {
+                          "severity": "warning",
+                          "code": "processing",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "4119",
+                                      "display": "This response includes information available to the authorized user at the time of the request. It may not contain the entire record available in the system."
+                                  }
+                              ],
+                              "text": "This response includes information available to the authorized user at the time of the request. It may not contain the entire record available in the system."
+                          }
+                      }
+                  ]
+              },
+              "search": {
+                  "mode": "outcome"
+              }
+          }
+      ]
+  },
+  {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "total": 0,
+      "link": [
+          {
+              "relation": "self",
+              "url": "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/DiagnosticReport?patient=eAB3mDIBBcyUKviyzrxsnAw3"
+          }
+      ],
+      "entry": [
+          {
+              "fullUrl": "urn:uuid:00000000-0007-49f7-746e-3f687d642f98",
+              "resource": {
+                  "resourceType": "OperationOutcome",
+                  "issue": [
+                      {
+                          "severity": "warning",
+                          "code": "processing",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "4101",
+                                      "display": "Resource request returns no results."
+                                  }
+                              ],
+                              "text": "Resource request returns no results."
+                          }
+                      },
+                      {
+                          "severity": "warning",
+                          "code": "processing",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "4119",
+                                      "display": "This response includes information available to the authorized user at the time of the request. It may not contain the entire record available in the system."
+                                  }
+                              ],
+                              "text": "This response includes information available to the authorized user at the time of the request. It may not contain the entire record available in the system."
+                          }
+                      }
+                  ]
+              },
+              "search": {
+                  "mode": "outcome"
+              }
+          }
+      ]
+  },
+  {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "total": 0,
+      "link": [
+          {
+              "relation": "self",
+              "url": "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/Procedure?patient=eAB3mDIBBcyUKviyzrxsnAw3"
+          }
+      ],
+      "entry": [
+          {
+              "fullUrl": "urn:uuid:00000000-0007-49f8-746e-3f687d642f98",
+              "resource": {
+                  "resourceType": "OperationOutcome",
+                  "issue": [
+                      {
+                          "severity": "warning",
+                          "code": "suppressed",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "59204",
+                                      "display": "The authenticated client's search request applies to a sub-resource that the client is not authorized for. Results of this sub-type will not be returned."
+                                  }
+                              ],
+                              "text": "The authenticated client's search request applies to a sub-resource that the client is not authorized for. Results of this sub-type will not be returned."
+                          },
+                          "diagnostics": "Client not authorized for Procedure - Patient-Reported Surgical History. Search results of this type have not been included."
+                      },
+                      {
+                          "severity": "warning",
+                          "code": "suppressed",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "59204",
+                                      "display": "The authenticated client's search request applies to a sub-resource that the client is not authorized for. Results of this sub-type will not be returned."
+                                  }
+                              ],
+                              "text": "The authenticated client's search request applies to a sub-resource that the client is not authorized for. Results of this sub-type will not be returned."
+                          },
+                          "diagnostics": "Client not authorized for Procedure - Order Procedure. Search results of this type have not been included."
+                      },
+                      {
+                          "severity": "warning",
+                          "code": "processing",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "4101",
+                                      "display": "Resource request returns no results."
+                                  }
+                              ],
+                              "text": "Resource request returns no results."
+                          }
+                      },
+                      {
+                          "severity": "warning",
+                          "code": "processing",
+                          "details": {
+                              "coding": [
+                                  {
+                                      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.657369",
+                                      "code": "4119",
+                                      "display": "This response includes information available to the authorized user at the time of the request. It may not contain the entire record available in the system."
+                                  }
+                              ],
+                              "text": "This response includes information available to the authorized user at the time of the request. It may not contain the entire record available in the system."
+                          }
+                      }
+                  ]
+              },
+              "search": {
+                  "mode": "outcome"
+              }
+          }
+      ]
+  }
+]
