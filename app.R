@@ -166,6 +166,7 @@ source('get_api_studies_with_va_sites.R')
 source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
 source('get_biomarkers_from_evs.R')
+source('get_ncit_codes_from_ehr_codes.R')
 # source('get_biomarker_trial_counts_for_diseases.R')
 
 source('guided_questions.R')
@@ -189,6 +190,17 @@ ui <- fluidPage(
   });
   })
   '),
+  
+  tags$script('
+  $( document ).ready(function() {
+    $("#crosswalk_bsmodal").on("hidden.bs.modal", function (event) {
+    x = new Date().toLocaleString();
+    // window.alert("biomarker  modal was closed at " + x);
+    Shiny.onInputChange("crosswalk_bsmodal_close",x);
+  });
+  })
+  '),
+  
   tags$head(tags$style(
     HTML("hr {border-top: 1px solid #000000;}")
   )),
@@ -573,16 +585,20 @@ background-color: #FFCCCC;
     )
     )
     ,
-    bsModal('crosswalk_bsmodal', "Enter non-NCI codes", "show_crosswalk", size = "small",
+    bsModal('crosswalk_bsmodal', "Enter non-NCI codes", "show_crosswalk", size = "medium",
             fluidPage(id="crosswalk_bsmodal_page", 
                       bsAlert('crosswalk_modal_alert'),
                       fluidRow(radioButtons("crosswalk_ontology","Ontology ",
-                        choices = c("ICD10CM" = "ICD10CM", "LOINC" = "LNC", "SNOMEDCT" = "SNOMEDCT_US",
-                                    "RXNORM" = "RXNORM")
+                        choices = c("ICD10CM" = "ICD10CM", "LOINC" = "LOINC", "SNOMEDCT" = "SNOMEDCT"
+                                    #,
+                                    #"RXNORM" = "RXNORM"
+                                    )
 
                       )
                       ),
                       fluidRow(textInput("crosswalk_code","Code")),
+                      fluidRow("Name:", textOutput("crosswalk_name", inline = TRUE)),
+                      fluidRow("Best NCIt code match:", textOutput("matched_ncit_name", inline = TRUE)),
                       fluidRow(actionButton("find_crosswalk_codes", "Add Code"))
                       )
             )
@@ -1623,6 +1639,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     
   })
 
+  ### search_for_trials 
   search_for_trials <- function() {
     print("search and match")
     print(paste("age : ", input$patient_age))
@@ -2393,7 +2410,14 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
   }
   )
   
- 
+ # crosswalk modal closed ----
+observeEvent(input$crosswalk_bsmodal_close, {
+  print("crosswalk modal closed")
+  output$crosswalk_name <- renderText("")
+  updateTextInput(session, "crosswalk_code", value='')
+  
+}
+)
   
   observeEvent(input$biomarker_bsmodal_close, {
     # Clear the biomarker dataframe
@@ -2669,45 +2693,86 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
   }
   )
   
-  # Add crosswalk codes, if any 
+  ### Add crosswalk codes, if any ----
   
   observeEvent(input$find_crosswalk_codes, {
     print("add crosswalk codes")
     #closeAlert(session,'crosswalk_modal_alert' )
     print(input$crosswalk_ontology)
-    if(input$crosswalk_code != "") {
-      # we have a code - 
+    if (input$crosswalk_code != "") {
+      # we have a code -
       print(input$crosswalk_code)
-      # If ICD10CM, check local table
       
-      # check UMLS crosswalk if nothing is returned locally
       
       withProgress(message = "Looking up codes", value = 0, {
-        if(input$crosswalk_ontology == 'ICD10CM') {
-          session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-          icd10_sql <- "select evs_c_code as \"Code\", 'YES' as Value, evs_preferred_name as \"Description\" from icd10 where code_system = 'ICD10' and disease_code = $1 and evs_c_code is not null"
-          new_codes <-
-            dbGetQuery(session_conn, icd10_sql,  params = c(input$crosswalk_code))
-          DBI::dbDisconnect(session_conn)
-          if(nrow(new_codes) == 0) {
-            new_codes <- get_umls_crosswalk(input$crosswalk_ontology, input$crosswalk_code, tgt)
-          }
-        } else {
-          new_codes <- get_umls_crosswalk(input$crosswalk_ontology, input$crosswalk_code, tgt)
+        #browser()
+        # first see is that what is typed is a valid code
+        #
+        
+        if (input$crosswalk_ontology == 'SNOMEDCT') {
+          code_lookup_sql <-
+            "select str from umls.mrconso where code = $1 and tty = 'PT' and sab = 'SNOMEDCT_US'"
+        } else if (input$crosswalk_ontology == 'ICD10CM')  {
+          code_lookup_sql <-
+            " select str from umls.mrconso where code =$1 and tty = 'PT' and sab = 'ICD10CM'"
+        } else if (input$crosswalk_ontology == 'LOINC') {
+          code_lookup_sql <-
+            "select str from umls.mrconso where code = $1 and sab = 'LNC' and tty = 'LC'"
         }
+        
+        df_umls <- safe_query(dbGetQuery,
+                              code_lookup_sql,
+                              params = c(input$crosswalk_code))
+        
+        #browser()
+       
+        
+        if (nrow(df_umls) == 0) {
+          createAlert(session,
+                      'crosswalk_modal_alert',
+                      title = "Invalid code",
+                      content = "This is an invalid code")
+        } else {
+          output$crosswalk_name <- renderText(df_umls$str[[1]])
+          ehr_c <-
+            paste(input$crosswalk_ontology, input$crosswalk_code, sep = ':')
+          new_codes <-
+            get_ncit_codes_from_ehr_codes(list(ehr_c), safe_query)
+          
+          
+          # browser()
+          if (nrow(new_codes) > 0 ) {
+            print(new_codes)
+            output$matched_ncit_name <- renderText(
+                                paste(new_codes$Description[[1]], " (",new_codes$Code[[1]],")", sep="" )
+            )
+            # If it is not a disease, stick it in the crosswalk dataframe, otherwise stick 
+            # it in the disease dataframe
+            rowc_df <- safe_query(dbGetQuery, 
+                                  "select count(*) as num_diseases from trial_diseases where nci_thesaurus_concept_id = $1",
+                                  new_codes$Code[[1]])
+            if (rowc_df$num_diseases[[1]] == 0) {
+              sessionInfo$crosswalk_df <-
+                rbind(sessionInfo$crosswalk_df, new_codes)
+              sessionInfo$crosswalk_df <- sessionInfo$crosswalk_df[!duplicated(sessionInfo$crosswalk_df), ]
+            } else {
+              sessionInfo$disease_df <-
+                rbind(sessionInfo$disease_df, new_codes)
+              sessionInfo$disease_df <- sessionInfo$disease_df[!duplicated(sessionInfo$disease_df), ]
+            }
+            #
+          } else {
+            createAlert(session,
+                        'crosswalk_modal_alert',
+                        title = "",
+                        content = "No equivalent NCI codes found")
+          }
+        }
+        
+        
       })
-      # browser()
-      if(!is.null(new_codes)) {
-        print(new_codes)
-        sessionInfo$crosswalk_df <- rbind(sessionInfo$crosswalk_df, new_codes)
-      } else {
-        createAlert(session, 'crosswalk_modal_alert', title = "", content = "No equivalent NCI codes found")
-      }
-      
-      
     }
   })
-  
   observe( {
     show_crosswalk_dt <- datatable(
       sessionInfo$crosswalk_df,
