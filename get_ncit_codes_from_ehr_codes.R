@@ -16,11 +16,14 @@ get_ncit_codes_from_ehr_codes  <- function(ehr_codes, safe_query) {
                       with minlevel as
       (select min(level) as min_level from fhirops.ncit_tc_with_path_all p
       where p.descendant = $1 and p.parent like 'C%'
-      )
+      ) ,
+      parents as (
       select distinct np.parent 
       from fhirops.ncit_tc_with_path_all np 
       join minlevel ml on np.level=ml.min_level
-      where np.descendant = $2 and np.parent like 'C%'",
+      where np.descendant = $2 and np.parent like 'C%')
+      select p.parent as \"Code\", 'YES' as \"Value\", n.pref_name as \"Description\" from parents p join ncit n on p.parent = n.code                
+                      ",
                       params = c(ehr_code, ehr_code)
     )
     return(dfm)
