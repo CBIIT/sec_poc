@@ -151,7 +151,8 @@ create table ncit(code varchar(25) primary key,
                        display_name text,
                        concept_status text,
                        semantic_type text,
-                       pref_name text
+                       pref_name text,
+                       concept_in_subset text
 );
 
 
@@ -196,6 +197,13 @@ CREATE TABLE curated_crosswalk (
 create index crosswalk_ind1 on curated_crosswalk(code_system, disease_code);
 create index crosswalk_ind2 on curated_crosswalk(evs_c_code);
 
+drop table if exists parents;
+CREATE TABLE parents (
+  concept TEXT,
+  parent TEXT,
+  path TEXT,
+  level int
+);
 
 create view ncit_version_view as
 select version_id, downloaded_url, 
@@ -211,7 +219,3 @@ syn_name text
 
 insert into bad_ncit_syns(code, syn_name) values ('C116664', 'ECoG');
 insert into bad_ncit_syns(code, syn_name) values ('C161964', 'ECOG');
-
-c
-
-

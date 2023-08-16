@@ -1,0 +1,5 @@
+pandas==2.0.3
+psycopg2-binary==2.9.7
+requests==2.31.0
+sqlalchemy==2.0.20
+wget==3.2
