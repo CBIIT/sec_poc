@@ -205,6 +205,20 @@ CREATE TABLE parents (
   level int
 );
 
+drop table if exists trial_prior_therapies;
+CREATE TABLE trial_prior_therapies(
+  idx SERIAL PRIMARY KEY,
+  nct_id VARCHAR(100),
+  nci_thesaurus_concept_id VARCHAR(25),
+  eligibility_criterion TEXT,
+  inclusion_indicator TEXT,
+  name TEXT,
+  CONSTRAINT trial_prior_therapies_trial_fk FOREIGN KEY (nct_id) REFERENCES trials(nct_id),
+  CONSTRAINT trial_prior_therapies_ncit_fk FOREIGN KEY (nci_thesaurus_concept_id) REFERENCES ncit(code)
+);
+CREATE INDEX trial_prior_therapies_nct_id_idx ON trial_prior_therapies(nct_id);
+CREATE INDEX trial_prior_therapies_nci_thesaurus_concept_id_idx ON trial_prior_therapies(nci_thesaurus_concept_id);
+
 create view ncit_version_view as
 select version_id, downloaded_url, 
        transitive_closure_generation_date, 
