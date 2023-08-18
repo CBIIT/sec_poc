@@ -173,7 +173,7 @@ cur.execute("drop index if exists ncit_code_index")
 cur.execute("drop index if exists lower_pref_name_idx")
 
 
-cur.execute("truncate table ncit")
+cur.execute("truncate table ncit cascade")
 con.commit()
 
 connection_string = f'postgresql://{args.user}:{args.password}@{args.host}:{args.port}/{args.dbname}'

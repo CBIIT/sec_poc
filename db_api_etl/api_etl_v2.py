@@ -66,6 +66,25 @@ def gen_biomarker_info(biomarkers):
 
     return (biomarker_inc_codes, biomarker_inc_names, biomarker_exc_codes, biomarker_exc_names)
 
+
+def insert_prior_therapies(db_conn: psycopg2.extensions.connection, db_cur: psycopg2.extensions.cursor, nct_id: str,
+                           prior_therapies: list[dict]):
+    """
+    Populates the trial_prior_therapies table for a single trial.
+    """
+    if prior_therapies:
+        args_to_insert: list[tuple] = [(nct_id,
+                          prior_therapy["nci_thesaurus_concept_id"],
+                          prior_therapy["eligibility_criterion"],
+                          prior_therapy["inclusion_indicator"],
+                          prior_therapy["name"])
+                          for prior_therapy in prior_therapies]
+        sql = """insert into trial_prior_therapies(nct_id, nci_thesaurus_concept_id, eligibility_criterion, inclusion_indicator, name)
+                    values(%s, %s, %s, %s, %s)"""
+        psycopg2.extras.execute_batch(cur, sql, args_to_insert)
+        db_conn.commit()
+
+
 start_time = datetime.datetime.now()
 
 parser = argparse.ArgumentParser(
@@ -83,6 +102,7 @@ con = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, por
 
 cur = con.cursor()
 cur.execute('delete from  trial_diseases ')
+cur.execute('delete from trial_prior_therapies')
 cur.execute('delete from  trials')
 cur.execute('delete from   maintypes')
 cur.execute('delete from trial_maintypes')
@@ -130,7 +150,8 @@ include_items = ['nct_id',
                  'record_verification_date',
                  'sites',
                  'amendment_date',
-                 'biomarkers'
+                 'biomarkers',
+                 'prior_therapy'
                  ]
 
 
@@ -279,6 +300,9 @@ while run:
         con.commit()
 
         # end of disease processing
+
+        if 'prior_therapy' in trial:
+            insert_prior_therapies(con, cur, trial['nct_id'], trial['prior_therapy'])
 
         # unstructured criteria
         if 'unstructured' in trial['eligibility'] and trial['eligibility']['unstructured'] is not None:
