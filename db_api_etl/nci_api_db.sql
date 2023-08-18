@@ -213,8 +213,11 @@ CREATE TABLE trial_prior_therapies(
   eligibility_criterion TEXT,
   inclusion_indicator TEXT,
   name TEXT,
-  CONSTRAINT trial_prior_therapies_trial_fk FOREIGN KEY (nct_id) REFERENCES trials(nct_id),
-  CONSTRAINT trial_prior_therapies_ncit_fk FOREIGN KEY (nci_thesaurus_concept_id) REFERENCES ncit(code)
+  CONSTRAINT trial_prior_therapies_trial_fk FOREIGN KEY (nct_id) REFERENCES trials(nct_id)
+--  TODO (callaway: uncomment this foreign key constraint if/when we can be sure that
+--  all thesaurus entries will exist in our DB.  Currently, it's possible for abstractors
+--  to have access to NCIT concept codes that have not been released by EVS.
+--  CONSTRAINT trial_prior_therapies_ncit_fk FOREIGN KEY (nci_thesaurus_concept_id) REFERENCES ncit(code)
 );
 CREATE INDEX trial_prior_therapies_nct_id_idx ON trial_prior_therapies(nct_id);
 CREATE INDEX trial_prior_therapies_nci_thesaurus_concept_id_idx ON trial_prior_therapies(nci_thesaurus_concept_id);
