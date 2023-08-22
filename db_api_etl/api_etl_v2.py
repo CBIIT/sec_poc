@@ -67,8 +67,8 @@ def gen_biomarker_info(biomarkers):
     return (biomarker_inc_codes, biomarker_inc_names, biomarker_exc_codes, biomarker_exc_names)
 
 
-def insert_prior_therapies(db_conn: psycopg2.extensions.connection, db_cur: psycopg2.extensions.cursor, nct_id: str,
-                           prior_therapies: list[dict]):
+def insert_prior_therapies(db_conn, db_cur, nct_id,
+                           prior_therapies):
     """
     Populates the trial_prior_therapies table for a single trial.
     """
