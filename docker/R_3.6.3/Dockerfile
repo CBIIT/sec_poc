@@ -12,9 +12,9 @@ RUN apt-get install -y libfontconfig1-dev libfribidi-dev libgit2-dev libharfbuzz
 RUN apt-get install -y libcurl4-gnutls-dev
 RUN apt-get install -y libcurl4-openssl-dev
 
-RUN mkdir -p /opt/R/CTRP/sec_poc
+RUN mkdir -p /opt/R
+COPY files/install_deps.R /opt/R
+RUN Rscript /opt/R/install_deps.R
 COPY files/.bashrc /root/.bashrc
-COPY files/bootstrap.R /opt/R
-RUN Rscript /opt/R/bootstrap.R
 
 ENTRYPOINT ["tail", "-f", "/dev/null"]

@@ -116,3 +116,5 @@ install.packages('yaml')
 install.packages('zeallot')
 
 install.packages('devtools', dependencies=TRUE)
+library(devtools)
+install_github('AdeelK93/collapsibleTree')
