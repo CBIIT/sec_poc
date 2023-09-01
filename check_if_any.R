@@ -30,3 +30,17 @@ check_if_any  <- function( participant_codes, safe_query,ncit_code) {
   }
   return(r)
 }
+
+
+# Returns true ('YES') if check_if_any would return true for any parent of ncit_code.
+# In other words, starts looking one level up.
+check_if_any_parent <- function(participant_codes, safe_query, ncit_code) {
+  sql <- paste0("select parent from ncit_tc where descendant = $1")
+  result_set = safe_query(dbGetQuery, sql, params = ncit_code)
+  for (code in result_set$parent) {
+    if (check_if_any(participant_codes, safe_query, code) == 'YES') {
+      return('YES')
+    }
+  }
+  return('NO')
+}
