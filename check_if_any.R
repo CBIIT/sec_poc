@@ -32,15 +32,30 @@ check_if_any  <- function( participant_codes, safe_query,ncit_code) {
 }
 
 
-# Returns true ('YES') if check_if_any would return true for any parent of ncit_code.
-# In other words, starts looking one level up.
-check_if_any_parent <- function(participant_codes, safe_query, ncit_code) {
-  sql <- paste0("select parent from ncit_tc where descendant = $1")
-  result_set = safe_query(dbGetQuery, sql, params = ncit_code)
-  for (code in result_set$parent) {
-    if (check_if_any(participant_codes, safe_query, code) == 'YES') {
+# Returns 'YES' if any of the descendants of ncit_code are present in participant_codes,
+# OR any of the direct parents of level one of ncit_code are present in
+# participant_codes.  The difference between this function and check_if_any() is that
+# check_if_any() just checks the descendants, not the direct parents.
+check_if_any_in_descendants_or_parents <- function(participant_codes, safe_query, ncit_code) {
+
+  # This can be done as a single SQL query, but this approach seems
+  # more intuitive...
+
+  # If check_if_any returns true, no need to look at parents.
+  if (check_if_any(participant_codes, safe_query, ncit_code) == 'YES') {
+    return('YES')
+  } else {
+
+    # Need to check direct parents.
+    sql <- paste0(
+      "select count(*) as c from ncit_tc_with_path where level = 1 and descendant = $1 and parent in (",
+      participant_codes,
+      ")")
+    result_set = safe_query(dbGetQuery, sql, params = ncit_code)
+    if (result_set$c[[1]] > 0) {
       return('YES')
+    } else {
+      return('NO')
     }
   }
-  return('NO')
 }
