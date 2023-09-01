@@ -2,7 +2,7 @@
 
 *Note that this document is under construction and is not yet complete!*
 
-## Development
+## Python Development
 
 ### Install Python Dependencies
 
@@ -55,4 +55,10 @@ psql -U secapp -d sec -f db_api_etl/nci_api_db.sql
 python3 db_api_etl/refresh_ncit_pg.py --dbname sec --host localhost --user secapp --password test --port 5432 --use_evs_api_for_pref_name
 ```
 
-### TODO: complete with other examples of running different parts of the project.
+## R Development
+
+In production, we are using R version 3.6.3.  The current R is 4.x.  While it is probably OK to develop with 4.x, be sure to test thoroughly with 3.6.3 before deploying anything.
+
+It can be non-trivial to install an older R version, since the R maintainers only provide binary packages for the current version.  There is an R v3.6.3 docker image in the docker directory that may be of interest here.
+
+The R packages needed are enumerated in sec_poc_renv.lock.
