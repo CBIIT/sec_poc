@@ -193,7 +193,7 @@ run = True
 while run:
     print(start)
     r = requests.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
-                      headers=header_v2_api, json=data)
+                      headers=header_v2_api, json=data, timeout=(5.0, 20.0) )
     print('status code returned = ', r.status_code)
     t = r.text
     j = r.json()
