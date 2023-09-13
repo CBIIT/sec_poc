@@ -1830,6 +1830,19 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       df_crit$biomarker_api_inc_matches <- NA 
     }
     #browser()
+
+    # Load prior therapy previously saved by ETL job.
+    trials_with_prior_therapy_inc_df <- safe_query(dbGetQuery,
+      "select nct_id, nci_thesaurus_concept_id from trial_prior_therapies where eligibility_criterion='inclusion'")
+    trials_with_prior_therapy_exc_df <- safe_query(dbGetQuery,
+      "select nct_id, nci_thesaurus_concept_id from trial_prior_therapies where eligibility_criterion='exclusion'")
+
+    # TODO (jcallaway): save nci_thesaurus_concept_id here so we can use it later to match
+    # against the patient's prior therapies, insterad of just tagging trials if they have
+    # any inclusion/exclusion as I am doing here.
+    df_crit <- transform(df_crit, pt_inc_matches = ifelse(clean_nct_id %in% trials_with_prior_therapy_inc_df$nct_id, TRUE, FALSE))
+    df_crit <- transform(df_crit, pt_exc_matches = ifelse(clean_nct_id %in% trials_with_prior_therapy_exc_df$nct_id, TRUE, FALSE))
+
     setProgress(value = 0.3,  detail = 'Computing patient maintypes')
     
     # Get the patient maintypes
@@ -1905,7 +1918,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         'biomarker_exc_names' = df_crit$biomarker_exc_names,
         'biomarker_api_exc_matches' = df_crit$biomarker_api_exc_matches,
         'biomarker_inc_names' = df_crit$biomarker_inc_names,
-        'biomarker_api_inc_matches' = df_crit$biomarker_api_inc_matches,  
+        'biomarker_api_inc_matches' = df_crit$biomarker_api_inc_matches,
         stringsAsFactors = FALSE)
 
     
@@ -1933,16 +1946,25 @@ order by criteria_column_index "
       df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]
       df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
       
-      df_matches$foo <-
-        lapply(df_matches[,paste(base_string,'_expression',sep='')],
-               function(x)
-                 eval_prior_therapy_app(csv_codes, x, safe_query,
-                                        eval_env =
-                                          patient_data_env))
-      
-      
-      names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
-      
+      # TODO (jcallaway): for prior therapy, call *new* code to determine if trials are included
+      # or excluded for the patient's prior therapies.  This will involve modifying
+      # check_if_any.R and the code below that calls it.  For now, we just display the prior
+      # therapy info at the trial level.
+      if (base_string == 'pt_inc' || base_string == 'pt_exc') {
+          matches_code = paste(base_string, '_matches', sep='')
+          df_matches[, matches_code] <- df_crit[, matches_code]
+        
+      } else {
+
+        df_matches$foo <-
+          lapply(df_matches[,paste(base_string,'_expression',sep='')],
+                 function(x)
+                   eval_prior_therapy_app(csv_codes, x, safe_query,
+                                          eval_env =
+                                            patient_data_env))
+        
+        names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
+      }
     }
   
     df_matches$va_matches <- df_crit$va_match
@@ -2083,10 +2105,10 @@ order by criteria_column_index "
     colnames(sessionInfo$df_matches_to_show) <- newColNames
 
     
-
+    
     columns_with_tooltips <- c("Disease Names")
-  
 
+    
     new_match_dt <-
       datatable(
         sessionInfo$df_matches_to_show,
