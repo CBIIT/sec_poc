@@ -1776,7 +1776,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     #
     disease_df <-
       get_api_studies_for_disease(possible_disease_codes_df$Code)
-   # browser()
+    # browser()
     df_crit$api_disease_match <-
       df_crit$clean_nct_id %in% disease_df$nct_id  # will set T/F for each row
     
@@ -1832,16 +1832,19 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     #browser()
 
     # Load prior therapy previously saved by ETL job.
-    trials_with_prior_therapy_inc_df <- safe_query(dbGetQuery,
-      "select nct_id, nci_thesaurus_concept_id from trial_prior_therapies where eligibility_criterion='inclusion'")
-    trials_with_prior_therapy_exc_df <- safe_query(dbGetQuery,
-      "select nct_id, nci_thesaurus_concept_id from trial_prior_therapies where eligibility_criterion='exclusion'")
-
-    # TODO (jcallaway): save nci_thesaurus_concept_id here so we can use it later to match
-    # against the patient's prior therapies, insterad of just tagging trials if they have
-    # any inclusion/exclusion as I am doing here.
-    df_crit <- transform(df_crit, pt_inc_matches = ifelse(clean_nct_id %in% trials_with_prior_therapy_inc_df$nct_id, TRUE, FALSE))
-    df_crit <- transform(df_crit, pt_exc_matches = ifelse(clean_nct_id %in% trials_with_prior_therapy_exc_df$nct_id, TRUE, FALSE))
+    
+    # Select thesaurus codes as a comma-delimited list.
+    inc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_inc_codes
+      from trial_prior_therapies where eligibility_criterion = 'inclusion' and inclusion_indicator='TRIAL'
+      group by nct_id"
+    trials_with_prior_therapy_inc_df <- safe_query(dbGetQuery, inc_sql)
+    exc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_exc_codes
+      from trial_prior_therapies where eligibility_criterion='exclusion' and inclusion_indicator='TRIAL'
+      group by nct_id"
+    trials_with_prior_therapy_exc_df <- safe_query(dbGetQuery, exc_sql)
+    
+    df_crit <- merge(df_crit, trials_with_prior_therapy_inc_df, by.x = 'clean_nct_id', by.y = 'nct_id', all.x = TRUE)
+    df_crit <- merge(df_crit, trials_with_prior_therapy_exc_df, by.x = 'clean_nct_id', by.y = 'nct_id', all.x = TRUE)
 
     setProgress(value = 0.3,  detail = 'Computing patient maintypes')
     
@@ -1943,28 +1946,27 @@ order by criteria_column_index "
     
     for (row in 1:nrow(df_group1)) {
       base_string <- df_group1[row,'criteria_type_code']
-      df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]
+      df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]  # human readable
       df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
+      matches_code <- paste(base_string, '_matches', sep='')
       
-      # TODO (jcallaway): for prior therapy, call *new* code to determine if trials are included
-      # or excluded for the patient's prior therapies.  This will involve modifying
-      # check_if_any.R and the code below that calls it.  For now, we just display the prior
-      # therapy info at the trial level.
       if (base_string == 'pt_inc' || base_string == 'pt_exc') {
-          matches_code = paste(base_string, '_matches', sep='')
-          df_matches[, matches_code] <- df_crit[, matches_code]
+
+        # TODO(jcallaway): call different functions for inclusion or exclusion that implement the
+        # new prior therapy logic correctly.
+        df_matches$foo <- lapply(df_crit[, paste(base_string, '_codes', sep='')],
+                                   function(trial_codes) check_if_any_with_ancestors(input$prior_therapy, safe_query, trial_codes))
         
       } else {
-
+        
         df_matches$foo <-
           lapply(df_matches[,paste(base_string,'_expression',sep='')],
                  function(x)
                    eval_prior_therapy_app(csv_codes, x, safe_query,
                                           eval_env =
                                             patient_data_env))
-        
-        names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
       }
+      names(df_matches)[names(df_matches) == "foo"] <- matches_code
     }
   
     df_matches$va_matches <- df_crit$va_match
@@ -1976,7 +1978,6 @@ order by criteria_column_index "
     df_matches$max_age_in_years <-  df_crit$max_age_in_years
     df_matches$age_criteria <- df_crit$age_expression
     df_matches$age_matches <- NA
-    
         
     for (row in 1:nrow(df_group2)) {
       base_string <- df_group2[row,'criteria_type_code']
@@ -1993,7 +1994,7 @@ order by criteria_column_index "
       names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
     }
     df_matches$clean_nct_id <- df_crit$clean_nct_id
-   # browser()
+#    browser()
 
     
     # Once these are working -- roll them up in a master loop 

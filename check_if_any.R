@@ -32,6 +32,27 @@ check_if_any  <- function( participant_codes, safe_query,ncit_code) {
 }
 
 
+# TODO(jcallaway): implement the new prior therapy matching logic correctly, instead of
+# just calling chech_if_any(), as this function does.
+check_if_any_with_ancestors <- function(patient_thesaurus_codes, safe_query, trial_codes) {
+  if ((is.null(trial_codes) || is.na(trial_codes))
+      || (is.null(patient_thesaurus_codes) || length(patient_thesaurus_codes) == 0)) {
+    return(NA)
+    
+  } else {
+    quoted_patient_codes <- toString(shQuote(patient_thesaurus_codes))
+    trial_code_v <- unlist(strsplit(trial_codes, ','))
+    for (i in 1:length(trial_code_v)) {
+      result <- check_if_any(quoted_patient_codes, safe_query, trial_code_v[i])
+      if (result == 'YES') {
+        return(TRUE)
+      }
+    }
+    return(FALSE)
+  }
+}
+
+
 # Returns 'YES' if any of the descendants of ncit_code are present in participant_codes,
 # OR any of the direct parents of level one of ncit_code are present in
 # participant_codes.  The difference between this function and check_if_any() is that
