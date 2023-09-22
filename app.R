@@ -1951,6 +1951,11 @@ order by criteria_column_index "
       df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
       matches_code <- paste(base_string, '_matches', sep='')
       
+      # TODO(jcallaway): confirm the logic we want about displaying prior therapy
+      # results in the UI, especially around if there is no patient PT entered
+      # (input$prior_therapy is NULL) or the trial has no PT criteria (trial_codes
+      # is empty).
+      
       if (base_string == 'pt_inc') {
         df_matches$foo <- lapply(df_crit[, 'pt_inc_codes'],
                                  function(trial_codes) compute_pt_inc_matches(trial_codes, input$prior_therapy, safe_query))

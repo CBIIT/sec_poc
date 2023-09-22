@@ -9,8 +9,6 @@
 # This is appropriate for matching on trial inclusion criteria, since we want
 # to match if any of the patient prior therapies are the same as, or more
 # specific, than the trial criteria.
-#
-# TODO(jcallaway): confirm this logic is right for display in the UI.
 compute_pt_inc_matches <- function(trial_pt_codes, patient_pt_codes, safe_query) {
   if ((is.null(trial_pt_codes) || is.na(trial_pt_codes))
       || (is.null(patient_pt_codes) || length(patient_pt_codes) == 0)) {
@@ -39,8 +37,6 @@ compute_pt_inc_matches <- function(trial_pt_codes, patient_pt_codes, safe_query)
 # This is appropriate for matching on trial exclusion criteria, since we want
 # to match if any of the patient prior therapies are the same as, more
 # specific, or less specific than the trial criteria.
-#
-# TODO(jcallaway): confirm this logic is right for display in the UI.
 compute_pt_exc_matches <- function(trial_pt_codes, patient_pt_codes, safe_query) {
   if ((is.null(trial_pt_codes) || is.na(trial_pt_codes))
       || (is.null(patient_pt_codes) || length(patient_pt_codes) == 0)) {
