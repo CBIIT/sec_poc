@@ -167,6 +167,7 @@ source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
 source('get_biomarkers_from_evs.R')
 source('get_ncit_codes_from_ehr_codes.R')
+source('prior_therapy.R')
 # source('get_biomarker_trial_counts_for_diseases.R')
 
 source('guided_questions.R')
@@ -1950,12 +1951,13 @@ order by criteria_column_index "
       df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
       matches_code <- paste(base_string, '_matches', sep='')
       
-      if (base_string == 'pt_inc' || base_string == 'pt_exc') {
+      if (base_string == 'pt_inc') {
+        df_matches$foo <- lapply(df_crit[, 'pt_inc_codes'],
+                                 function(trial_codes) compute_pt_inc_matches(trial_codes, input$prior_therapy, safe_query))
 
-        # TODO(jcallaway): call different functions for inclusion or exclusion that implement the
-        # new prior therapy logic correctly.
-        df_matches$foo <- lapply(df_crit[, paste(base_string, '_codes', sep='')],
-                                   function(trial_codes) check_if_any_with_ancestors(input$prior_therapy, safe_query, trial_codes))
+      } else if (base_string == 'pt_exc') {
+        df_matches$foo <- lapply(df_crit[, 'pt_exc_codes'],
+                                 function(trial_codes) compute_pt_exc_matches(trial_codes, input$prior_therapy, safe_query))
         
       } else {
         
