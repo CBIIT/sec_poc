@@ -167,6 +167,7 @@ source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
 source('get_biomarkers_from_evs.R')
 source('get_ncit_codes_from_ehr_codes.R')
+source('prior_therapy.R')
 # source('get_biomarker_trial_counts_for_diseases.R')
 
 source('guided_questions.R')
@@ -1776,7 +1777,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     #
     disease_df <-
       get_api_studies_for_disease(possible_disease_codes_df$Code)
-   # browser()
+    # browser()
     df_crit$api_disease_match <-
       df_crit$clean_nct_id %in% disease_df$nct_id  # will set T/F for each row
     
@@ -1830,6 +1831,22 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       df_crit$biomarker_api_inc_matches <- NA 
     }
     #browser()
+
+    # Load prior therapy previously saved by ETL job.
+    
+    # Select thesaurus codes as a comma-delimited list.
+    inc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_inc_codes
+      from trial_prior_therapies where eligibility_criterion = 'inclusion' and inclusion_indicator='TRIAL'
+      group by nct_id"
+    trials_with_prior_therapy_inc_df <- safe_query(dbGetQuery, inc_sql)
+    exc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_exc_codes
+      from trial_prior_therapies where eligibility_criterion='exclusion' and inclusion_indicator='TRIAL'
+      group by nct_id"
+    trials_with_prior_therapy_exc_df <- safe_query(dbGetQuery, exc_sql)
+    
+    df_crit <- merge(df_crit, trials_with_prior_therapy_inc_df, by.x = 'clean_nct_id', by.y = 'nct_id', all.x = TRUE)
+    df_crit <- merge(df_crit, trials_with_prior_therapy_exc_df, by.x = 'clean_nct_id', by.y = 'nct_id', all.x = TRUE)
+
     setProgress(value = 0.3,  detail = 'Computing patient maintypes')
     
     # Get the patient maintypes
@@ -1905,7 +1922,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         'biomarker_exc_names' = df_crit$biomarker_exc_names,
         'biomarker_api_exc_matches' = df_crit$biomarker_api_exc_matches,
         'biomarker_inc_names' = df_crit$biomarker_inc_names,
-        'biomarker_api_inc_matches' = df_crit$biomarker_api_inc_matches,  
+        'biomarker_api_inc_matches' = df_crit$biomarker_api_inc_matches,
         stringsAsFactors = FALSE)
 
     
@@ -1930,19 +1947,33 @@ order by criteria_column_index "
     
     for (row in 1:nrow(df_group1)) {
       base_string <- df_group1[row,'criteria_type_code']
-      df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]
+      df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]  # human readable
       df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
+      matches_code <- paste(base_string, '_matches', sep='')
       
-      df_matches$foo <-
-        lapply(df_matches[,paste(base_string,'_expression',sep='')],
-               function(x)
-                 eval_prior_therapy_app(csv_codes, x, safe_query,
-                                        eval_env =
-                                          patient_data_env))
+      # TODO(jcallaway): confirm the logic we want about displaying prior therapy
+      # results in the UI, especially around if there is no patient PT entered
+      # (input$prior_therapy is NULL) or the trial has no PT criteria (trial_codes
+      # is empty).
       
-      
-      names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
-      
+      if (base_string == 'pt_inc') {
+        df_matches$foo <- lapply(df_crit[, 'pt_inc_codes'],
+                                 function(trial_codes) compute_pt_inc_matches(trial_codes, input$prior_therapy, safe_query))
+
+      } else if (base_string == 'pt_exc') {
+        df_matches$foo <- lapply(df_crit[, 'pt_exc_codes'],
+                                 function(trial_codes) compute_pt_exc_matches(trial_codes, input$prior_therapy, safe_query))
+        
+      } else {
+        
+        df_matches$foo <-
+          lapply(df_matches[,paste(base_string,'_expression',sep='')],
+                 function(x)
+                   eval_prior_therapy_app(csv_codes, x, safe_query,
+                                          eval_env =
+                                            patient_data_env))
+      }
+      names(df_matches)[names(df_matches) == "foo"] <- matches_code
     }
   
     df_matches$va_matches <- df_crit$va_match
@@ -1954,7 +1985,6 @@ order by criteria_column_index "
     df_matches$max_age_in_years <-  df_crit$max_age_in_years
     df_matches$age_criteria <- df_crit$age_expression
     df_matches$age_matches <- NA
-    
         
     for (row in 1:nrow(df_group2)) {
       base_string <- df_group2[row,'criteria_type_code']
@@ -1971,7 +2001,7 @@ order by criteria_column_index "
       names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
     }
     df_matches$clean_nct_id <- df_crit$clean_nct_id
-   # browser()
+#    browser()
 
     
     # Once these are working -- roll them up in a master loop 
@@ -2083,10 +2113,10 @@ order by criteria_column_index "
     colnames(sessionInfo$df_matches_to_show) <- newColNames
 
     
-
+    
     columns_with_tooltips <- c("Disease Names")
-  
 
+    
     new_match_dt <-
       datatable(
         sessionInfo$df_matches_to_show,
