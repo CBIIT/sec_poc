@@ -1835,11 +1835,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     # Load prior therapy previously saved by ETL job.
     
     # Select thesaurus codes as a comma-delimited list.
-    inc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_inc_codes
+    inc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_api_inc_codes
       from trial_prior_therapies where eligibility_criterion = 'inclusion' and inclusion_indicator='TRIAL'
       group by nct_id"
     trials_with_prior_therapy_inc_df <- safe_query(dbGetQuery, inc_sql)
-    exc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_exc_codes
+    exc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_api_exc_codes
       from trial_prior_therapies where eligibility_criterion='exclusion' and inclusion_indicator='TRIAL'
       group by nct_id"
     trials_with_prior_therapy_exc_df <- safe_query(dbGetQuery, exc_sql)
@@ -1932,6 +1932,11 @@ where criteria_type_active = 'Y' and criteria_column_index < 2000
 order by criteria_column_index "
     df_group1 <- safe_query(dbGetQuery, group1_sql)
     
+    # Add rows for the new Prior Therapy data from the API, for comparison.
+    # TODO: replace pt_inc and pt_exc with these when we are ready.
+    df_group1[nrow(df_group1) + 1,] <- c('pt_api_inc', 'PT Inclusion (API)', 'Inclusion')
+    df_group1[nrow(df_group1) + 1,] <- c('pt_api_exc', 'PT Exclusion (API)', 'Exclusion')
+    
     group2_sql  <- "select criteria_type_code, criteria_type_title, criteria_type_sense from criteria_types  
 where criteria_type_active = 'Y' and criteria_column_index >= 2000
 order by criteria_column_index "
@@ -1947,25 +1952,21 @@ order by criteria_column_index "
     
     for (row in 1:nrow(df_group1)) {
       base_string <- df_group1[row,'criteria_type_code']
-      df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]  # human readable
-      df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
       matches_code <- paste(base_string, '_matches', sep='')
       
       # TODO(jcallaway): confirm the logic we want about displaying prior therapy
       # results in the UI, especially around if there is no patient PT entered
       # (input$prior_therapy is NULL) or the trial has no PT criteria (trial_codes
       # is empty).
-      
-      if (base_string == 'pt_inc') {
-        df_matches$foo <- lapply(df_crit[, 'pt_inc_codes'],
-                                 function(trial_codes) compute_pt_inc_matches(trial_codes, input$prior_therapy, safe_query))
+      if ((base_string == 'pt_api_inc') || (base_string == 'pt_api_exc')) {
+        codes_str <- paste(base_string, '_codes', sep='')
+        df_matches$foo <- lapply(df_crit[, codes_str],
+                                 function(trial_codes) compute_pt_matches(trial_codes, input$prior_therapy, safe_query))
 
-      } else if (base_string == 'pt_exc') {
-        df_matches$foo <- lapply(df_crit[, 'pt_exc_codes'],
-                                 function(trial_codes) compute_pt_exc_matches(trial_codes, input$prior_therapy, safe_query))
-        
       } else {
         
+        df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]  # human readable
+        df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
         df_matches$foo <-
           lapply(df_matches[,paste(base_string,'_expression',sep='')],
                  function(x)
@@ -2078,16 +2079,22 @@ order by criteria_column_index "
      
      for (row in 1:nrow(df_group1)) {
        base_string <- df_group1[row,'criteria_type_title']
-       newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
-       initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
-       criteria_columns <- append(criteria_columns, base_string )
-       if(df_group1[row, 'criteria_type_sense'] == 'Inclusion') {
-         inclusion_match_column_names <- append(inclusion_match_column_names,  paste(base_string, "Match") )
-       } else {
-         exclusion_match_column_names <- append(exclusion_match_column_names,  paste(base_string, "Match") )
+       if (base_string != 'PT Inclusion (API)' && base_string != 'PT Exclusion (API)') {
+         newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
+         initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
+         criteria_columns <- append(criteria_columns, base_string )
+         if(df_group1[row, 'criteria_type_sense'] == 'Inclusion') {
+           inclusion_match_column_names <- append(inclusion_match_column_names,  paste(base_string, "Match") )
+         } else {
+           exclusion_match_column_names <- append(exclusion_match_column_names,  paste(base_string, "Match") )
+         }
        }
-       
      }
+     
+     newColNames <- append(newColNames , c('PT Inclusion (API) Match', 'PT Exclusion (API) Match'))
+     inclusion_match_column_names <- append(inclusion_match_column_names,  'PT Inclusion (API) Match')
+     exclusion_match_column_names <- append(exclusion_match_column_names,  'PT Exclusion (API) Match')
+     
      newColNames <- append(newColNames, c('VA Sites',
                                           'NIH CC',
                                           'Gender',
