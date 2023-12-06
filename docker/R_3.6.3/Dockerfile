@@ -14,7 +14,9 @@ RUN apt-get install -y libcurl4-openssl-dev
 
 RUN mkdir -p /opt/R
 COPY files/install_deps.R /opt/R
+COPY files/install_shiny_deps.R /opt/R
 RUN Rscript /opt/R/install_deps.R 2>&1 |tee /opt/R/install_deps.log
+RUN Rscript /opt/R/install_shiny_deps.R 2>&1 |tee /opt/R/install_deps.log
 COPY files/.bashrc /root/.bashrc
 
 ENTRYPOINT ["tail", "-f", "/dev/null"]
