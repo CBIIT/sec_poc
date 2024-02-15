@@ -1,6 +1,10 @@
 # Structured Eligibility Criteria Proof of Concept (aka sec_poc)
 
-*Note that this document is under construction and is not yet complete!*
+Proof-of-concept code to match cancer patients with clinical trials.  Makes heavy use of the [NCI Thesaurus](https://ncithesaurus.nci.nih.gov/ncitbrowser/) in doing so.
+
+This code is intended for demonstrations only; features of interest will likely be re-implemented in productionized systems such as [emFACT](https://em-fact.com/) or NCI CTS.
+
+SEC POC consists of a PostgreSQL database populated by python ETL jobs, and a UI implemented in R and [Shiny](https://shiny.posit.co/).  The two primary ETL jobs are [refresh_ncit_pg.py](https://github.com/CBIIT/sec_poc/blob/master/db_api_etl/refresh_ncit_pg.py), which pulls data from the NCI Thesaurus, and [api_etl_v2.py](https://github.com/CBIIT/sec_poc/blob/master/db_api_etl/api_etl_v2.py), which pulls trial data from the [NCI CTS API](https://clinicaltrialsapi.cancer.gov/).  These jobs run nightly from the shiny user's crontab on ncias-d2064-v.nci.nih.gov.  The R/Shiny frontend also runs on ncias-d2064-v.nci.nih.gov.
 
 ## Python Development
 
@@ -57,8 +61,8 @@ python3 db_api_etl/refresh_ncit_pg.py --dbname sec --host localhost --user secap
 
 ## R Development
 
-In production, we are using R version 3.6.3.  The current R is 4.x.  While it is probably OK to develop with 4.x, be sure to test thoroughly with 3.6.3 before deploying anything.
+In production, we are using R version 3.6.3.  The current R is 4.x.  While it is probably OK to develop with 4.x, be sure to test thoroughly with 3.6.3 before deploying anything.  Or, upgrade R on production and test thoroughly.
 
-It can be non-trivial to install an older R version, since the R maintainers only provide binary packages for the current version.  There is an R v3.6.3 docker image in the docker directory that may be of interest here.
+It can be non-trivial to install an older R version, since the R maintainers only provide binary packages for the current version.  There is an R v3.6.3 docker image in the [docker directory](https://github.com/CBIIT/sec_poc/tree/master/docker/R_3.6.3) that may be of interest here.
 
-The R packages needed are enumerated in sec_poc_renv.lock.
+The R packages needed are enumerated in [sec_poc_renv.lock](https://github.com/CBIIT/sec_poc/blob/master/sec_poc_renv.lock).
