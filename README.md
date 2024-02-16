@@ -65,4 +65,6 @@ In production, we are using R version 3.6.3.  The current R is 4.x.  While it is
 
 It can be non-trivial to install an older R version, since the R maintainers only provide binary packages for the current version.  There is an R v3.6.3 docker image in the [docker directory](https://github.com/CBIIT/sec_poc/tree/master/docker/R_3.6.3) that may be of interest here.
 
+Edit [config.yml](config.yml) to point to your local postgres DB with the correct credentials and add a valid CTS API key.  Then you should be able to run app.R from either RStudio or the command line.
+
 The R packages needed are enumerated in [sec_poc_renv.lock](https://github.com/CBIIT/sec_poc/blob/master/sec_poc_renv.lock).

@@ -1,0 +1,12 @@
+default:
+    db_file_location : '/srv/app_databases/nci_v5.db'
+    api_key : 'CTS_API_KEY_GOES_HERE'
+    enable_umls : TRUE
+    debug_expressions : FALSE
+    bing_maps_api_key: 'IDontThinkThisIsUsedAnymoreButIfItIsHereIsWhere'
+    session_db_file_location : '/srv/app_databases/nci_v5.db'
+    dbname : 'sec'
+    host : 'localhost'
+    user : 'secapp'
+    port : 5432
+    password: 'DB_PASSWORD'
