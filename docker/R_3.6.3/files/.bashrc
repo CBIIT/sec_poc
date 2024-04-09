@@ -6,6 +6,10 @@ case $- in
       *) return;;
 esac
 
+export LANG=en_US.UTF-8
+export LC_ALL=C.UTF-8
+export CTS_V2_API_KEY='CTS_API_KEY_GOES_HERE'
+
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
@@ -13,6 +17,7 @@ alias ls='ls --color -lah'
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
+alias activate='source venv/bin/activate'
 
 #export EDITOR=/usr/bin/vim
 
@@ -66,3 +71,11 @@ xterm*|rxvt*)
 esac
 
 cd /opt/R/sec_poc
+
+## Uncomment if using Pyenv
+# export PYENV_ROOT="$HOME/.pyenv"
+# [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+# eval "$(pyenv init -)"
+
+## Uncomment if using starship
+# eval "$(starship init bash)"

@@ -1,0 +1,5 @@
+vscDebugger/
+venv/
+.vscode/launch.json
+.vscode/settings.json
+.DS_Store

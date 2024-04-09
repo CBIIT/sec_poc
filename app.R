@@ -3147,4 +3147,10 @@ observeEvent(input$crosswalk_bsmodal_close, {
   )
   
 }
+
 shinyApp(ui, server)
+
+# # Uncomment the following to expose the R Debugger
+# # See this github thread https://github.com/ManuelHentschel/VSCode-R-Debugger/issues/162
+# app <- shinyApp(ui, server)
+# print(app)
