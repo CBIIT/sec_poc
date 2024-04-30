@@ -165,6 +165,13 @@ source('eval_criteria.R')
 source('get_api_studies_with_va_sites.R')
 source('get_api_studies_for_postal_code.R')
 source('transform_perf_status.R')
+source('get_biomarkers_from_evs.R')
+source('get_ncit_codes_from_ehr_codes.R')
+source('prior_therapy.R')
+# source('get_biomarker_trial_counts_for_diseases.R')
+
+source('guided_questions.R')
+
 
 ui <- fluidPage(
   useShinyjs(),
@@ -184,6 +191,17 @@ ui <- fluidPage(
   });
   })
   '),
+  
+  tags$script('
+  $( document ).ready(function() {
+    $("#crosswalk_bsmodal").on("hidden.bs.modal", function (event) {
+    x = new Date().toLocaleString();
+    // window.alert("biomarker  modal was closed at " + x);
+    Shiny.onInputChange("crosswalk_bsmodal_close",x);
+  });
+  })
+  '),
+  
   tags$head(tags$style(
     HTML("hr {border-top: 1px solid #000000;}")
   )),
@@ -223,6 +241,7 @@ background-color: #FFCCCC;
             actionLink('clear_all', label = 'Clear All')
           )
         ),
+        actionButton("show_guided_questions", "Guided Search Criteria"),
         hr(),
         textInput(
           'patient_zipcode',
@@ -284,8 +303,10 @@ background-color: #FFCCCC;
         actionButton("show_solid_disease", "Solid"),
         selectizeInput("disease_tree_typer", label = "Disease Trees", 
                        NULL,  selected = NULL , multiple = FALSE
-        ),
+        ), 
+        checkboxInput("show_staging_checkbox", "Show staging", FALSE),
         actionButton("show_disease_tree_button", "Show Tree")
+        
         ,
         hr(),
         DTOutput("diseases"),
@@ -342,11 +363,14 @@ background-color: #FFCCCC;
     selectizeInput("misc_typer", label = "NCIt Search", NULL, multiple = TRUE),
     actionButton("show_crosswalk", "Add non-NCI codes"),
     DTOutput('crosswalk_codes'),
-        actionButton("search_and_match", "SEARCH AND MATCH")
+    actionButton("search_and_match", "SEARCH AND MATCH"),
+    tags$p(""),
+    tags$p("Search over active treatment or screening trials with at least 1 site recruiting patients",
+           style = "font-size:10px;")
       ),
-    actionButton("show_generic_disease_tree_modal", "s")
+  actionButton("show_generic_disease_tree_modal", "s")
     )
-    
+  
     ,
     mainPanel(
       id = "Main",
@@ -359,7 +383,8 @@ background-color: #FFCCCC;
         trigger = "hover",
         options = NULL
       ),
-      
+
+    #   guidedQuestionsUI("modalExample"),
       
       fluidRow(
         column(
@@ -508,26 +533,7 @@ background-color: #FFCCCC;
         
         
       )
-      , 
-      bsModal("gyn_bsmodal", "Select GYN Disease", "show_gyn_disease", size = "large",
-              fluidPage(id = "treePanel",
-                        fluidRow(column(
-                          12,
-                          wellPanel(
-                            id = "tPanel",
-                            style = "overflow-y:scroll;  max-height: 90vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
-                            collapsibleTreeOutput("gyn_disease_tree", height = "90vh", width =
-                                                    '4500px')
-                          )
-                        )),
-                        fluidRow(column(2, 'Disease selected:'), 
-                                 column(6, align = "left", textOutput("gyn_selected")),
-                                 column(2, align = 'right'), actionButton("gyn_add_disease", label='Add disease'))
-                        
-              )
-              
-    )
-    ,
+      ,   
     # Generic disease tree bsmodal ----
      bsModal("disease_tree_bsmodal", "Select Disease", "show_generic_disease_tree_modal", size = "large",
              fluidPage(id = "treePanel_gen",
@@ -535,9 +541,12 @@ background-color: #FFCCCC;
                          12,
                          wellPanel(
                            id = "tPanel_gen",
-                           style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
-                           collapsibleTreeOutput("generic_disease_tree", height = "75vh", width =
-                                                   '4500px')
+                          # style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
+                           #style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll;",
+                           
+                          # collapsibleTreeOutput("generic_disease_tree", height = "75vh", width =
+                          #                         '4000px')
+                           collapsibleTreeOutput("generic_disease_tree", height = "75vh")
                          )
                        )),
                        fluidRow(column(2, 'Disease selected:'), 
@@ -549,44 +558,8 @@ background-color: #FFCCCC;
              
      )
      ,
-    bsModal("lung_bsmodal", "Select Lung Disease", "show_lung_disease", size = "large",
-            fluidPage(id = "treePanel",
-                      fluidRow(column(
-                        12,
-                        wellPanel(
-                          id = "tPanel2",
-                          style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
-                          collapsibleTreeOutput("lung_disease_tree", height = "75vh", width =
-                                                  '4500px')
-                        )
-                      )),
-                      fluidRow(column(2, 'Disease selected:'), 
-                               column(6, align = "left", textOutput("lung_selected")),
-                               column(2, align = 'right'), actionButton("lung_add_disease", label='Add disease'))
-                      
-            )
-            
-    )
-    ,
-    bsModal("solid_bsmodal", "Select Solid Neoplasm Disease", "show_solid_disease", size = "large",
-            fluidPage(id = "treePanel",
-                      fluidRow(column(
-                        12,
-                        wellPanel(
-                          id = "tPanel2",
-                          style = "overflow-y:scroll;  max-height: 750vh; height: 70vh; overflow-x:scroll; max-width: 4000px",
-                          collapsibleTreeOutput("solid_disease_tree", height = "75vh", width =
-                                                  '4000px')
-                        )
-                      )),
-                      fluidRow(column(2, 'Disease selected:'), 
-                               column(6, align = "left", textOutput("solid_selected")),
-                               column(2, align = 'right'), actionButton("solid_add_disease", label='Add disease'))
-                      
-            )
-            
-    )
-    ,
+   
+   
     bsModal("cancer_bsmodal", "Select Disease", "show_cancer", size = "large",
             fluidPage(id = "cancer_bs_modal_page",  #You are here
                       fluidRow( 
@@ -613,16 +586,20 @@ background-color: #FFCCCC;
     )
     )
     ,
-    bsModal('crosswalk_bsmodal', "Enter non-NCI codes", "show_crosswalk", size = "small",
+    bsModal('crosswalk_bsmodal', "Enter non-NCI codes", "show_crosswalk", size = "medium",
             fluidPage(id="crosswalk_bsmodal_page", 
                       bsAlert('crosswalk_modal_alert'),
                       fluidRow(radioButtons("crosswalk_ontology","Ontology ",
-                        choices = c("ICD10CM" = "ICD10CM", "LOINC" = "LNC", "SNOMEDCT" = "SNOMEDCT_US",
-                                    "RXNORM" = "RXNORM"),
+                        choices = c("ICD10CM" = "ICD10CM", "LOINC" = "LOINC", "SNOMEDCT" = "SNOMEDCT"
+                                    #,
+                                    #"RXNORM" = "RXNORM"
+                                    )
 
                       )
                       ),
                       fluidRow(textInput("crosswalk_code","Code")),
+                      fluidRow("Name:", textOutput("crosswalk_name", inline = TRUE)),
+                      fluidRow("Best NCIt code match:", textOutput("matched_ncit_name", inline = TRUE)),
                       fluidRow(actionButton("find_crosswalk_codes", "Add Code"))
                       )
             )
@@ -731,16 +708,25 @@ server <- function(input, output, session) {
     crosswalk_df = data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Description")))),
     session_id = NA,
     prior_therapy_data_df = NA,
-    disease_tree_root_node = NA
+    disease_tree_root_node = NA,
+    df_disease_tree_choices = NA,
+    disease_tree_c_code_from_button  = NULL
 
     )
+
+   
   
   tgt <- NA
   shinyjs::hide("show_generic_disease_tree_modal")
   shinyjs::hide("hidden_root_node")
+  shinyjs::hide("show_guided_questions")
+  
+
+  progress <- Progress$new(session, min=1, max=10)
+  progress$set(message = 'Initializing SEC POC',
+               detail = '')
   
   # get a TGT from UMLS
-  
   if (dbinfo$enable_umls) {
     print("enabling UMLS calls")
     d <-  POST(
@@ -788,6 +774,9 @@ server <- function(input, output, session) {
   
   # s1 <- Sys.time()
   # 
+  
+
+  
   rvd_df <- safe_query(dbGetQuery, paste("select nct_id from trials where record_verification_date >= '", target_lvd , "'", sep=""))   
   print(paste('nrows', nrow(rvd_df)))
    
@@ -806,6 +795,15 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   
   df_disease_choices <- setNames(
       as.vector(df_disease_choice_data[["code"]]),as.vector(df_disease_choice_data[["preferred_name"]]))
+
+  guided_disease_choices_data <- safe_query(dbGetQuery,
+    "select distinct nci_thesaurus_concept_id, preferred_name from trial_diseases;"
+    # select * from trials inner join trial_diseases on trials.nct_id = trial_diseases.nct_id where trials.max_age_in_years >= 45 and trial_diseases.nci_thesaurus_concept_id in ('C132886') limit 1;
+  )
+
+  guided_disease_choices <- setNames(
+    as.vector(guided_disease_choices_data[["nci_thesaurus_concept_id"]]),as.vector(guided_disease_choices_data[["preferred_name"]])
+  )
   
   #browser()
   df_misc_choice_data <-
@@ -816,12 +814,15 @@ select n.code, pn.preferred_name from preferred_names pn join ncit n on pn.prefe
   df_misc_choices <- setNames(
     as.vector(df_misc_choice_data[["code"]]),as.vector(df_misc_choice_data[["pref_name"]]))
   
+  progress$set(value = 2)
+  
   df_disease_tree_choices_raw <-
     safe_query(dbGetQuery,
       "with real_tree_data as (
 select nci_thesaurus_concept_id, display_name 
     from distinct_trial_diseases ds 
-    where (ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%')
+    where (ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%' or ds.nci_thesaurus_concept_id = 
+'C4913' )
     and nci_thesaurus_concept_id not in ('C2991', 'C2916')
     and not display_name like 'Other %'
  UNION
@@ -830,6 +831,9 @@ select nci_thesaurus_concept_id, display_name
  select nci_thesaurus_concept_id, display_name from real_tree_data  
 	order by display_name"
     )
+  sessionInfo$df_disease_tree_choices <- setNames(
+    as.vector(df_disease_tree_choices_raw[["nci_thesaurus_concept_id"]]),as.vector(df_disease_tree_choices_raw[["display_name"]]))
+  
   df_disease_tree_choices <- setNames(
     as.vector(df_disease_tree_choices_raw[["nci_thesaurus_concept_id"]]),as.vector(df_disease_tree_choices_raw[["display_name"]]))
   
@@ -837,7 +841,7 @@ select nci_thesaurus_concept_id, display_name
                        'disease_tree_typer',
                        choices = df_disease_tree_choices ,
                        selected = NULL,
-                       server = TRUE)
+                       server = FALSE)
  
   df_prior_therapy_data <- safe_query(dbGetQuery, "with descendants as
   (
@@ -863,8 +867,9 @@ select nci_thesaurus_concept_id, display_name
      as.vector(df_prior_therapy_data[["code"]]),as.vector(df_prior_therapy_data[["pref_name"]]))
   
   sessionInfo$prior_therapy_data_df <- df_prior_therapy_choices
+
+  progress$set(value = 3)
   
-    
   df_maintypes <-
     safe_query(dbGetQuery,
       " select NULL as display_name union 
@@ -873,18 +878,31 @@ select nci_thesaurus_concept_id, display_name
       order by display_name"
     )
 
-  df_biomarker_list_s <-
-    safe_query(dbGetQuery,
-     
-      "with domain_set as (
-        select tc.descendant as code  from ncit_tc tc where tc.parent = 'C36391'
-      )      
-select ds.code, n.pref_name as biomarker from domain_set ds join ncit n 
-on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
-order by n.pref_name"
-    )
+#   df_biomarker_list_s <-
+#     safe_query(dbGetQuery,
+#      
+#       "with domain_set as (
+#         select tc.descendant as code  from ncit_tc tc where tc.parent in ( 'C36391',  -- Molecular Genetic Variation 
+# 		                                                                   'C158948', -- Rearrangement detected 	
+# 																		   'C158949' -- Rearragement negative
+# 																			)
+# 		union 
+#         select  n.code as code  from ncit n  where   (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
+# 		   and n.semantic_type = 'Cell or Molecular Dysfunction' 
+#        		
+#       )   
+# 	,  
+# biomarkers as (select ds.code, coalesce(nullif(display_name,''), pref_name) as biomarker from domain_set ds join ncit n 
+# on ds.code = n.code and (n.concept_status not in ( 'Obsolete_Concept', 'Retired_Concept') or n.concept_status is null)
+# )
+# select * from biomarkers 
+# order by biomarker 
+#       "
+#     )
 
-  
+  df_biomarker_list_t <- get_biomarkers_from_evs()
+  colnames(df_biomarker_list_t) <- c("type", "code", "biomarker")
+  df_biomarker_list_s <- subset(df_biomarker_list_t, select = -c(type))
   
   # To get around the wacko server side bug, render this thing here as a normal static selectize but with the biomarker dataframe from the server side   
   output$biomarker_controls <- renderUI({
@@ -936,6 +954,8 @@ order by n.pref_name"
     choices = criteria_picker_vec,
     selected = c('disease_matches == TRUE')
   )
+  
+  progress$set(value = 4)
  # browser()
   
   crit_sql <-
@@ -995,6 +1015,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   
   df_crit <- df_crit[order(df_crit$study_source_sort_key, -df_crit$number_sites),]
   
+  progress$set(value = 5)
+  
   #browser()
   
   dt_gyn_tree <- getDiseaseTreeData(safe_query, 'C4913', use_ctrp_display_name = TRUE)
@@ -1047,6 +1069,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       #  height = '700px'
     )})
   
+
+  progress$set(value = 6)
   
   updateSelectizeInput(session,
                        'maintype_typer',
@@ -1062,6 +1086,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                        'misc_typer',
                        choices = df_misc_choices ,
                        server = TRUE)
+
+#   updateSelectizeInput(session,
+#                        'ncit_search',
+#                        choices = df_misc_choices ,
+#                        server = TRUE)
   
   updateSelectizeInput(session,
                        'prior_therapy',
@@ -1073,7 +1102,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
                        'cancer_center_picker',
                        choices = get_org_families() ,
                        server = TRUE)
-  
+  progress$set(value = 7)
+  progress$close()  
 
 #  updateSelectizeInput(session,
  #                      'biomarker_list',
@@ -1085,17 +1115,228 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
   # Events from this point forward ---- 
   
   # Process passed in session data ----
+
+   nextModal <- function(id, question, answeres, next_button_id){
+        modalDialog(
+            title="Guided Questions",
+            selectInput(id, question, answeres),
+            fluidRow(
+                column(
+                    width=8,
+                    textOutput("guided_total_trials")
+                )
+            ),
+            footer = tagList(
+                modalButton("Cancel"),
+                actionButton(next_button_id, "Next"),
+                actionButton("search_and_match_guided_select", "Finish and Search")
+            ),
+            easyClose = TRUE
+        )
+    }
+    nextTextModal <- function(id, question, next_button_id) {
+        modalDialog(
+            title="Guided Questions",
+            textInput(
+                id,
+                label = question,
+                value = ""
+            ),
+            fluidRow(
+                column(
+                    width=8,
+                    textOutput("guided_total_trials")
+                )
+            ),
+            footer = tagList(
+                modalButton("Cancel"),
+                actionButton(next_button_id, "Next"),
+                actionButton("search_and_match_guided_text", "Finish and Search")
+            ),
+            easyClose = TRUE
+        )
+    }
+    nextSelectizeModal <- function(id, question, next_button_id) {
+        modalDialog(
+            title="Guided Questions",
+            selectizeInput(id, label=question, NULL, multiple=TRUE),
+            fluidRow(
+                column(
+                    width=8,
+                    textOutput("guided_total_trials")
+                )
+            ),
+            footer = tagList(
+                modalButton("Cancel"),
+                actionButton(next_button_id, "Next"),
+                actionButton("search_and_match_guided_selectize", "Finish and Search")
+            ),
+            easyClose = TRUE
+        )
+    }
+    # Return from this will contain each model setup
+    testList = getGuidedQuestionDataFrames(safe_query)
+    testDf1 = reactiveVal(testList[1])
+    testDf2 = reactiveVal(testList[[2]])
+    holder = reactiveVal(NULL)
+    observeEvent(input$show_guided_questions, {
+        if(testList[[1]][[1]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testList[[1]][[1]][[3]][[1]],
+                choices = testList[[1]][[1]][[6]],
+                server = TRUE
+            )
+        }
+        showModal(
+            do.call(
+                testList[[1]][[1]][[2]],
+                testList[[1]][[1]][[3]]
+            )
+        )
+    })
+    observeEvent(input$guided_question1, {
+        testDf1(recalculate_freq_from_dataframe(holder(), testDf1()[[1]], 1))
+        testDf2(testList[[1]][[1]][[5]](testList[[2]], input[[testDf1()[[1]][[1]][[3]][[1]]]]))
+        if(testDf1()[[1]][[2]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testDf1()[[1]][[2]][[3]][[1]],
+                choices = testDf1()[[1]][[2]][[6]],
+                server = TRUE
+            )
+        }
+        showModal(
+            do.call(
+                testDf1()[[1]][[2]][[2]],
+                testDf1()[[1]][[2]][[3]]
+            )
+        )
+    })
+    observeEvent(input$guided_question2, {
+        testDf1(recalculate_freq_from_dataframe(holder(), testDf1()[[1]], 2))
+        testDf2(testList[[1]][[2]][[5]](testDf2(), input[[testDf1()[[1]][[2]][[3]][[1]]]]))
+        if(testDf1()[[1]][[3]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testDf1()[[1]][[3]][[3]][[1]],
+                choices = testDf1()[[1]][[3]][[6]],
+                server = TRUE
+            )
+        }
+        showModal(
+            do.call(
+                testDf1()[[1]][[3]][[2]],
+                testDf1()[[1]][[3]][[3]]
+            )
+        )
+    })
+    observeEvent(input$guided_question3, {
+        testDf1(recalculate_freq_from_dataframe(holder(), testDf1()[[1]], 3))
+        testDf2(testList[[1]][[3]][[5]](testDf2(), input[[testDf1()[[1]][[3]][[3]][[1]]]]))
+        if(testDf1()[[1]][[4]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testDf1()[[1]][[4]][[3]][[1]],
+                choices = testDf1()[[1]][[4]][[6]],
+                server = TRUE
+            )
+        }
+        showModal(
+            do.call(
+                testDf1()[[1]][[4]][[2]],
+                testDf1()[[1]][[4]][[3]]
+            )
+        )
+    })
+    observeEvent(input$guided_question4, {
+        testDf1(recalculate_freq_from_dataframe(holder(), testDf1()[[1]], 4))
+        testDf2(testList[[1]][[4]][[5]](testDf2(), input[[testDf1()[[1]][[4]][[3]][[1]]]]))
+        if(testDf1()[[1]][[5]][[4]] == TRUE){
+            updateSelectizeInput(session,
+                testDf1()[[1]][[5]][[3]][[1]],
+                choices = testDf1()[[1]][[5]][[6]],
+                server = TRUE
+            )
+        }
+        showModal(
+            do.call(
+                testDf1()[[1]][[5]][[2]],
+                testDf1()[[1]][[5]][[3]]
+            )
+        )
+    })
+    observeEvent(input$update_guided_question1, {
+        holder(testList[[1]][[1]][[5]](testList[[2]], input$update_guided_question1))
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
+        })
+        add_biomarker_sql <-  "select code as \"Code\" , 'YES' as \"Value\", pref_name as \"Biomarkers\" from ncit where code in (%s);"
+        biomarker_search_str = ""
+        for (code in input$update_guided_question1){
+            biomarker_search_str = paste(biomarker_search_str, paste("'", code, sed="',"))
+        }
+        biomarker_search_str = gsub(" ", "", biomarker_search_str)
+        biomarker_search_str = substring(biomarker_search_str, 1, nchar(biomarker_search_str)-1)
+        df_new_biomarkers <- safe_query(
+            dbGetQuery,
+            sprintf(add_biomarker_sql, biomarker_search_str)
+        )
+        sessionInfo$biomarker_df <- df_new_biomarkers
+    })
+    observeEvent(input$age_guided, {
+        holder(testList[[1]][['age']][[5]](testDf2(), input$age_guided))
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
+        })
+        updateTextInput(session, "patient_age", value=input$age_guided)
+    })
+    observeEvent(input$performance_guided, {
+        holder(testList[[1]][['performanceStatus']][[5]](testDf2(), input$performance_guided))
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
+        })
+    })
+    observeEvent(input$gender_guided, {
+        holder(testList[[1]][['gender']][[5]](testDf2(), input$gender_guided))
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
+        })
+        if (input$gender_guided == 'BOTH'){
+            updateRadioGroupButtons(session, "gender", selected='Unspecified')
+        } else {
+            updateRadioGroupButtons(session, "gender", selected=str_to_title(input$gender_guided))
+        }
+    })
+
+    observeEvent(input$disease_search_guided, {
+        holder(testList[[1]][['diseases']][[5]](testDf2(), input$disease_search_guided))
+        output$guided_total_trials <- renderText({
+            paste(sprintf("%s Trials match your criteria", nrow(holder())))
+        })
+        diseaseString = ""
+        for (code in input$disease_search_guided) {
+            diseaseString = paste(diseaseString, paste("'", code, sed="',"))
+        }
+        diseaseString = gsub(" ", "", diseaseString)
+        diseaseString = substring(diseaseString, 1, nchar(diseaseString)-1)
+        add_disease_sql <- "select distinct code as \"Code\" , 'YES' as \"Value\", pref_name as \"Diseases\" from  ncit where code in (%s);"
+        df_new_disease <- safe_query(
+            dbGetQuery,
+            sprintf(add_disease_sql, diseaseString)
+        )
+        # rbind is another option but if done than we dont remove values if the deselect
+        sessionInfo$disease_df <- df_new_disease
+    })
   
   observe(label = "Get Session UUID", {
     query <- parseQueryString(session$clientData$url_search)
+    if (!is.null(query[['show_guided_search']])){
+        shinyjs::show('show_guided_questions')
+    }
+
     if (!is.null(query[['session_id']])) {
       prior_therapy_list = c()
       disease_list = c()
       df_diseases <- data.frame(matrix(ncol=3,nrow=0, dimnames=list(NULL, c("Code", "Value" , "Diseases"))))
       sessionInfo$session_id <- query[['session_id']]
       print(paste('session_id is ', sessionInfo$session_id))
-      session_con <-
-        DBI::dbConnect(RSQLite::SQLite(), dbinfo$session_db_file_location)
       df_prior_therapy_interop_sql <- "
       with descendants as
             (
@@ -1120,8 +1361,8 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
       
      # browser()
-      session_nodename <- dbGetQuery(session_con, 
-                             "select coalesce(nodename,'') as nodename from search_session where session_uuid = ?",
+      session_nodename <- safe_query(dbGetQuery, 
+                             "select coalesce(nodename,'') as nodename from fhirops.search_session where session_uuid = $1",
                              params = c(sessionInfo$session_id))
       if (nrow(session_nodename)>0 && nchar(session_nodename$nodename)>0 ) {
         progress_title <- paste('Importing data from', session_nodename$nodename)
@@ -1130,18 +1371,15 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       }
       
       session_data <-
-        dbGetQuery(
-          session_con,
+        safe_query(dbGetQuery,
           'select concept_cd, valtype_cd, tval_char, nval_num,
-                                         units_cd from search_session_data where session_uuid = ? 
+                                         units_cd from fhirops.search_session_data where session_uuid = $1 
                                          and concept_cd is not null',
           params = c(sessionInfo$session_id)
         )
       
       print(session_data)
-      DBI::dbDisconnect(session_con)
-      session_con <-
-        DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
+
       if (nrow(session_data) > 0) {
         progressSweetAlert(
           session = session, id = "myprogress",
@@ -1170,15 +1408,15 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           }
           if (concept_cd == 'C51948') {
             # wbc
-            if (valtype_cd == 'N') {
+          #  if (valtype_cd == 'N') {
               updateNumericInput(session, "patient_wbc", value = nval_num)
-            }
+          #  }
           }
           if (concept_cd == 'C51951') {
             # platelets
-            if (valtype_cd == 'N') {
+         #   if (valtype_cd == 'N') {
               updateNumericInput(session, "patient_plt", value = nval_num)
-            }
+          #  }
           }
           if (concept_cd == 'C25720') {
             # zip code
@@ -1203,8 +1441,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           # Check for prior therapy (NLP )
           for (r in (1:length(concept_cds))) {
             df_prior_therapy_interop <- 
-              dbGetQuery(
-                session_con,df_prior_therapy_interop_sql, params = c(concept_cds[r])
+              safe_query(dbGetQuery,df_prior_therapy_interop_sql, params = c(concept_cds[r])
               )  
             if (nrow(df_prior_therapy_interop)>0) {
              # browser()
@@ -1219,8 +1456,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
             print(paste("disease row : ", r, " concept_cd ", concept_cds[r]))
           
             df_cancer_interop <- 
-              dbGetQuery(
-                session_con,df_cancer_interop_sql, params = c(concept_cds[r])
+              safe_query(dbGetQuery,df_cancer_interop_sql, params = c(concept_cds[r])
               )  
             print(df_cancer_interop)
             if (nrow(df_cancer_interop)>0) {
@@ -1233,7 +1469,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
               add_disease_sql <- "select distinct code 
                         as \"Code\" , 'YES' as \"Value\", 
                         pref_name as \"Diseases\" from  ncit where code = $1"
-              df_new_disease <- dbGetQuery(session_con, add_disease_sql,  params = c(concept_cds[r]))
+              df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(concept_cds[r]))
               df_diseases <- rbind(df_diseases, df_new_disease)
               print(paste("df_diseases ", df_diseases))
              # browser()
@@ -1255,7 +1491,6 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
           
         }
         closeSweetAlert(session = session)
-        DBI::dbDisconnect(session_con)
       }
       
       
@@ -1404,22 +1639,22 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       
     
   })
-  
-  # 
-  # Search and match button event handler ----
-  
-  observeEvent(input$search_and_match, label = 'search and match', {
+
+  ### search_for_trials 
+  search_for_trials <- function() {
     print("search and match")
     print(paste("age : ", input$patient_age))
     print("diseases : ")
     print(input$disease_typer)
     print(paste("gender : ", input$gender))
-   
+   # browser()
     #
     # Make a new dataframe for the patient data 
     #
     sel <- data.frame(matrix(ncol = 2, nrow = 0))
     colnames(sel) <-  c("Code", "Value")
+
+    print(paste("performance status", input$performance_status))
     
     # First check for a valid zipcode
     
@@ -1542,6 +1777,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     #
     disease_df <-
       get_api_studies_for_disease(possible_disease_codes_df$Code)
+    # browser()
     df_crit$api_disease_match <-
       df_crit$clean_nct_id %in% disease_df$nct_id  # will set T/F for each row
     
@@ -1549,7 +1785,9 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     setProgress(value = 0.2,  detail = 'Examining VA sites')
     
     va_df <- get_api_studies_with_va_sites()
+    print(va_df)
     df_crit$va_match <- df_crit$clean_nct_id %in% va_df$nct_id
+    print(df_crit$va_match)
     
     #Get the NIH CC studies
     nih_cc_df <- get_api_studies_for_postal_code('20892')
@@ -1593,6 +1831,22 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       df_crit$biomarker_api_inc_matches <- NA 
     }
     #browser()
+
+    # Load prior therapy previously saved by ETL job.
+    
+    # Select thesaurus codes as a comma-delimited list.
+    inc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_api_inc_codes
+      from trial_prior_therapies where eligibility_criterion = 'inclusion' and inclusion_indicator='TRIAL'
+      group by nct_id"
+    trials_with_prior_therapy_inc_df <- safe_query(dbGetQuery, inc_sql)
+    exc_sql <- "select nct_id, string_agg(nci_thesaurus_concept_id, ',') as pt_api_exc_codes
+      from trial_prior_therapies where eligibility_criterion='exclusion' and inclusion_indicator='TRIAL'
+      group by nct_id"
+    trials_with_prior_therapy_exc_df <- safe_query(dbGetQuery, exc_sql)
+    
+    df_crit <- merge(df_crit, trials_with_prior_therapy_inc_df, by.x = 'clean_nct_id', by.y = 'nct_id', all.x = TRUE)
+    df_crit <- merge(df_crit, trials_with_prior_therapy_exc_df, by.x = 'clean_nct_id', by.y = 'nct_id', all.x = TRUE)
+
     setProgress(value = 0.3,  detail = 'Computing patient maintypes')
     
     # Get the patient maintypes
@@ -1668,7 +1922,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
         'biomarker_exc_names' = df_crit$biomarker_exc_names,
         'biomarker_api_exc_matches' = df_crit$biomarker_api_exc_matches,
         'biomarker_inc_names' = df_crit$biomarker_inc_names,
-        'biomarker_api_inc_matches' = df_crit$biomarker_api_inc_matches,  
+        'biomarker_api_inc_matches' = df_crit$biomarker_api_inc_matches,
         stringsAsFactors = FALSE)
 
     
@@ -1677,6 +1931,11 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
 where criteria_type_active = 'Y' and criteria_column_index < 2000
 order by criteria_column_index "
     df_group1 <- safe_query(dbGetQuery, group1_sql)
+    
+    # Add rows for the new Prior Therapy data from the API, for comparison.
+    # TODO: replace pt_inc and pt_exc with these when we are ready.
+    df_group1[nrow(df_group1) + 1,] <- c('pt_api_inc', 'PT Inclusion (API)', 'Inclusion')
+    df_group1[nrow(df_group1) + 1,] <- c('pt_api_exc', 'PT Exclusion (API)', 'Exclusion')
     
     group2_sql  <- "select criteria_type_code, criteria_type_title, criteria_type_sense from criteria_types  
 where criteria_type_active = 'Y' and criteria_column_index >= 2000
@@ -1693,19 +1952,29 @@ order by criteria_column_index "
     
     for (row in 1:nrow(df_group1)) {
       base_string <- df_group1[row,'criteria_type_code']
-      df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]
-      df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
+      matches_code <- paste(base_string, '_matches', sep='')
       
-      df_matches$foo <-
-        lapply(df_matches[,paste(base_string,'_expression',sep='')],
-               function(x)
-                 eval_prior_therapy_app(csv_codes, x, safe_query,
-                                        eval_env =
-                                          patient_data_env))
-      
-      
-      names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
-      
+      # TODO(jcallaway): confirm the logic we want about displaying prior therapy
+      # results in the UI, especially around if there is no patient PT entered
+      # (input$prior_therapy is NULL) or the trial has no PT criteria (trial_codes
+      # is empty).
+      if ((base_string == 'pt_api_inc') || (base_string == 'pt_api_exc')) {
+        codes_str <- paste(base_string, '_codes', sep='')
+        df_matches$foo <- lapply(df_crit[, codes_str],
+                                 function(trial_codes) compute_pt_matches(trial_codes, input$prior_therapy, safe_query))
+
+      } else {
+        
+        df_matches[,paste(base_string,'_refined_text',sep='')] <- df_crit[, paste(base_string,'_refined_text',sep='')]  # human readable
+        df_matches[,paste(base_string,'_expression',sep='')] <- df_crit[, paste(base_string,'_expression',sep='')]
+        df_matches$foo <-
+          lapply(df_matches[,paste(base_string,'_expression',sep='')],
+                 function(x)
+                   eval_prior_therapy_app(csv_codes, x, safe_query,
+                                          eval_env =
+                                            patient_data_env))
+      }
+      names(df_matches)[names(df_matches) == "foo"] <- matches_code
     }
   
     df_matches$va_matches <- df_crit$va_match
@@ -1717,7 +1986,6 @@ order by criteria_column_index "
     df_matches$max_age_in_years <-  df_crit$max_age_in_years
     df_matches$age_criteria <- df_crit$age_expression
     df_matches$age_matches <- NA
-    
         
     for (row in 1:nrow(df_group2)) {
       base_string <- df_group2[row,'criteria_type_code']
@@ -1734,7 +2002,7 @@ order by criteria_column_index "
       names(df_matches)[names(df_matches) == "foo"] <- paste(base_string,'_matches',sep='')
     }
     df_matches$clean_nct_id <- df_crit$clean_nct_id
-   # browser()
+#    browser()
 
     
     # Once these are working -- roll them up in a master loop 
@@ -1811,16 +2079,22 @@ order by criteria_column_index "
      
      for (row in 1:nrow(df_group1)) {
        base_string <- df_group1[row,'criteria_type_title']
-       newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
-       initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
-       criteria_columns <- append(criteria_columns, base_string )
-       if(df_group1[row, 'criteria_type_sense'] == 'Inclusion') {
-         inclusion_match_column_names <- append(inclusion_match_column_names,  paste(base_string, "Match") )
-       } else {
-         exclusion_match_column_names <- append(exclusion_match_column_names,  paste(base_string, "Match") )
+       if (base_string != 'PT Inclusion (API)' && base_string != 'PT Exclusion (API)') {
+         newColNames <- append(newColNames , c( base_string, paste(base_string,"Expression"), paste(base_string, "Match")))
+         initially_hidden_columns <- append(initially_hidden_columns, c(base_string, paste(base_string,"Expression") ))
+         criteria_columns <- append(criteria_columns, base_string )
+         if(df_group1[row, 'criteria_type_sense'] == 'Inclusion') {
+           inclusion_match_column_names <- append(inclusion_match_column_names,  paste(base_string, "Match") )
+         } else {
+           exclusion_match_column_names <- append(exclusion_match_column_names,  paste(base_string, "Match") )
+         }
        }
-       
      }
+     
+     newColNames <- append(newColNames , c('PT Inclusion (API) Match', 'PT Exclusion (API) Match'))
+     inclusion_match_column_names <- append(inclusion_match_column_names,  'PT Inclusion (API) Match')
+     exclusion_match_column_names <- append(exclusion_match_column_names,  'PT Exclusion (API) Match')
+     
      newColNames <- append(newColNames, c('VA Sites',
                                           'NIH CC',
                                           'Gender',
@@ -1846,10 +2120,10 @@ order by criteria_column_index "
     colnames(sessionInfo$df_matches_to_show) <- newColNames
 
     
-
+    
     columns_with_tooltips <- c("Disease Names")
-  
 
+    
     new_match_dt <-
       datatable(
         sessionInfo$df_matches_to_show,
@@ -1968,7 +2242,23 @@ order by criteria_column_index "
     }
     )
   }
-  )
+  
+  # 
+  # Search and match button event handler ----
+  observeEvent(input$search_and_match, label = 'search and match', search_for_trials())
+  observeEvent(input$search_and_match_guided_select, label = 'search and match', {
+    removeModal()
+    search_for_trials()
+  })
+  observeEvent(input$search_and_match_guided_text, label = 'search and match', {
+    removeModal()
+    search_for_trials()
+  })
+  observeEvent(input$search_and_match_guided_selectize, label = 'search and match', {
+    removeModal()
+    search_for_trials()
+  })
+
   
  
   
@@ -2002,13 +2292,36 @@ order by criteria_column_index "
       
     }
   })
-
-  # Show the generic disease tree modal dialog ----
   
-  observeEvent(input$show_disease_tree_button, {
-    print("Show generic disease tree for ")   
-    print(input$disease_tree_typer)  
-    dt_generic_disease_tree <- getDiseaseTreeData(safe_query, input$disease_tree_typer, use_ctrp_display_name = TRUE)
+  observeEvent(input$show_lung_disease , {
+    print("show lung button pressed")
+    sessionInfo$disease_tree_c_code_from_button <- 'C4878'    
+
+  }
+  )
+  
+  
+  observeEvent(input$show_solid_disease , {
+    print("solid button pressed")
+    sessionInfo$disease_tree_c_code_from_button <- 'C9292'    
+  }
+  )
+  
+  
+  
+  observeEvent(input$show_gyn_disease , {
+    print("gyn button pressed")
+    sessionInfo$disease_tree_c_code_from_button <- 'C4913'    
+  }
+  )
+  
+  # Show the generic disease tree modal from a button ----
+  
+  
+  observeEvent(sessionInfo$disease_tree_c_code_from_button, {
+    print("Show generic disease tree from button for ")   
+    print(sessionInfo$disease_tree_c_code_from_button)  
+    dt_generic_disease_tree <- getDiseaseTreeData(safe_query, sessionInfo$disease_tree_c_code_from_button, use_ctrp_display_name = TRUE)
     output$hidden_root_node <- renderText(dt_generic_disease_tree$child[[1]])
     sessionInfo$disease_tree_root_node <- dt_generic_disease_tree$child[[1]]
     output$generic_disease_tree <- renderCollapsibleTree({
@@ -2016,10 +2329,45 @@ order by criteria_column_index "
         dt_generic_disease_tree,
         collapsed = TRUE,
         linkLength = 500,
-        zoomable = FALSE,
+        zoomable = TRUE,
         inputId = "generic_disease_tree_selected_node",
         nodeSize = 'nodeSize',
         #nodeSize = 14,
+        tooltip = TRUE,
+        tooltipHtml = 'tooltipHtml',
+        aggFun = 'identity',
+        fontSize = 14 #,
+        #,
+        #  width = '2000px',
+        #  height = '1700px'
+      )})
+    click("show_generic_disease_tree_modal")
+    sessionInfo$disease_tree_c_code_from_button <- NULL
+    
+  }, ignoreNULL = TRUE)
+  
+
+  # Show the generic disease tree modal dialog ----
+  
+  observeEvent(input$show_disease_tree_button, {
+    print("Show generic disease tree for ")   
+    print(input$disease_tree_typer)  
+    dt_generic_disease_tree <- getDiseaseTreeData(safe_query, input$disease_tree_typer, use_ctrp_display_name = TRUE, show_staging = input$show_staging_checkbox)
+    print("Show dt generic disease tree")
+    print(dt_generic_disease_tree)
+    output$hidden_root_node <- renderText(dt_generic_disease_tree$child[[1]])
+    sessionInfo$disease_tree_root_node <- dt_generic_disease_tree$child[[1]]
+    output$generic_disease_tree <- renderCollapsibleTree({
+      hh_collapsibleTreeNetwork( 
+        dt_generic_disease_tree,
+        collapsed = TRUE,
+        linkLength = 500,
+        zoomable = TRUE,
+        inputId = "generic_disease_tree_selected_node",
+        nodeSize = 'nodeSize',
+        #nodeSize = 14,
+        tooltip = TRUE,
+        tooltipHtml = 'tooltipHtml',
         aggFun = 'identity',
         fontSize = 14 #,
         #,
@@ -2030,18 +2378,30 @@ order by criteria_column_index "
     
   })
   
+  # Handle node click on disease tree ----
   observeEvent(input$generic_disease_tree_selected_node, ignoreNULL = TRUE, {
     print("generic disease tree node selected")
     #browser()
     print(input$generic_disease_tree_selected_node)
+    
     # browser()
     if(length(input$generic_disease_tree_selected_node) > 0) {
+      new_disease <- input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]]
       output$generic_disease_tree_disease_selected <- renderText(input$generic_disease_tree_selected_node[[length(input$generic_disease_tree_selected_node)]] )
     } else {
       output$generic_disease_tree_disease_selected <- renderText(sessionInfo$disease_tree_root_node)
+      new_disease <- sessionInfo$disease_tree_root_node
     }
-    
-    # browser()
+    see_if_collector_node_sql = "select count(*) from disease_tree where child = $1 and child <> original_child"
+    df_collector_node <- safe_query(dbGetQuery, see_if_collector_node_sql,  params = c(new_disease))
+   # browser()
+    if (df_collector_node$count[[1]] > 0) {
+      print("collector node")
+      shinyjs::disable("generic_disease_tree_add_disease")
+    } else {
+      print("regular node ")
+      shinyjs::enable("generic_disease_tree_add_disease")
+    }
     print("----------")
   })
   
@@ -2056,7 +2416,28 @@ order by criteria_column_index "
     }
     
     print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
+    #add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
+    add_disease_sql <- "
+    with poss_diseases as  (
+select distinct original_child from disease_tree where child = $1
+)
+,
+ctrp_display_likes as (
+select 
+   case 
+    when position('  ' in pd.original_child) > 0 then replace(pd.original_child, '  ', '%') 
+	when right(pd.original_child,1) = ' ' then substr(pd.original_child, 1, length(pd.original_child)-1) || '%' 
+	else pd.original_child
+  end  like_string
+  from poss_diseases pd
+)
+
+select dtd.nci_thesaurus_concept_id as \"Code\", 
+   'YES' as \"Value\" ,  
+    dtd.preferred_name as \"Diseases\" from distinct_trial_diseases dtd 
+join ctrp_display_likes c on dtd.display_name like c.like_string
+
+    "
     df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
     #browser()
     sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
@@ -2066,47 +2447,14 @@ order by criteria_column_index "
   }
   )
   
-  observeEvent(input$gyn_selected_node, ignoreNULL = TRUE, {
-    print("gyn node selected")
-    #browser()
-    print(input$gyn_selected_node)
-   # browser()
-    if(length(input$gyn_selected_node) > 0) {
-      output$gyn_selected <- renderText(input$gyn_selected_node[[length(input$gyn_selected_node)]] )
-    } else {
-      output$gyn_selected <- renderText('Malignant Female Reproductive System Neoplasm')
-    }
-    
-    # browser()
-    print("----------")
-  })
+ # crosswalk modal closed ----
+observeEvent(input$crosswalk_bsmodal_close, {
+  print("crosswalk modal closed")
+  output$crosswalk_name <- renderText("")
+  updateTextInput(session, "crosswalk_code", value='')
   
-  observeEvent(input$lung_selected_node, ignoreNULL = TRUE, {
-    print("lung node selected")
-   # print(input$lung_selected_node)
-    # browser()
-    if(length(input$lung_selected_node) > 0) {
-      output$lung_selected <- renderText(input$lung_selected_node[[length(input$lung_selected_node)]] )
-    } else {
-      output$lung_selected <- renderText('Lung Cancer')
-    }  
-    # browser()
-    print("----------")
-  })
-  
-  observeEvent(input$solid_selected_node, ignoreNULL = TRUE, {
-    print("node selected")
-  
-    #print(input$solid_selected_node)
-    # browser()
-    if(length(input$solid_selected_node) > 0) {
-      output$solid_selected <- renderText(input$solid_selected_node[[length(input$solid_selected_node)]] )
-    } else {
-      output$solid_selected <- renderText('Solid Tumor')
-    }
-    # browser()
-    print("----------")
-  })
+}
+)
   
   observeEvent(input$biomarker_bsmodal_close, {
     # Clear the biomarker dataframe
@@ -2280,6 +2628,7 @@ order by criteria_column_index "
     add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
     df_new_disease <- safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
     #browser()
+    print(df_new_disease)
     sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
     print(sessionInfo$disease_df)
     
@@ -2350,7 +2699,7 @@ order by criteria_column_index "
     } else if(length(input$maintype_typer) > 0  & input$maintype_typer != "" ){
       # No subtype, get the maintype and add that in.
       print(paste("add maintype as disease - ", input$maintype_typer))
-      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
       new_disease <- input$maintype_typer
       df_new_disease <-
         safe_query(dbGetQuery, add_disease_sql,  params = c(new_disease))
@@ -2366,7 +2715,7 @@ order by criteria_column_index "
     #See if we have subtypes, if so use them, otherwise see if we have a maintype/subtype 
     # and use that
     if(length(input$stage_typer) > 0  ){
-      add_disease_sql <- "select distinct nci_thesaurus_concept_id as Code , 'YES' as Value, preferred_name as Diseases from  trial_diseases where display_name = $1"
+      add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
       for (row in 1:length(input$stage_typer)) {
         new_disease <- input$stage_typer[row]
         df_new_disease <-
@@ -2381,45 +2730,86 @@ order by criteria_column_index "
   }
   )
   
-  # Add crosswalk codes, if any 
+  ### Add crosswalk codes, if any ----
   
   observeEvent(input$find_crosswalk_codes, {
     print("add crosswalk codes")
     #closeAlert(session,'crosswalk_modal_alert' )
     print(input$crosswalk_ontology)
-    if(input$crosswalk_code != "") {
-      # we have a code - 
+    if (input$crosswalk_code != "") {
+      # we have a code -
       print(input$crosswalk_code)
-      # If ICD10CM, check local table
       
-      # check UMLS crosswalk if nothing is returned locally
       
       withProgress(message = "Looking up codes", value = 0, {
-        if(input$crosswalk_ontology == 'ICD10CM') {
-          session_conn = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-          icd10_sql <- "select evs_c_code as \"Code\", 'YES' as Value, evs_preferred_name as \"Description\" from icd10 where code_system = 'ICD10' and disease_code = $1 and evs_c_code is not null"
-          new_codes <-
-            dbGetQuery(session_conn, icd10_sql,  params = c(input$crosswalk_code))
-          DBI::dbDisconnect(session_conn)
-          if(nrow(new_codes) == 0) {
-            new_codes <- get_umls_crosswalk(input$crosswalk_ontology, input$crosswalk_code, tgt)
-          }
-        } else {
-          new_codes <- get_umls_crosswalk(input$crosswalk_ontology, input$crosswalk_code, tgt)
+        #browser()
+        # first see is that what is typed is a valid code
+        #
+        
+        if (input$crosswalk_ontology == 'SNOMEDCT') {
+          code_lookup_sql <-
+            "select str from umls.mrconso where code = $1 and tty = 'PT' and sab = 'SNOMEDCT_US'"
+        } else if (input$crosswalk_ontology == 'ICD10CM')  {
+          code_lookup_sql <-
+            " select str from umls.mrconso where code =$1 and tty = 'PT' and sab = 'ICD10CM'"
+        } else if (input$crosswalk_ontology == 'LOINC') {
+          code_lookup_sql <-
+            "select str from umls.mrconso where code = $1 and sab = 'LNC' and tty = 'LC'"
         }
+        
+        df_umls <- safe_query(dbGetQuery,
+                              code_lookup_sql,
+                              params = c(input$crosswalk_code))
+        
+        #browser()
+       
+        
+        if (nrow(df_umls) == 0) {
+          createAlert(session,
+                      'crosswalk_modal_alert',
+                      title = "Invalid code",
+                      content = "This is an invalid code")
+        } else {
+          output$crosswalk_name <- renderText(df_umls$str[[1]])
+          ehr_c <-
+            paste(input$crosswalk_ontology, input$crosswalk_code, sep = ':')
+          new_codes <-
+            get_ncit_codes_from_ehr_codes(list(ehr_c), safe_query)
+          
+          
+          # browser()
+          if (nrow(new_codes) > 0 ) {
+            print(new_codes)
+            output$matched_ncit_name <- renderText(
+                                paste(new_codes$Description[[1]], " (",new_codes$Code[[1]],")", sep="" )
+            )
+            # If it is not a disease, stick it in the crosswalk dataframe, otherwise stick 
+            # it in the disease dataframe
+            rowc_df <- safe_query(dbGetQuery, 
+                                  "select count(*) as num_diseases from trial_diseases where nci_thesaurus_concept_id = $1",
+                                  new_codes$Code[[1]])
+            if (rowc_df$num_diseases[[1]] == 0) {
+              sessionInfo$crosswalk_df <-
+                rbind(sessionInfo$crosswalk_df, new_codes)
+              sessionInfo$crosswalk_df <- sessionInfo$crosswalk_df[!duplicated(sessionInfo$crosswalk_df), ]
+            } else {
+              sessionInfo$disease_df <-
+                rbind(sessionInfo$disease_df, new_codes)
+              sessionInfo$disease_df <- sessionInfo$disease_df[!duplicated(sessionInfo$disease_df), ]
+            }
+            #
+          } else {
+            createAlert(session,
+                        'crosswalk_modal_alert',
+                        title = "",
+                        content = "No equivalent NCI codes found")
+          }
+        }
+        
+        
       })
-      # browser()
-      if(!is.null(new_codes)) {
-        print(new_codes)
-        sessionInfo$crosswalk_df <- rbind(sessionInfo$crosswalk_df, new_codes)
-      } else {
-        createAlert(session, 'crosswalk_modal_alert', title = "", content = "No equivalent NCI codes found")
-      }
-      
-      
     }
   })
-  
   observe( {
     show_crosswalk_dt <- datatable(
       sessionInfo$crosswalk_df,
@@ -2454,6 +2844,11 @@ order by criteria_column_index "
   
   observe( {
   print('sessionInfo$disease_df changed')  
+    #browser()
+    # if (nrow(sessionInfo$disease_df) > 0) {
+    #     biomarker_df <- get_biomarker_trial_counts_for_diseases(safe_query, sessionInfo$disease_df$Code)
+    # }
+    
   show_disease_dt <- datatable(
     sessionInfo$disease_df,
     class = 'cell-border stripe compact wrap ',
