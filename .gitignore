@@ -3,3 +3,7 @@ venv/
 .vscode/launch.json
 .vscode/settings.json
 .DS_Store
+~*.xlsx
+~*.csv
+~*.tsv
+__pycache__

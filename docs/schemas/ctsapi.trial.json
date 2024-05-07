@@ -1,0 +1,571 @@
+{
+  "_current_trial_status_sort_order": {
+    "type": "short"
+  },
+  "_phase_sort_order": {
+    "type": "short"
+  },
+  "_primary_purpose_sort_order": {
+    "type": "short"
+  },
+  "_study_protocol_type_sort_order": {
+    "type": "long"
+  },
+  "acronym": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "active_sites_count": {
+    "type": "short"
+  },
+  "amendment_date": {
+    "type": "date"
+  },
+  "anatomic_sites": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "arms": {
+    "type": "nested",
+    "properties": {
+      "description": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "interventions": {
+        "type": "nested",
+        "properties": {
+          "category": {
+            "type": "text",
+            "fields": ["_auto", "_fulltext", "_raw"]
+          },
+          "description": {
+            "type": "text",
+            "fields": ["_auto", "_fulltext", "_raw"]
+          },
+          "inclusion_indicator": {
+            "type": "text"
+          },
+          "name": {
+            "type": "text",
+            "fields": ["_auto", "_fulltext", "_raw"]
+          },
+          "nci_thesaurus_concept_id": {
+            "type": "text",
+            "fields": ["_auto", "_fulltext", "_raw"]
+          },
+          "parents": {
+            "type": "text"
+          },
+          "synonyms": {
+            "type": "text",
+            "fields": ["_auto", "_fulltext", "_raw"]
+          },
+          "type": {
+            "type": "text",
+            "fields": ["_auto", "_fulltext", "_raw"]
+          }
+        }
+      },
+      "name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "type": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "associated_studies": {
+    "type": "nested",
+    "properties": {
+      "study_id": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "study_id_type": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "biomarkers": {
+    "type": "nested",
+    "properties": {
+      "ancestors": {
+        "type": "text"
+      },
+      "assay_purpose": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "eligibility_criterion": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "inclusion_indicator": {
+        "type": "text"
+      },
+      "name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "nci_thesaurus_concept_id": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "parents": {
+        "type": "text"
+      },
+      "semantic_types": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "synonyms": {
+        "type": "text"
+      },
+      "type": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "brief_summary": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "brief_title": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "ccr_id": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "central_contact": {
+    "type": "nested",
+    "properties": {
+      "email": {
+        "type": "text"
+      },
+      "name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "phone": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "type": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "classification_code": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "collaborators": {
+    "type": "nested",
+    "properties": {
+      "functional_role": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "completion_date": {
+    "type": "date"
+  },
+  "completion_date_type_code": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "ctep_id": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "current_trial_status": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "current_trial_status_date": {
+    "type": "date"
+  },
+  "dcp_id": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "detail_description": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "diseases": {
+    "type": "nested",
+    "properties": {
+      "inclusion_indicator": {
+        "type": "text"
+      },
+      "is_lead_disease": {
+        "type": "boolean"
+      },
+      "name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "nci_thesaurus_concept_id": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "parents": {
+        "type": "text"
+      },
+      "synonyms": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "type": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "eligibility": {
+    "type": "nested",
+    "properties": {
+      "structured": {
+        "type": "nested",
+        "properties": {
+          "accepts_healthy_volunteers": {
+            "type": "boolean"
+          },
+          "gender": {
+            "type": "text"
+          },
+          "max_age": {
+            "type": "text"
+          },
+          "max_age_in_years": {
+            "type": "float"
+          },
+          "max_age_number": {
+            "type": "long"
+          },
+          "max_age_unit": {
+            "type": "text"
+          },
+          "min_age": {
+            "type": "text"
+          },
+          "min_age_in_years": {
+            "type": "float"
+          },
+          "min_age_number": {
+            "type": "long"
+          },
+          "min_age_unit": {
+            "type": "text"
+          }
+        }
+      },
+      "unstructured": {
+        "type": "nested",
+        "properties": {
+          "description": {
+            "type": "text"
+          },
+          "display_order": {
+            "type": "short"
+          },
+          "inclusion_indicator": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "interventional_model": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "keywords": {
+    "type": "text"
+  },
+  "lead_org": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "lead_org_cancer_center": {
+    "type": "text"
+  },
+  "masking": {
+    "type": "nested",
+    "properties": {
+      "allocation_code": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "masking": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "role_caregiver": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "role_investigator": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "role_outcome_assessor": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "role_subject": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "minimum_target_accrual_number": {
+    "type": "long"
+  },
+  "nci_funded": {
+    "type": "text"
+  },
+  "nci_id": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "nci_programs": {
+    "type": "text"
+  },
+  "nct_id": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "number_of_arms": {
+    "type": "long"
+  },
+  "official_title": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "other_ids": {
+    "type": "nested",
+    "properties": {
+      "name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "value": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "outcome_measures": {
+    "type": "nested",
+    "properties": {
+      "description": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "time_frame": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "type_code": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "phase": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "primary_purpose": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "principal_investigator": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "prior_therapy": {
+    "type": "nested",
+    "properties": {
+      "ancestor_ids": {
+        "type": "text",
+        "fields": ["_fulltext", "_raw"]
+      },
+      "eligibility_criterion": {
+        "type": "text",
+        "fields": ["_fulltext", "_raw"]
+      },
+      "inclusion_indicator": {
+        "type": "text"
+      },
+      "name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "nci_thesaurus_concept_id": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "parents": {
+        "type": "text"
+      },
+      "synonyms": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      }
+    }
+  },
+  "protocol_id": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "record_verification_date": {
+    "type": "date"
+  },
+  "sampling_method_code": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "sites": {
+    "type": "nested",
+    "properties": {
+      "contact_email": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "contact_name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "contact_phone": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "org_address_line_1": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "org_address_line_2": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "org_city": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "org_coordinates": {
+        "type": "geo_point"
+      },
+      "org_country": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "org_email": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "org_family": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "org_fax": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "org_name": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "org_phone": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "org_postal_code": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "org_state_or_province": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "org_tty": {
+        "type": "text",
+        "fields": ["_raw"]
+      },
+      "org_va": {
+        "type": "boolean"
+      },
+      "recruitment_status": {
+        "type": "text",
+        "fields": ["_auto", "_fulltext", "_raw"]
+      },
+      "recruitment_status_date": {
+        "type": "date"
+      }
+    }
+  },
+  "start_date": {
+    "type": "date"
+  },
+  "start_date_type_code": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "status_history": {
+    "properties": {
+      "status": {
+        "type": "text"
+      },
+      "status_date": {
+        "type": "date"
+      }
+    }
+  },
+  "study_model_code": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "study_model_other_text": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "study_population_description": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "study_protocol_type": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "study_source": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "study_subtype_code": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  },
+  "why_study_stopped": {
+    "type": "text",
+    "fields": ["_auto", "_fulltext", "_raw"]
+  }
+}
