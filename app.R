@@ -165,7 +165,7 @@ source("get_org_families.R")
 source("get_api_studies_for_cancer_centers.R")
 
 source("get_umls_crosswalk.R")
-source("get_api_studies_for_disease.R")
+source("get_api_studies_for_disease_v2.R")
 source("fix_blood_results.R")
 source("get_api_studies_for_location_and_distance.R")
 source("get_maintypes_for_diseases.R")
@@ -1756,7 +1756,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       # Now get the disease matching studies
       #
       disease_df <-
-        get_api_studies_for_disease(possible_disease_codes_df$Code)
+        get_api_studies_for_disease_v2(possible_disease_codes_df$Code)
       # browser()
       df_crit$api_disease_match <-
         df_crit$clean_nct_id %in% disease_df$nct_id # will set T/F for each row
