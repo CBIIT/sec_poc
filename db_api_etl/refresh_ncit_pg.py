@@ -466,7 +466,7 @@ cur.execute('grant select on distinct_trial_diseases to sec_read')
 cur.execute('grant select on nlp_data_tab to sec_read')
 cur.execute('grant select on trials to sec_read')
 cur.execute('grant select on ncit_tc_with_path to sec_read')
-cur.execute('grant select on trial_sites to sec_read');
+cur.execute('grant select on trial_sites to sec_read')
 cur.execute('grant select on trial_maintypes to sec_read')
 cur.execute('grant select on curated_crosswalk to sec_read')
 cur.execute( 'grant select on disease_tree to sec_read')
