@@ -181,7 +181,7 @@ get_api_studies_for_disease_v2 <- function(ncit_code) {
 
   unique_nct_ids <- unique(lapply(all_trials_as_dts, function(dt) dt$nct_id[[1]]))
   print(paste("Fetched", length(unique_nct_ids), "combined trials."))
-  return(unique_nct_ids)
+  return(list(nct_ids = unique_nct_ids))
 }
 
 

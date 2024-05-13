@@ -217,6 +217,12 @@ ui <- fluidPage(
 input:invalid {
 background-color: #FFCCCC;
 }")),
+  tags$style(HTML(".text-truncate {
+  max-width: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}")),
 
   #
   # set the shiny bsmodal to be as large as it can be.
@@ -519,6 +525,15 @@ background-color: #FFCCCC;
             style =
               "padding:4px; font-size:80%"
           )
+        )
+      ),
+      fluidRow(
+        column(
+          width = 12,
+          offset = 0,
+          style = "padding:10px;",
+          uiOutput("df_trial_diseases_header"),
+          DT::dataTableOutput("df_trial_diseases")
         )
       ),
       # Generic disease tree bsmodal ----
@@ -2129,8 +2144,6 @@ order by criteria_column_index "
 
 
 
-        columns_with_tooltips <- c("Disease Names")
-
 
         new_match_dt <-
           datatable(
@@ -2189,14 +2202,14 @@ order by criteria_column_index "
                 # Columns with hover tooltips
 
                 list(
+                  className = "text-truncate",
                   targets = match(
-                    columns_with_tooltips,
+                    "Disease Names",
                     names(sessionInfo$df_matches_to_show)
                   ),
                   render = JS(
-                    "function(data, type, row, meta) { if (data === null) { return \"\" } ",
-                    "return type === 'display' && data.length > 30 ?",
-                    "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;",
+                    "function(data, type, row, meta) {",
+                    "return `<a href=\"#trial-diseases-table-header\">${data}</a>`",
                     "}"
                   )
                 ),
@@ -2227,7 +2240,9 @@ order by criteria_column_index "
                   )
                 )
               )
-            )
+            ),
+
+            selection = list(mode = "single", target = "cell")
           ) %>% DT::formatStyle(columns = c(2, 4, 7, 9), fontSize = "75%")
 
 
@@ -2238,6 +2253,44 @@ order by criteria_column_index "
       click("toggleSidebar")
     })
   }
+
+  #' Observe the Trial Matches output table for cell click.
+  #' If the cell is the Disease Names cell, render the Trial's diseases below the matches output table.
+  observeEvent(input$df_matches_data_cells_selected, {
+    if (!nrow(input$df_matches_data_cells_selected)) {
+      return()
+    }
+    single_row_selection <- input$df_matches_data_cells_selected[1, ]
+    names(single_row_selection) <- c("row", "col")
+    if (single_row_selection[["col"]] != match("Disease Names", names(sessionInfo$df_matches_to_show))) {
+      return()
+    }
+    selected_trial_row <- sessionInfo$df_matches_to_show[single_row_selection[["row"]], ]
+    # Split the "Disease Names" chr vector into a list of disease names.
+    trial_disease_list <- strsplit(
+      as.character(factor(selected_trial_row$`Disease Names`)),
+      split = "(?<=\\)),",
+      perl = TRUE
+    )[[1]]
+    # A disease name looks like "Stage IIA Breast Cancer ( C5454 )".
+    disease_name_code_regex <- "^(.+?)\\s*\\(\\s*(C.+?)\\s*\\)$"
+    # Convert each disease name to a data.frame with disease and code columns.
+    disease_dfs <- lapply(trial_disease_list, function(disease_chr) {
+      match <- stringr::str_match(disease_chr, disease_name_code_regex)[1, 2:3]
+      names(match) <- c("disease", "code")
+      return(data.frame(as.list(match), stringsAsFactors = FALSE))
+    })
+    disease_names_df <- rbindlist(disease_dfs)
+
+    output$df_trial_diseases <- DT::renderDT(disease_names_df)
+
+    output$df_trial_diseases_header <- renderUI({
+      div(
+        h2("Trial", HTML(selected_trial_row$`NCT ID`), "Diseases", id="trial-diseases-table-header"),
+        hr()
+      )
+    })
+  })
 
   #
   # Search and match button event handler ----
