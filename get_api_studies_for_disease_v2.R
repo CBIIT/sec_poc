@@ -86,7 +86,7 @@ flatten_trial_diseases_to_dt <- function(trial) {
   return(rbindlist(rows))
 }
 
-#' Given a data table consisting of code, disease, and parent codes
+#' Given a data table consisting of a Trial's code, disease, and parent codes
 #' visit all the parent codes starting from `starting_terms`.
 #' @param starting_terms vector of character. Codes to begin visiting parents from.
 construct_paths_to_root <- function(trial_disease_dt, starting_terms, visited) {
@@ -127,6 +127,7 @@ get_api_studies_for_disease_v2 <- function(ncit_code) {
     body_args = body_args
   )
   print(paste("Fetched", length(disease_trials), "disease search-term trials."))
+  shiny::setProgress(value = 0.15, detail = "Matching on parent diseases")
 
   # Save the retrieved trials into a list of data.table
   all_trials_as_dts <- list()

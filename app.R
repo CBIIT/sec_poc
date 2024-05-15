@@ -2241,7 +2241,6 @@ order by criteria_column_index "
                 )
               )
             ),
-
             selection = list(mode = "single", target = "cell")
           ) %>% DT::formatStyle(columns = c(2, 4, 7, 9), fontSize = "75%")
 
@@ -2268,12 +2267,12 @@ order by criteria_column_index "
     selected_trial_row <- sessionInfo$df_matches_to_show[single_row_selection[["row"]], ]
     # Split the "Disease Names" chr vector into a list of disease names.
     trial_disease_list <- strsplit(
-      as.character(factor(selected_trial_row$`Disease Names`)),
+      as.character(selected_trial_row$`Disease Names`),
       split = "(?<=\\)),",
       perl = TRUE
     )[[1]]
     # A disease name looks like "Stage IIA Breast Cancer ( C5454 )".
-    disease_name_code_regex <- "^(.+?)\\s*\\(\\s*(C.+?)\\s*\\)$"
+    disease_name_code_regex <- "^(.+?)\\s*\\(\\s*(C\\d+?)\\s*\\)$"
     # Convert each disease name to a data.frame with disease and code columns.
     disease_dfs <- lapply(trial_disease_list, function(disease_chr) {
       match <- stringr::str_match(disease_chr, disease_name_code_regex)[1, 2:3]
@@ -2281,12 +2280,53 @@ order by criteria_column_index "
       return(data.frame(as.list(match), stringsAsFactors = FALSE))
     })
     disease_names_df <- rbindlist(disease_dfs)
+    disease_names_df$is_match <- FALSE
+    # Query to get the path of the search term to the disease code
+    path_sql <- "select path from ncit_tc_with_path where parent = $1 and descendant = $2"
 
-    output$df_trial_diseases <- DT::renderDT(disease_names_df)
+    for (search_code in sessionInfo$disease_df$Code) {
+      for (row_idx in seq_len(nrow(disease_names_df))) {
+        row <- disease_names_df[row_idx, ]
+        if (!is.na(row[["is_match"]]) && row[["is_match"]]) {
+          # If we already found a match for a previous search code, then ignore this search code
+          break
+        }
+        disease_code <- row[["code"]]
+        # Check if there is a path from disease code to search code
+        paths <- safe_query(dbGetQuery, path_sql, params = c(disease_code, search_code))
+        if (nrow(paths)) {
+          print(paste("Path exists:", paths$path[[1]]))
+          disease_names_df[row_idx, "is_match"] <- TRUE
+          next
+        }
+        # Otherwise check if there is a path from search code to disease code
+        paths <- safe_query(dbGetQuery, path_sql, params = c(search_code, disease_code))
+        if (nrow(paths)) {
+          print(paste("Path exists:", paths$path[[1]]))
+          disease_names_df[row_idx, "is_match"] <- TRUE
+          next
+        }
+      }
+    }
+    assertthat::assert_that(any(disease_names_df$is_match), msg = "At least one disease should be a match")
+
+    output$df_trial_diseases <- DT::renderDT(disease_names_df %>% arrange(desc(is_match)), options = list(
+      columnDefs = list(
+        list(
+          targets = c(3),
+          render = JS(
+            "function(dataIsTrue, type, row, meta) {",
+            " return dataIsTrue ? '<img src=\"checkmark-32.png\" />' :",
+            "'<img src=\"x-mark-32.png\" />' ",
+            "}"
+          )
+        )
+      )
+    ))
 
     output$df_trial_diseases_header <- renderUI({
       div(
-        h2("Trial", HTML(selected_trial_row$`NCT ID`), "Diseases", id="trial-diseases-table-header"),
+        h2(HTML(selected_trial_row$`NCT ID`), "TRIAL-level Diseases", id = "trial-diseases-table-header"),
         hr()
       )
     })
