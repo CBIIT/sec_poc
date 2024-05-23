@@ -156,6 +156,7 @@ get_api_studies_for_disease_v2 <- function(ncit_code) {
     }
   }
   parent_terms <- as.list(parent_terms_env)
+  parent_terms <- parent_terms[!names(parent_terms) %in% starting_terms]
   parent_ncit_codes <- names(parent_terms)
 
   # Fetch all TRIAL-level parent-code trials
@@ -166,6 +167,9 @@ get_api_studies_for_disease_v2 <- function(ncit_code) {
     )
     p1 <- poc_disease_search(body_args = body_args)
     all_pages <- paginate_cts_api(p1$data, p1$total, poc_disease_search, body_args = body_args)
+    if (length(all_pages) >= 1) {
+      print(paste("Fetched", length(all_pages), "trials for ancestor", parent_ncit_code, "(", parent_terms_env[[parent_ncit_code]], ")"))
+    }
     return(all_pages)
   })
   count_of_parent_trials <- Reduce(function(count, list_of_trials) {

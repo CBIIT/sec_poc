@@ -1782,7 +1782,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
       va_df <- get_api_studies_with_va_sites()
       print(va_df)
       df_crit$va_match <- df_crit$clean_nct_id %in% va_df$nct_id
-      print(df_crit$va_match)
+      # print(df_crit$va_match)
 
       # Get the NIH CC studies
       nih_cc_df <- get_api_studies_for_postal_code("20892")
