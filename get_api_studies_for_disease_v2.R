@@ -45,16 +45,17 @@ poc_disease_search <- function(
     body_args
   )
 
-  response <- httr::POST(
+  response <- POST(
     "https://clinicaltrialsapi.cancer.gov/api/v2/trials",
     # Copied from get_api_studies_for_disease.R
     body = body,
     encode = "json",
-    httr::add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = "application/json"),
-    httr::timeout(5)
+    add_headers(`x-api-key` = CTS_V2_API_KEY, `Content-Type` = "application/json"),
+    timeout(5)
+    # verbose(data_out = TRUE, ssl = TRUE)
   )
 
-  data <- httr::content(response)
+  data <- content(response)
   if (response$status_code != 200) {
     print(response)
   }
@@ -127,7 +128,9 @@ get_api_studies_for_disease_v2 <- function(ncit_code) {
     body_args = body_args
   )
   print(paste("Fetched", length(disease_trials), "disease search-term trials."))
-  shiny::setProgress(value = 0.15, detail = "Matching on parent diseases")
+  if (!is.null(shiny::getDefaultReactiveDomain())) {
+    shiny::setProgress(value = 0.15, detail = "Matching on parent diseases")
+  }
 
   # Save the retrieved trials into a list of data.table
   all_trials_as_dts <- list()
