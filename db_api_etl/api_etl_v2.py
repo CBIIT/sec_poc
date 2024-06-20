@@ -8,6 +8,7 @@ import psycopg2
 import psycopg2.extras
 
 CTS_V2_API_KEY = os.getenv('CTS_V2_API_KEY')
+print(CTS_V2_API_KEY)
 header_v2_api = {"x-api-key" : CTS_V2_API_KEY, "Content-Type" : "application/json"}
 
 def get_maintypes(con, lead_disease):
@@ -65,6 +66,25 @@ def gen_biomarker_info(biomarkers):
 
     return (biomarker_inc_codes, biomarker_inc_names, biomarker_exc_codes, biomarker_exc_names)
 
+
+def insert_prior_therapies(db_conn, db_cur, nct_id,
+                           prior_therapies):
+    """
+    Populates the trial_prior_therapies table for a single trial.
+    """
+    if prior_therapies:
+        args_to_insert: list[tuple] = [(nct_id,
+                          prior_therapy["nci_thesaurus_concept_id"],
+                          prior_therapy["eligibility_criterion"],
+                          prior_therapy["inclusion_indicator"],
+                          prior_therapy["name"])
+                          for prior_therapy in prior_therapies]
+        sql = """insert into trial_prior_therapies(nct_id, nci_thesaurus_concept_id, eligibility_criterion, inclusion_indicator, name)
+                    values(%s, %s, %s, %s, %s)"""
+        psycopg2.extras.execute_batch(cur, sql, args_to_insert)
+        db_conn.commit()
+
+
 start_time = datetime.datetime.now()
 
 parser = argparse.ArgumentParser(
@@ -81,13 +101,14 @@ con = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, por
  password=args.password)
 
 cur = con.cursor()
-cur.execute('delete from trial_diseases')
-cur.execute('delete from trials')
-cur.execute('delete from maintypes')
+cur.execute('delete from  trial_diseases ')
+cur.execute('delete from trial_prior_therapies')
+cur.execute('delete from  trials')
+cur.execute('delete from   maintypes')
 cur.execute('delete from trial_maintypes')
 cur.execute('delete from distinct_trial_diseases')
-cur.execute('delete from trial_sites')
-cur.execute('delete from trial_unstructured_criteria')
+cur.execute('delete from  trial_sites')
+cur.execute('delete from  trial_unstructured_criteria')
 con.commit()
 
 # First get the maintypes, then get the study data needed.
@@ -129,7 +150,8 @@ include_items = ['nct_id',
                  'record_verification_date',
                  'sites',
                  'amendment_date',
-                 'biomarkers'
+                 'biomarkers',
+                 'prior_therapy'
                  ]
 
 
@@ -171,7 +193,7 @@ run = True
 while run:
     print(start)
     r = requests.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
-                      headers=header_v2_api, json=data)
+                      headers=header_v2_api, json=data, timeout=(5.0, 20.0) )
     print('status code returned = ', r.status_code)
     t = r.text
     j = r.json()
@@ -279,6 +301,9 @@ while run:
 
         # end of disease processing
 
+        if 'prior_therapy' in trial:
+            insert_prior_therapies(con, cur, trial['nct_id'], trial['prior_therapy'])
+
         # unstructured criteria
         if 'unstructured' in trial['eligibility'] and trial['eligibility']['unstructured'] is not None:
             uns = trial['eligibility']['unstructured']
@@ -334,7 +359,7 @@ cur.execute('drop table if exists disease_tree_temp')
 con.commit()
 
 sql = """
-    create temporary table disease_tree_temp as (
+    create  table disease_tree_temp as (
   with recursive parent_descendant(top_code, parent, descendant, level, path_string)
   as (
   select tc.parent as top_code, tc.parent , tc.descendant , 1 as level, n1.pref_name || ' | ' || n2.pref_name as path_string  
@@ -342,7 +367,7 @@ sql = """
   where tc.parent 
    in (
          select nci_thesaurus_concept_id
-         from distinct_trial_diseases ds where ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%'
+         from distinct_trial_diseases ds where (ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%')
          and nci_thesaurus_concept_id not in ('C2991', 'C2916') union select 'C4913' as nci_thesaurus_concept_id 
    )
    and tc.level = 1 
@@ -355,7 +380,7 @@ sql = """
   ncit_tc_with_path tc1 on pd.descendant = tc1.parent and tc1.level = 1
   join ncit n1 on n1.code = tc1.descendant
   )
-  -- select * from parent_descendant  where level < 3 order by top_code, level
+   --select * from parent_descendant  where level < 3 order by top_code, level
   ,
   data_for_tree as
   (
@@ -385,6 +410,16 @@ sql = """
   )
   )
   ,
+  trial_disease_counts as ( 
+select display_name, replace(replace(replace(display_name, 'AJCC v7', ''), 'AJCC v8', ''), 'AJCC v6', '') as rev_name , count(display_name) as num_trials 
+from trial_diseases  
+group by display_name  
+),
+ctrp_display_name_trial_counts as (
+select rev_name, sum(num_trials) as num_trials from trial_disease_counts
+group by rev_name 
+)
+  ,
   ctrp_names as (
   select distinct preferred_name, display_name from trial_diseases 
   ),
@@ -392,24 +427,294 @@ sql = """
                         select an.top_code,  replace(replace(replace(ctrp1.display_name, 'AJCC v7', ''), 'AJCC v8', '') , 'AJCC v6', '') as parent , 
                        replace(replace(replace(ctrp2.display_name, 'AJCC v7', ''), 'AJCC v8', ''), 'AJCC v6', '') as child,  
                        level as level,  
-                       1 as collapsed, 10 as \"nodeSize\" --, path_string
+                       1 as collapsed, 10 as "nodeSize" --, path_string
+                       
+					   , 
+					   
+					 --  'foo' as "tooltipHtml" 
+					  CASE 
+					    
+					    when cc.num_trials = 1  THEN coalesce(cast(cc.num_trials as varchar), ' ')  || ' trial' 
+					     
+					     when cc.num_trials > 1 THEN coalesce(cast(cc.num_trials as varchar), ' ')  || ' trials'  
+					     else ' ' 
+					    END  as "tooltipHtml"
+					   
                        from all_nodes an left outer join ctrp_names ctrp1 on an.parent=ctrp1.preferred_name
-                       join ctrp_names ctrp2 on an.child = ctrp2.preferred_name where  ( ctrp1.display_name != ctrp2.display_name or  level = 0) 
+                       join ctrp_names ctrp2 on an.child = ctrp2.preferred_name 
+					    left outer join ctrp_display_name_trial_counts cc on cc.rev_name = ctrp2.display_name 
+						where  ( ctrp1.display_name != ctrp2.display_name or  level = 0) 
                       )
-                      select distinct top_code, parent, child, level as levels, collapsed, \"nodeSize\"  from all_nodes_ctrp 
+                      select distinct top_code, parent, child, level as levels, collapsed, "nodeSize" , "tooltipHtml" from all_nodes_ctrp 
                       where level < 999 
                       )
 """
 cur.execute(sql)
+con.commit()
+
+# Note now take care of the blank tool tips 
+
+sql_for_synthetic_node = """
+ select distinct top_code, parent, child, levels, collapsed, "nodeSize" , "tooltipHtml" from disease_tree_temp where "tooltipHtml" = ' '
+
+"""
+
+cur.execute(sql_for_synthetic_node)
+syn_nodes  = cur.fetchall()
+print(syn_nodes)
+for syn_node in syn_nodes:
+    print("Processing syn node", syn_node)
+    syn_node_name = syn_node[2]
+    # Now see where the AJCC substitution happened
+    if '  ' in syn_node_name: 
+        print("2 spaces")
+        syn_node_name_like = syn_node_name.replace('  ', '%')
+    elif syn_node_name[-1] == ' ':
+        print('space at end')
+        syn_node_name_like = syn_node_name[:-1] + '%'
+    else:
+        print("UNKNOWN reason for syn node blank html tool tip ")
+        syn_node_name_like = None
+    print("syn_node_name_like", syn_node_name_like)    
+    syn_node_trial_count_sql = """
+    with ncit_codes_for_syn_node as (
+select DISTINCT nci_thesaurus_concept_id from distinct_trial_diseases where display_name like %s
+)
+select count(distinct nct_id) from trial_diseases td join ncit_codes_for_syn_node sn on td.nci_thesaurus_concept_id = sn.nci_thesaurus_concept_id
+    """  
+    if syn_node_name_like is not None:
+        cur.execute(syn_node_trial_count_sql, [syn_node_name_like])
+        t= cur.fetchone()
+        syn_node_count = t[0]
+        print("node count = ", syn_node_count )
+        if syn_node_count == 1:
+            new_tooltip = "1 trial"
+        else:
+            new_tooltip = str(syn_node_count)+ " trials"  
+        print(new_tooltip)    
+        usql = """
+          update disease_tree_temp set "tooltipHtml" = %s where
+               top_code = %s and parent = %s and  child = %s and levels = %s and collapsed = %s and "nodeSize" = %s
+        """
+        cur.execute(usql, [new_tooltip, syn_node[0], syn_node[1], syn_node[2], syn_node[3], syn_node[4], syn_node[5]])
+        con.commit()
+
+
+cur.execute("delete from disease_tree")
+
 sql = """
-        insert into disease_tree (code, parent, child, levels, collapsed, \"nodeSize\")
-        select top_code as code, replace(parent, '  ', ' '), replace(child, '  ', ' '), levels, collapsed, 
-        \"nodeSize\" from disease_tree_temp
+        insert into disease_tree (code, parent, child, levels, collapsed, \"nodeSize\", \"tooltipHtml\", original_child)
+        select top_code as code, trim(replace(parent, '  ', ' ')), trim(replace(child, '  ', ' ')), levels, collapsed, 
+        \"nodeSize\", \"tooltipHtml\" , child  from disease_tree_temp
         order by code, levels, parent, child;
 """
 cur.execute(sql)
 con.commit()    
 
+
+# Now process for nostaging 
+print("Processing disease tree data (no stage data version) ")
+cur.execute('drop table if exists disease_tree_temp_nostage')
+con.commit()
+
+sql = """
+    create  table disease_tree_temp_nostage as (
+  with recursive parent_descendant(top_code, parent, descendant, level, path_string)
+  as (
+  select tc.parent as top_code, tc.parent , tc.descendant , 1 as level, n1.pref_name || ' | ' || n2.pref_name as path_string  
+  from ncit_tc_with_path tc join ncit n1 on tc.parent = n1.code join ncit n2 on tc.descendant = n2.code 
+  join distinct_trial_diseases dtd on n2.code = dtd.nci_thesaurus_concept_id and dtd.disease_type not in ('stage','grade-stage')
+  where tc.parent 
+   in (
+         select nci_thesaurus_concept_id
+         from distinct_trial_diseases ds where (ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%')
+         and nci_thesaurus_concept_id not in ('C2991', 'C2916') union select 'C4913' as nci_thesaurus_concept_id 
+   )
+   and tc.level = 1 
+  union ALL
+  select pd.top_code, pd.descendant as parent ,
+  tc1.descendant as descendant, 
+  pd.level + 1 as level,
+  pd.path_string || ' | ' ||  n1.pref_name as path_string
+  from parent_descendant pd join
+  ncit_tc_with_path tc1 on pd.descendant = tc1.parent and tc1.level = 1
+  join ncit n1 on n1.code = tc1.descendant
+  
+  join distinct_trial_diseases dtd1 on dtd1.nci_thesaurus_concept_id = tc1.descendant and dtd1.disease_type not in ('stage','grade-stage')
+  )
+   --select * from parent_descendant  where level < 3 order by top_code, level
+  ,
+  data_for_tree as
+  (
+  select distinct pd.top_code, n1.pref_name  as parent,
+  n2.pref_name  as child,
+  pd.level
+  --,
+  --pd.path_string
+  from parent_descendant pd
+  join ncit n1 on pd.parent = n1.code 
+  join ncit n2 on pd.descendant = n2.code 
+  where exists (select dd.nci_thesaurus_concept_id from distinct_trial_diseases dd where dd.nci_thesaurus_concept_id = n2.code and dd.disease_type not in ('stage','grade-stage'))
+   -- and 
+    -- exists (select dd.nci_thesaurus_concept_id from distinct_trial_diseases dd where dd.nci_thesaurus_concept_id = n1.code and dd.disease_type not in ('stage','grade-stage'))
+  -- and (n1.pref_name not like '%AJCC%' and n2.pref_name not like '%AJCC%')
+  )
+  ,
+  all_nodes as (
+  select top_code, parent, child, level 
+  --, path_string 
+  from data_for_tree
+  union
+  select n.code as top_code, NULL as parent , pref_name  as child, 0 as level 
+  --, pref_name as path_string
+  from ncit n where n.code in (
+        select nci_thesaurus_concept_id
+        from distinct_trial_diseases ds where ds.disease_type = 'maintype' or ds.disease_type like  '%maintype-subtype%'
+        and nci_thesaurus_concept_id not in ('C2991', 'C2916') union select 'C4913' as nci_thesaurus_concept_id 
+  )
+  )
+  ,
+  trial_disease_counts as ( 
+select display_name, replace(replace(replace(display_name, 'AJCC v7', ''), 'AJCC v8', ''), 'AJCC v6', '') as rev_name , count(display_name) as num_trials 
+from trial_diseases  where disease_type not in ('stage','grade-stage')
+group by display_name  
+),
+ctrp_display_name_trial_counts as (
+select rev_name, sum(num_trials) as num_trials from trial_disease_counts
+group by rev_name 
+)
+  ,
+  ctrp_names as (
+  select distinct preferred_name, display_name from trial_diseases where disease_type not in ('stage','grade-stage')
+  ),
+    all_nodes_ctrp as (   
+                        select an.top_code,  replace(replace(replace(ctrp1.display_name, 'AJCC v7', ''), 'AJCC v8', '') , 'AJCC v6', '') as parent , 
+                       replace(replace(replace(ctrp2.display_name, 'AJCC v7', ''), 'AJCC v8', ''), 'AJCC v6', '') as child,  
+                       level as level,  
+                       1 as collapsed, 10 as "nodeSize" --, path_string
+                       
+					   , 
+					   
+					 --  'foo' as "tooltipHtml" 
+					  CASE 
+					    
+					    when cc.num_trials = 1  THEN coalesce(cast(cc.num_trials as varchar), ' ')  || ' trial' 
+					     
+					     when cc.num_trials > 1 THEN coalesce(cast(cc.num_trials as varchar), ' ')  || ' trials'  
+					     else ' ' 
+					    END  as "tooltipHtml"
+					   
+                       from all_nodes an left outer join ctrp_names ctrp1 on an.parent=ctrp1.preferred_name
+                       join ctrp_names ctrp2 on an.child = ctrp2.preferred_name 
+					    left outer join ctrp_display_name_trial_counts cc on cc.rev_name = ctrp2.display_name 
+						where  ( ctrp1.display_name != ctrp2.display_name or  level = 0) 
+                      )
+                      select distinct top_code, parent, child, level as levels, collapsed, "nodeSize" , "tooltipHtml" from all_nodes_ctrp 
+                      where level < 999 
+                      )
+"""
+cur.execute(sql)
+con.commit()
+
+# Note now take care of the blank tool tips 
+
+sql_for_synthetic_node = """
+ select distinct top_code, parent, child, levels, collapsed, "nodeSize" , "tooltipHtml" from disease_tree_temp_nostage where "tooltipHtml" = ' '
+
+"""
+
+cur.execute(sql_for_synthetic_node)
+syn_nodes  = cur.fetchall()
+print(syn_nodes)
+for syn_node in syn_nodes:
+    print("Processing syn node", syn_node)
+    syn_node_name = syn_node[2]
+    # Now see where the AJCC substitution happened
+    if '  ' in syn_node_name: 
+        print("2 spaces")
+        syn_node_name_like = syn_node_name.replace('  ', '%')
+    elif syn_node_name[-1] == ' ':
+        print('space at end')
+        syn_node_name_like = syn_node_name[:-1] + '%'
+    else:
+        print("UNKNOWN reason for syn node blank html tool tip ")
+        syn_node_name_like = None
+    print("syn_node_name_like", syn_node_name_like)    
+    syn_node_trial_count_sql = """
+    with ncit_codes_for_syn_node as (
+select DISTINCT nci_thesaurus_concept_id from distinct_trial_diseases where display_name like %s
+)
+select count(distinct nct_id) from trial_diseases td join ncit_codes_for_syn_node sn on td.nci_thesaurus_concept_id = sn.nci_thesaurus_concept_id
+    """  
+    if syn_node_name_like is not None:
+        cur.execute(syn_node_trial_count_sql, [syn_node_name_like])
+        t= cur.fetchone()
+        syn_node_count = t[0]
+        print("node count = ", syn_node_count )
+        if syn_node_count == 1:
+            new_tooltip = "1 trial"
+        else:
+            new_tooltip = str(syn_node_count)+ " trials"  
+        print(new_tooltip)    
+        usql = """
+          update disease_tree_temp_nostage set "tooltipHtml" = %s where
+               top_code = %s and parent = %s and  child = %s and levels = %s and collapsed = %s and "nodeSize" = %s
+        """
+        cur.execute(usql, [new_tooltip, syn_node[0], syn_node[1], syn_node[2], syn_node[3], syn_node[4], syn_node[5]])
+        con.commit()
+
+
+cur.execute("delete from disease_tree_nostage")
+
+sql = """
+        insert into disease_tree_nostage (code, parent, child, levels, collapsed, \"nodeSize\", \"tooltipHtml\", original_child)
+        select top_code as code, trim(replace(parent, '  ', ' ')), trim(replace(child, '  ', ' ')), levels, collapsed, 
+        \"nodeSize\", \"tooltipHtml\" , child  from disease_tree_temp_nostage
+        order by code, levels, parent, child;
+"""
+cur.execute(sql)
+con.commit()    
+
+
+print("Processing mul CTRP display name node tree data")
+
+#
+# Now fix the nodes for which one CTRP display name yields > 1 C code
+#
+print("Correcting node counts for nodes with more than one C code for a display_name")
+get_mul_counts_sql = """
+with multiple_display_names as (
+select display_name, count(display_name) as num_ctrp_display_names
+from distinct_trial_diseases 
+group by display_name having count(display_name) > 1
+)
+
+select count(distinct td.nct_id) as num_trials, mdn.display_name from trial_diseases td join 
+multiple_display_names mdn  on td.display_name = mdn.display_name group by mdn.display_name 
+"""
+update_tree_sql = """ 
+        update disease_tree set  "tooltipHtml" = %s where child = %s
+"""    
+update_tree_nostage_sql = """ 
+        update disease_tree_nostage set  "tooltipHtml" = %s where child = %s
+"""   
+
+cur.execute(get_mul_counts_sql)
+mul_nodes  = cur.fetchall()
+print(mul_nodes)
+for a_node in mul_nodes:
+    print("processing node ", a_node)
+    if a_node[0] == 1:
+        new_tooltip = "1 trial"
+    else:
+        new_tooltip = str(a_node[0])+ " trials"  
+    print(new_tooltip)   
+    cur.execute(update_tree_sql, [new_tooltip, a_node[1]])
+    cur.execute(update_tree_nostage_sql, [new_tooltip, a_node[1]])
+    con.commit()
+  
+
+  
 con.close()
 
 end_time = datetime.datetime.now()
