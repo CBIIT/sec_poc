@@ -155,7 +155,7 @@ get_api_studies_for_disease_v2 <- function(ncit_code) {
     terms_not_visited_yet <- terms_in_trial[!terms_in_trial %in% names(parent_terms_env)]
     if (length(terms_not_visited_yet)) {
       print(paste("Visiting", terms_not_visited_yet))
-      construct_paths_to_root(dt, starting_terms, parent_terms_env)
+      construct_paths_to_root(dt, terms_not_visited_yet, parent_terms_env)
     }
   }
   parent_terms <- as.list(parent_terms_env)
