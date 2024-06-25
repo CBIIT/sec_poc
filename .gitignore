@@ -7,3 +7,7 @@ venv/
 ~*.csv
 ~*.tsv
 __pycache__
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata

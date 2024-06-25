@@ -6,6 +6,8 @@ from typing import (Union, Any)
 from psycopg2 import connect
 from bz2 import compress
 from pickle import dumps
+import pickle
+import spacy
 from spacy import blank
 from spacy.matcher import PhraseMatcher
 import sys
@@ -58,6 +60,8 @@ def get_nlp() -> blank:
     
 
 if __name__ == '__main__':
+    print(spacy.__version__)
+    print(pickle.format_version)
     start_time = datetime.now()
     parser = argparse.ArgumentParser(
         description='Update the specified sqlite database with information from the cancer.gov API')
@@ -73,7 +77,6 @@ if __name__ == '__main__':
     select count(*) from ncit_version where active_version = 'Y' and ncit_tokenizer is not null
     """)[0]
     print("is tokenizer up to date",active_version_count )
-  
     if active_version_count == 0:  
         print("updating NLP ")
         nlp = get_nlp()
