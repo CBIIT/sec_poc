@@ -18,7 +18,7 @@ shinyApp(
         align-items: center;
         row-gap: 8px;
       }
-      #search_terms_a,#search_terms_b {
+      [id^='search_terms_'] {
         width: auto !important;
         position: sticky;
         top: 1px;
@@ -52,6 +52,17 @@ shinyApp(
           uiOutput("tables_ui_b"),
           uiOutput("total_trials_2_b")
         )
+      ),
+      tabPanel(
+        "Stage II BC - TRIAL Only",
+        div(
+          class = "center-content",
+          h1("Search Terms"),
+          DTOutput("search_terms_c"),
+          uiOutput("total_trials_1_c"),
+          uiOutput("tables_ui_c"),
+          uiOutput("total_trials_2_c")
+        )
       )
     )
   ),
@@ -59,7 +70,8 @@ shinyApp(
   server = function(input, output, session) {
     sessionData <- reactiveValues(
       all_p_a = NULL,
-      all_p_b = NULL
+      all_p_b = NULL,
+      all_p_c = NULL
     )
 
     observeEvent(input$tabset, {
@@ -72,13 +84,20 @@ shinyApp(
           "Anatomic Stage II Breast Cancer AJCC v8", "C139538"
         ), ncol = 2, byrow = TRUE))
         suffix <- "a"
-      } else {
+      } else if (input$tabset == "Stage IIA BC") {
         search_terms <- data.frame(matrix(c(
           "Anatomic Stage IIA Breast Cancer AJCC v8", "C139539",
           "Stage IIA Breast Cancer AJCC v6 and v7", "C5454",
           "Prognostic Stage IIA Breast Cancer AJCC v8", "C139571"
         ), ncol = 2, byrow = TRUE))
         suffix <- "b"
+      } else {
+        search_terms <- data.frame(matrix(c(
+          "Stage II Breast Cancer AJCC v6 and v7", "C7768",
+          "Prognostic Stage II Breast Cancer AJCC v8", "C139569",
+          "Anatomic Stage II Breast Cancer AJCC v8", "C139538"
+        ), ncol = 2, byrow = TRUE))
+        suffix <- "c"
       }
       print(search_terms)
       print(suffix)
@@ -94,12 +113,16 @@ shinyApp(
       if (is.null(sessionData[[paste0("all_p_", suffix)]])) {
         print("Fetching results from API...")
 
-        p1 <- poc_disease_search(body_args = list(
+        args_other <- list()
+        if (suffix == "c") {
+          args_other$diseases.inclusion_indicator <- "TRIAL"
+        }
+        p1 <- poc_disease_search(body_args = c(list(
           diseases.nci_thesaurus_concept_id = search_codes
-        ))
-        all_p <- paginate_cts_api(p1$data, p1$total, FUN = poc_disease_search, body_args = list(
+        ), args_other))
+        all_p <- paginate_cts_api(p1$data, p1$total, FUN = poc_disease_search, body_args = c(list(
           diseases.nci_thesaurus_concept_id = search_codes
-        ))
+        ), args_other))
         sessionData[[paste0("all_p_", suffix)]] <- all_p
 
         print("Pages len:")
@@ -138,7 +161,6 @@ shinyApp(
           do.call(tagList, tables_ui)
         })
 
-        # observe({
         lapply(seq_along(l_diseases), function(i) {
           output[[paste0("table_", suffix, "_", i)]] <- renderDT({
             datatable(l_diseases[[i]], options = list(dom = "tp")) %>% formatStyle(
@@ -148,7 +170,6 @@ shinyApp(
             )
           })
         })
-        # })
       }
     })
   }
