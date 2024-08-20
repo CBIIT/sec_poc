@@ -40,15 +40,13 @@ create table disease_tree_temp as (
             join ncit_tc_with_path tc1 on pd.descendant = tc1.parent
             and tc1.level = 1
             join ncit n1 on n1.code = tc1.descendant
-    ) --select * from parent_descendant  where level < 3 order by top_code, level
-,
+    ),
     data_for_tree as (
         select
             distinct pd.top_code,
             n1.pref_name as parent,
             n2.pref_name as child,
-            pd.level --,
-            --pd.path_string
+            pd.level,
         from
             parent_descendant pd
             join ncit n1 on pd.parent = n1.code
@@ -61,14 +59,14 @@ create table disease_tree_temp as (
                     distinct_trial_diseases dd
                 where
                     dd.nci_thesaurus_concept_id = n2.code
-            ) -- and (n1.pref_name not like '%AJCC%' and n2.pref_name not like '%AJCC%')
+            )
     ),
     all_nodes as (
         select
             top_code,
             parent,
             child,
-            level --, path_string 
+            level
         from
             data_for_tree
         union
@@ -76,7 +74,7 @@ create table disease_tree_temp as (
             n.code as top_code,
             NULL as parent,
             pref_name as child,
-            0 as level --, pref_name as path_string
+            0 as level
         from
             ncit n
         where
@@ -151,9 +149,7 @@ create table disease_tree_temp as (
             ) as child,
             level as level,
             1 as collapsed,
-            10 as "nodeSize" --, path_string
-,
-            --  'foo' as "tooltipHtml" 
+            10 as "nodeSize",
             CASE
                 when cc.num_trials = 1 THEN coalesce(cast(cc.num_trials as varchar), ' ') || ' trial'
                 when cc.num_trials > 1 THEN coalesce(cast(cc.num_trials as varchar), ' ') || ' trials'

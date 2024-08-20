@@ -70,8 +70,6 @@ xterm*|rxvt*)
     ;;
 esac
 
-cd /opt/R/sec_poc
-
 ## Uncomment if using Pyenv
 # export PYENV_ROOT="$HOME/.pyenv"
 # [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"

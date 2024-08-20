@@ -109,6 +109,7 @@ install.packages('xfun')
 install.packages('xtable')
 install.packages('yaml')
 install.packages('zeallot')
+install.packages('openxlsx')
 
 install.packages('devtools', dependencies=TRUE)
 library(devtools)
