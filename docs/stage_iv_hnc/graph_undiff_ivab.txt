@@ -1,0 +1,35 @@
+- root
+	- (C35850) Head and Neck Carcinoma
+		- (C6077) Neck Carcinoma
+			- (C35506) Throat Carcinoma
+				- (C9466) Pharyngeal Carcinoma
+					- (C91252) Pharyngeal Carcinoma by AJCC v7 Stage
+						- (C91248) Oropharyngeal Carcinoma by AJCC v7 Stage
+							- (C89023) Stage IV Oropharyngeal Carcinoma AJCC v7
+								- (C8220) Stage IV Oropharyngeal Squamous Cell Carcinoma AJCC v7
+									- (C115089) Stage IV Oropharyngeal Undifferentiated Carcinoma AJCC v7
+										- (C115090) Stage IVA Oropharyngeal Undifferentiated Carcinoma AJCC v7
+										- (C115091) Stage IVB Oropharyngeal Undifferentiated Carcinoma AJCC v7
+									- (C6141) Stage IVA Oropharyngeal Squamous Cell Carcinoma AJCC v7
+										- (C115090) dupe* 
+									- (C6139) Stage IVB Oropharyngeal Squamous Cell Carcinoma AJCC v7
+										- (C115091) dupe* 
+								- (C5985) Stage IVA Oropharyngeal Carcinoma AJCC v7
+									- (C6141) dupe* 
+								- (C5986) Stage IVB Oropharyngeal Carcinoma AJCC v7
+									- (C6139) dupe* 
+					- (C9105) Oropharyngeal Carcinoma
+						- (C91248) dupe* 
+						- (C8181) Oropharyngeal Squamous Cell Carcinoma
+							- (C68610) Oropharyngeal Undifferentiated Carcinoma
+								- (C115089) dupe* 
+					- (C102872) Pharyngeal Squamous Cell Carcinoma
+						- (C8181) dupe* 
+					- (C8771) Stage IV Pharyngeal Cancer
+						- (C89023) dupe* 
+						- (C6001) Stage IVB Pharyngeal Cancer
+							- (C5986) dupe* 
+						- (C6000) Stage IVA Pharyngeal Cancer
+							- (C5985) dupe* 
+		- (C34447) Head and Neck Squamous Cell Carcinoma
+			- (C102872) dupe* 

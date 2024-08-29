@@ -1,0 +1,10 @@
+- root
+	- (C35850) Head and Neck Carcinoma
+		- (C6077) Neck Carcinoma
+			- (C4815) Thyroid Gland Carcinoma
+				- (C27380) Thyroid Gland Adenocarcinoma
+					- (C7153) Differentiated Thyroid Gland Carcinoma
+						- (C140965) Differentiated Thyroid Gland Carcinoma by AJCC v8 Stage
+							- (C140973) Stage IV Differentiated Thyroid Gland Carcinoma AJCC v8
+								- (C140975) Stage IVB Differentiated Thyroid Gland Carcinoma AJCC v8
+								- (C140974) Stage IVA Differentiated Thyroid Gland Carcinoma AJCC v8

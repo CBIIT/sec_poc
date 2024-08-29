@@ -12,3 +12,4 @@ __pycache__
 .RData
 .Ruserdata
 .vscode/linenote
+.rest-client/
