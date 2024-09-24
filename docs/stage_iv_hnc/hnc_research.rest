@@ -3,7 +3,7 @@
 ### Step 1. Get the Maintype cancers
 GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&type=maintype&{{include}}
     accept: */*
-    X-API-KEY: {{$processEnv [%]CTS_V2_API_KEY}}
+    X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
 ### Step 2. User selects maintype = "Bladder Cancer"
 # @maintype = C4912
@@ -12,19 +12,19 @@ GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?current_trial_status=Ac
 ### Step 2a. Get subtypes of the selected maintype
 GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?ancestor_ids={{maintype}}&current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&type=subtype&{{include}}
     accept: */*
-    X-API-KEY: {{$processEnv [%]CTS_V2_API_KEY}}
+    X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
 
 ### Step 2b. Get findings of the selected maintype
 GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&maintype={{maintype}}&type=finding&{{include}}
     accept: */*
-    X-API-KEY: {{$processEnv [%]CTS_V2_API_KEY}}
+    X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
 
 ### Step 2c. Get stages of the selected maintype
 GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?ancestor_ids={{maintype}}&current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&type=stage&{{include}}&include=parent_ids
     accept: */*
-    X-API-KEY: {{$processEnv [%]CTS_V2_API_KEY}}
+    X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
 ### Step 3. User selects stage = "Stage IV Bladder Cancer"
 # @stage = code=C140424&code=C89366
@@ -38,7 +38,7 @@ GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?ancestor_ids={{maintype
 ### Step 3a. Before "Search Trials", check if the combination of codes has any results
 GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?code={{maintype}}&{{stage}}&current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&size=100&type=maintype&type=subtype&type=stage&type=finding
     accept: */*
-    X-API-KEY: {{$processEnv [%]CTS_V2_API_KEY}}
+    X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
 ### Figure out what happens with the results between step 3 and step 4...
 # It creates this query string `loc=0&rl=2&stg=C140424|C89366&t=C4912`
@@ -48,7 +48,7 @@ GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?code={{maintype}}&{{sta
 ### Step 4. Search trials using the codes that had positive trial matches
 POST https://clinicaltrialsapi.cancer.gov/api/v2/trials
     accept: */*
-    X-API-KEY: {{$processEnv [%]CTS_V2_API_KEY}}
+    X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
 {
   "current_trial_status": [
