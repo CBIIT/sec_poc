@@ -1,8 +1,9 @@
 import json
 import os
 import re
+import subprocess
+import tempfile
 from collections import defaultdict
-from urllib.parse import urlencode
 from pathlib import Path
 
 import pandas as pd
@@ -29,56 +30,25 @@ HNC_CATEGORIES = list(HNC_STAGEIV_TEMPLATE.keys())
 
 @st.cache_data
 def load_hnc_stages():
-    querystr = urlencode(
-        {
-            "ancestor_ids": [HNC_MAINTYPE],
-            "current_trial_status": [
-                "Active",
-                "Approved",
-                "Enrolling by Invitation",
-                "In Review",
-                "Temporarily Closed to Accural",
-                "Temporarily Closed to Accrual and Intervention",
-            ],
-            "include": ["parent_ids", "name", "codes", "count"],
-            "type": "stage",
-        },
-        doseq=True,
-    )
-    url = f"https://clinicaltrialsapi.cancer.gov/api/v2/diseases?{querystr}"
-    print(url)
+    url = "https://clinicaltrialsapi.cancer.gov/api/v2/diseases?ancestor_ids=C35850&current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&type=stage"
     res = requests.get(url, headers={"X-API-KEY": os.getenv("CTS_V2_API_KEY")})
-    print(res.status_code)
+    print(res.status_code, "/api/v2/diseases")
     data = res.json()
     assert data["total"] == len(data["data"])
+    print("TOTAL:", data["total"])
     return data["data"]
 
 
 st.markdown("## Step 1: Get HNC Stages List")
 st.markdown(
     """```py
-HNC_MAINTYPE = "C35850" # Code for "Head and Neck Carcinoma"
-
 def load_hnc_stages():
-    querystr = urlencode(
-        {
-            "ancestor_ids": [HNC_MAINTYPE],
-            "current_trial_status": [
-                "Active",
-                "Approved",
-                "Enrolling by Invitation",
-                "In Review",
-                "Temporarily Closed to Accural",
-                "Temporarily Closed to Accrual and Intervention",
-            ],
-            "include": ["parent_ids", "name", "codes", "count"],
-            "type": "stage",
-        },
-        doseq=True,
-    )
-    url = f"https://clinicaltrialsapi.cancer.gov/api/v2/diseases?{querystr}"
+    url = "https://clinicaltrialsapi.cancer.gov/api/v2/diseases?ancestor_ids=C35850&current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&type=stage"
     res = requests.get(url, headers={"X-API-KEY": os.getenv("CTS_V2_API_KEY")})
+    print(res.status_code, "/api/v2/diseases")
     data = res.json()
+    assert data["total"] == len(data["data"])
+    print("TOTAL:", data["total"])
     return data["data"]
 
 hnc_stages = load_hnc_stages()
@@ -105,45 +75,62 @@ HNC_STAGEIV_TEMPLATE = {
 }
 HNC_CATEGORIES = list(HNC_STAGEIV_TEMPLATE.keys())
 
-hnc_stage_categories = []
-for stage in hnc_stages:
-    for key, pattern in HNC_STAGEIV_TEMPLATE.items():
-        if pattern.search(stage["name"]):
-            hnc_stage_categories.append(
-                {
-                    "parent": key,
-                    "name": stage["name"],
-                    "codes": stage["codes"],
-                }
-            )
-```"""
-)
-hnc_stage_categories = []
+hnc_stage_categories = defaultdict(list)
 hnc_stage_codes = defaultdict(list)
 for stage in hnc_stages:
     for key, pattern in HNC_STAGEIV_TEMPLATE.items():
         if pattern.search(stage["name"]):
-            hnc_stage_categories.append(
-                {
-                    "parent": key,
-                    "name": stage["name"],
-                    "codes": stage["codes"],
-                }
-            )
+            hnc_stage_categories[key].append(stage["name"])
+            for code in stage["codes"]:
+                hnc_stage_codes[key].append(code)
+```"""
+)
+hnc_stage_categories = defaultdict(list)
+hnc_stage_codes = defaultdict(list)
+for stage in hnc_stages:
+    for key, pattern in HNC_STAGEIV_TEMPLATE.items():
+        if pattern.search(stage["name"]):
+            hnc_stage_categories[key].append(stage["name"])
             for code in stage["codes"]:
                 hnc_stage_codes[key].append(code)
 
-df = (
-    pd.DataFrame(hnc_stage_categories)
-    .groupby(["parent"])["name"]
-    .apply(lambda x: "<br>".join(x))
-    .reset_index()
-)
-df.columns = ["New Head and Neck Concept", "Associated Terms"]
-st.markdown(
-    df.to_html(escape=False, index=False),
-    unsafe_allow_html=True,
-)
+st.markdown("### Step 2a. Diff the current list with the static list from Cancer.gov")
+cola, colb = st.columns((6, 6))
+with cola:
+    st.subheader("Current List")
+with colb:
+    st.subheader("Static List")
+for cat in HNC_CATEGORIES:
+    tmp = tempfile.gettempdir()
+    df = pd.DataFrame(hnc_stage_categories[cat], columns=["name"])
+    df.sort_values(["name"], inplace=True)
+    df.to_csv(Path(tmp) / "df1.csv", index=False)
+
+    dfother = pd.read_json(file_dir / "stage_iv_categories" / (cat + ".json"))
+    dfother.columns = ["name"]
+    dfother.sort_values(["name"], inplace=True)
+    dfother.to_csv(Path(tmp) / "df2.csv", index=False)
+
+    outfile = (Path(tmp) / "df.csv.diff").resolve()
+    with open(outfile, "w") as fout:
+        subprocess.call(
+            [
+                "diff",
+                "-y",
+                (Path(tmp) / "df1.csv").resolve(),
+                (Path(tmp) / "df2.csv").resolve(),
+            ],
+            stdout=fout,
+        )
+    with open((Path(tmp) / "df.csv.diff").resolve()) as f:
+        diff = f.read()
+        st.markdown(
+            f"""```diff
+{diff}
+```""",
+            unsafe_allow_html=True,
+        )
+
 
 st.markdown("## Step 3: Select stage value to filter trials by")
 cont = st.container()
@@ -168,11 +155,10 @@ def _get_ctsapi_hnc_stage_trials(stages: list[str]):
         "size": 50,
     }
     url = "https://clinicaltrialsapi.cancer.gov/api/v2/trials"
-    print(url)
     res = requests.post(
         url, headers={"X-API-KEY": os.getenv("CTS_V2_API_KEY")}, json=body
     )
-    print(res.status_code)
+    print(res.status_code, "/api/v2/trials")
     data = res.json()
     trials = data["data"]
     total = data["total"]
@@ -183,7 +169,7 @@ def _get_ctsapi_hnc_stage_trials(stages: list[str]):
         res = requests.post(
             url, headers={"X-API-KEY": os.getenv("CTS_V2_API_KEY")}, json=body
         )
-        print(res.status_code)
+        print(res.status_code, "/api/v2/trials")
         data = res.json()
         trials_continued = data["data"]
         trials += trials_continued
@@ -226,7 +212,7 @@ if cont.button("Find Trials", type="primary"):
         ), f"Trial {trial['nci_id']} is missing {st.session_state.stage}"
     print(f"verified {st.session_state.stage}")
 
-col1, col2 = st.columns((4, 8))
+col1, col2 = st.columns((6, 6))
 with col1:
     trial_ids = st.session_state.trial_ids
     st.html(
@@ -262,5 +248,55 @@ with col2:
                     "code": disease["nci_thesaurus_concept_id"],
                 }
             )
-    st.markdown("##### Diseases")
+    st.markdown("##### Relevant Diseases")
     st.dataframe(data, use_container_width=True)
+
+st.markdown("## Verification")
+
+
+@st.cache_data
+def _get_ctsapi_disease_code_trials(code: str):
+    body = {
+        "current_trial_status": [
+            "Active",
+            "Approved",
+            "Enrolling by Invitation",
+            "In Review",
+            "Temporarily Closed to Accrual",
+            "Temporarily Closed to Accrual and Intervention",
+        ],
+        "include": ["nci_id"],
+        "diseases.nci_thesaurus_concept_id": code,
+        "from": 0,
+        "size": 50,
+    }
+    url = "https://clinicaltrialsapi.cancer.gov/api/v2/trials"
+    res = requests.post(
+        url, headers={"X-API-KEY": os.getenv("CTS_V2_API_KEY")}, json=body
+    )
+    print(res.status_code, "/api/v2/trials")
+    data = res.json()
+    trials = data["data"]
+    total = data["total"]
+    n = 1
+    while len(trials) < total:
+        start = len(trials)
+        body["from"] = start
+        res = requests.post(
+            url, headers={"X-API-KEY": os.getenv("CTS_V2_API_KEY")}, json=body
+        )
+        print(res.status_code, "/api/v2/trials")
+        data = res.json()
+        trials_continued = data["data"]
+        trials += trials_continued
+        print("page", (n := n + 1), f"({len(trials)} of {total})")
+    return trials
+
+
+if "stage" in st.session_state:
+    codes = hnc_stage_codes[st.session_state.stage]
+    all_trials = set()
+    for code in codes:
+        trials = _get_ctsapi_disease_code_trials(code)
+        all_trials.update([t["nci_id"] for t in trials])
+    st.write("FOUND:", len(all_trials))
