@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+import concurrent.futures
 
 import pandas as pd
 import requests
@@ -295,8 +296,20 @@ def _get_ctsapi_disease_code_trials(code: str):
 
 if "stage" in st.session_state:
     codes = hnc_stage_codes[st.session_state.stage]
+    jobs = []
     all_trials = set()
-    for code in codes:
-        trials = _get_ctsapi_disease_code_trials(code)
-        all_trials.update([t["nci_id"] for t in trials])
-    st.write("FOUND:", len(all_trials))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        for code in codes:
+            job = executor.submit(_get_ctsapi_disease_code_trials, code)
+            jobs.append(job)
+
+        for future in concurrent.futures.as_completed(jobs):
+            try:
+                data = future.result()
+            except Exception as exc:
+                print("%r generated an exception: %s" % (code, exc))
+            else:
+                all_trials.update([t["nci_id"] for t in data])
+
+    if len(all_trials):
+        st.write("FOUND:", len(all_trials))
