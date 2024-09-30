@@ -1,9 +1,0 @@
-- root
-	- (C35850) Head and Neck Carcinoma
-		- (C6077) Neck Carcinoma
-			- (C4815) Thyroid Gland Carcinoma
-				- (C3878) Thyroid Gland Anaplastic Carcinoma
-					- (C141000) Thyroid Gland Anaplastic Carcinoma by AJCC v8 Stage
-						- (C141003) Stage IVB Thyroid Gland Anaplastic Carcinoma AJCC v8
-						- (C141004) Stage IVC Thyroid Gland Anaplastic Carcinoma AJCC v8
-						- (C141001) Stage IVA Thyroid Gland Anaplastic Carcinoma AJCC v8

@@ -21,7 +21,9 @@ ctrp_display_likes as (
         poss_diseases pd
 )
 select
-    dtd.nci_thesaurus_concept_id as \ "Code\", 
-   'YES' as \"Value\" ,  
-    dtd.preferred_name as \"Diseases\" from distinct_trial_diseases dtd 
-join ctrp_display_likes c on dtd.display_name like c.like_string;
+    dtd.nci_thesaurus_concept_id as "Code",
+    'YES' as "Value",
+    dtd.preferred_name as "Diseases"
+from
+    distinct_trial_diseases dtd
+    join ctrp_display_likes c on dtd.display_name like c.like_string;

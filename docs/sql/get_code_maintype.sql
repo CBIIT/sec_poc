@@ -3,7 +3,7 @@ with minlevel as (
     select
         min(level) as min_level
     from
-        ncit_tc_with_path np --
+        ncit_tc_with_path np
         join maintypes m on np.parent = m.nci_thesaurus_concept_id
         join ncit n on np.parent = n.code
         join ncit nc on np.descendant = nc.code
