@@ -5,9 +5,8 @@ GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?current_trial_status=Ac
     accept: */*
     X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
-### Step 2. User selects maintype = "Bladder Cancer"
-# @maintype = C4912
-@maintype = C35850
+### Step 2. User selects maintype
+@maintype = C4912
 
 ### Step 2a. Get subtypes of the selected maintype
 GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?ancestor_ids={{maintype}}&current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&type=subtype&{{include}}
@@ -27,16 +26,12 @@ GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?ancestor_ids={{maintype
     X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
 ### Step 3. User selects stage = "Stage IV Bladder Cancer"
-# @stage = code=C140424&code=C89366
-# "Stage IVA Bladder Cancer"
 @stage = C140425
 @stage_json = "C140425"
-# @stage = code=C140973&code=C132893&code=C132901&code=C133259
-# @stage_json = "C140973", "C132893", "C132901", "C133259"
 @maintype_json = "{{maintype}}"
 
 ### Step 3a. Before "Search Trials", check if the combination of codes has any results
-GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?code={{maintype}}&{{stage}}&current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&size=100&type=maintype&type=subtype&type=stage&type=finding
+GET https://clinicaltrialsapi.cancer.gov/api/v2/diseases?code={{maintype}}&code={{stage}}&current_trial_status=Active&current_trial_status=Approved&current_trial_status=Enrolling%20by%20Invitation&current_trial_status=In%20Review&current_trial_status=Temporarily%20Closed%20to%20Accrual&current_trial_status=Temporarily%20Closed%20to%20Accrual%20and%20Intervention&size=100&type=maintype&type=subtype&type=stage&type=finding
     accept: */*
     X-API-KEY: {{$processEnv CTS_V2_API_KEY}}
 
@@ -62,7 +57,10 @@ POST https://clinicaltrialsapi.cancer.gov/api/v2/trials
   "include": [
     "nci_id",
     "nct_id",
-    "diseases"
+    "diseases.nci_thesaurus_concept_id",
+    "diseases.name",
+    "diseases.inclusion_indicator",
+    "brief_title"
   ],
   "maintype": [{{maintype_json}}],
   "stage": [{{stage_json}}],
