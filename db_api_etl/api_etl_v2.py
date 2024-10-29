@@ -101,21 +101,20 @@ con = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, por
  password=args.password)
 
 cur = con.cursor()
-cur.execute('delete from  trial_diseases ')
-cur.execute('delete from trial_prior_therapies')
-cur.execute('delete from  trials')
 cur.execute('delete from   maintypes')
-cur.execute('delete from trial_maintypes')
-cur.execute('delete from distinct_trial_diseases')
-cur.execute('delete from  trial_sites')
-cur.execute('delete from  trial_unstructured_criteria')
-con.commit()
 
 # First get the maintypes, then get the study data needed.
 
-r = requests.get('https://clinicaltrialsapi.cancer.gov/api/v2/diseases',
-                  params={'type': 'maintype', 'type_not': 'subtype', 'size': 100, 'include' : 'codes'}, headers = header_v2_api
- )
+try:
+    r = requests.get('https://clinicaltrialsapi.cancer.gov/api/v2/diseases',
+                    params={'type': 'maintype', 'type_not': 'subtype', 'size': 100, 'include' : 'codes'}, headers = header_v2_api
+    )
+    r.raise_for_status()
+except Exception as err:
+    con.rollback()
+    raise err
+else:
+    con.commit()
 
 t = r.text
 j = r.json()
@@ -175,9 +174,23 @@ data = {'current_trial_status': 'Active',
         }
 data['include'] = include_items
 
+cur.execute('delete from  trial_diseases ')
+cur.execute('delete from trial_prior_therapies')
+cur.execute('delete from  trials')
+cur.execute('delete from trial_maintypes')
+cur.execute('delete from distinct_trial_diseases')
+cur.execute('delete from  trial_sites')
+cur.execute('delete from  trial_unstructured_criteria')
+
 # NCT02944578
-r = requests.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
-                 headers = header_v2_api, json  = data)
+try:
+    r = requests.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
+                    headers = header_v2_api, json  = data)
+except Exception as err:
+    con.rollback()
+    raise err
+else:
+    con.commit()
 
 
 
@@ -191,7 +204,7 @@ data['size'] = size
 print("there are ", total, 'trials')
 run = True
 while run:
-    print(start)
+    print('START:', start)
     r = requests.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
                       headers=header_v2_api, json=data, timeout=(5.0, 20.0) )
     print('status code returned = ', r.status_code)
