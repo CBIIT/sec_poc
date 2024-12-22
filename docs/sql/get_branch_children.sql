@@ -1,6 +1,6 @@
 with branch_children as (
     select
-        distinct parent,
+        parent,
         descendant
     from
         ncit_tc
@@ -24,3 +24,11 @@ from
     branch_children
     join ncit on ncit.code = descendant
     join ncit_syns on ncit_syns.code = descendant;
+
+-- where -- check the unique codes in the prior therapy set
+--     position(
+--         'ctrp intervention terminology' in lower(concept_in_subset)
+--     ) > 0
+--     OR position(
+--         'ctrp agent terminology' in lower(concept_in_subset)
+--     ) > 0;
