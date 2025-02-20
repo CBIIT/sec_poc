@@ -2,15 +2,15 @@
 # coding: utf-8
 
 # # Generate the transitive closure table for the NCI Thesaurus
-# 
-# This notebook shows how to generate the transitive closure table for the NCI (National Cancer Institute) Thesaurus. 
-# It uses a combination of sqlite and pandas to minimize the amount of code needed to create the transitive closure table.  
-# 
+#
+# This notebook shows how to generate the transitive closure table for the NCI (National Cancer Institute) Thesaurus.
+# It uses a combination of sqlite and pandas to minimize the amount of code needed to create the transitive closure table.
+#
 # Download the latest flat format thesaurus file from here: https://cbiit.cancer.gov/evs-download/thesaurus-downloads
 # Unzip the file into a directory, and set the full path to the name of the Thesaurus.txt fle.
-# 
+#
 # The NCI Thesaurus (NCIt) is a multi-axial hierarchy.  If a node has more than one parent, then the parents column will contain the C codes for the parents in a pipe delimited string.
-# 
+#
 # Hubert Hickman
 
 import sqlite3
@@ -32,7 +32,7 @@ import io
 import time
 
 #
-# A simple function to yield chunks from a list 
+# A simple function to yield chunks from a list
 #
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
@@ -108,26 +108,26 @@ thesaurus_file = arch.open('Thesaurus.txt', mode='r')
 
 #
 # Process the file from EVS, then call the EVS API to get the preferred
-# term if the flag is set 
+# term if the flag is set
 #
 
 print("reading tsv file into dataframe")
 if args.use_evs_api_for_pref_name:
     ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
                               names=('code', 'url', 'parents', 'synonyms',
-                                     'definition', 'display_name', 'concept_status', 
+                                     'definition', 'display_name', 'concept_status',
                                      'semantic_type', 'concept_in_subset'))
-     
+
     num_concepts_per_evs_call = 575
     concept_list = ncit_df['code'].tolist()
-    
-    
+
+
     concept_url_fstring = "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit?list=%s&include=summary"
     new_column_vals = []
     chunk_count = 0
     record_count = 0
     retry_limit = 3
-    
+
     print("Calling EVS to get preferred terms")
     for ch in chunks(concept_list, num_concepts_per_evs_call):
         c_codes = list(ch)
@@ -135,7 +135,7 @@ if args.use_evs_api_for_pref_name:
         c_codes_string = ','.join(c_codes)
         concept_url_string = concept_url_fstring % (c_codes_string)
         retry_count = 0
-    
+
         while  retry_count < retry_limit:
             try:
                 r = requests.get(concept_url_string, timeout=(1.0, 15.0))
@@ -151,24 +151,24 @@ if args.use_evs_api_for_pref_name:
                 concept_set = r.json()
                 for newc in concept_set:
                     new_column_vals.append((newc['code'], newc['name']))
-    
+
                 chunk_count = chunk_count + 1
                 print("processing chunk ", chunk_count, " record count = ", record_count )
                 break
-    
+
     #
     print("merging dataframes")
     new_df = pd.DataFrame(data=new_column_vals, columns = ['code', 'pref_name'])
     #
     ncit_df = pd.merge(ncit_df, new_df, on = 'code', how='left')
-  
+
 else:
     ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
                               names=('code', 'url', 'parents', 'synonyms',
-                                     'definition', 'display_name', 'concept_status', 
+                                     'definition', 'display_name', 'concept_status',
                                      'semantic_type', 'concept_in_subset', 'pref_name'))
     ncit_df['pref_name'] = ncit_df.apply(lambda row: row['synonyms'].split('|')[0], axis=1)
-  
+
 cur.execute("drop index if exists ncit_code_index")
 cur.execute("drop index if exists lower_pref_name_idx")
 
@@ -186,7 +186,7 @@ ncit_df= ncit_df.set_index('code')
 
 ncit_df.to_sql(name='ncit', con=sqlalchemy_connection, if_exists='append')
 sqlalchemy_connection.dispose()
- 
+
 
 
 
@@ -259,11 +259,31 @@ cur.execute("create index par_par_idx on parents(parent)")
 
 print("computing transitive closure")
 cur.execute("drop table if exists ncit_tc_with_path")
-cur.execute('create table ncit_tc_with_path as with recursive ncit_tc_rows(parent, descendant, level, path ) as ' +
-            '(select parent, concept as descendant, level, path from parents union all ' +
-            "select p.parent , n.descendant as descendant, n.level+1 as level ,  p.parent || '|' || n.path  as path " +
-            'from ncit_tc_rows n join parents p on n.parent = p.concept  ' +
-            ') select * from ncit_tc_rows')
+cur.execute("""
+create table ncit_tc_with_path as with recursive ncit_tc_rows(parent, descendant, level, path) as (
+    select
+        parent,
+        concept as descendant,
+        level,
+        path
+    from
+        parents
+    union
+    all
+    select
+        p.parent,
+        n.descendant as descendant,
+        n.level + 1 as level,
+        p.parent || ' | ' || n.path as path
+    from
+        ncit_tc_rows n
+        join parents p on n.parent = p.concept
+)
+select
+    *
+from
+    ncit_tc_rows
+""")
 
 cur.execute('create index ncit_tc_path_parent on ncit_tc_with_path(parent)')
 cur.execute('CREATE INDEX ncit_tc_path_descendant on ncit_tc_with_path(descendant)')
@@ -305,13 +325,13 @@ print("There are ", total_num_rows_in_tc, "rows in the transitive closure table"
 
 
 cur.execute(
-    '''with codes as 
+    '''with codes as
     (
     select distinct parent as code from ncit_tc
     union
     select distinct descendant as code from ncit_tc
-    ) 
-    insert into ncit_tc (parent, descendant) 
+    )
+    insert into ncit_tc (parent, descendant)
     select c.code as parent, c.code as descendant from codes c
     ''')
 
@@ -319,56 +339,50 @@ cur.execute(
 
 
 cur.execute(
-    '''with codes as 
+    '''with codes as
     (
     select distinct parent as code from ncit_tc
     union
     select distinct descendant as code from ncit_tc
-    ) 
-    insert into ncit_tc_with_path (parent, descendant, level, path) 
+    )
+    insert into ncit_tc_with_path (parent, descendant, level, path)
     select c.code, c.code, 0  , c.code  from codes c
     ''')
 
 # In[59]:
 
-cur.execute(
-'''
-create or replace view  good_pt_codes as 
- (
- with descendants as
-            (
-                select descendant from ncit_tc where parent in ('C25218', 'C1908', 'C62634', 'C163758') 
-            ),
-        descendants_to_remove as
-            (
-				
-				select descendant  from ncit_tc where parent in ( 'C25294','C102116','C173045','C65141','C91102','C20993') 
-UNION
-select 'C305' as descendant -- bilirubin
-union 
-select 'C399' as descendant -- creatinine
-union 
-select 'C37932' as descendant -- contraception  
-union 
-select 'C92949' as descendant -- pregnancy test
-UNION
-select 'C1505' as descendant -- dietary supplment
-UNION
-select 'C71961' as descendant -- grapefruit juice
-UNION
-select 'C71974' as descendant -- grapefruit
-UNION
-select 'C16124' as descendant -- prior therapy
-            ),     
-           good_codes as (
-			select d.descendant from descendants d 
-			except 
-			select d2.descendant from descendants_to_remove d2 
-	   )
-	     select n.code, trim(n.pref_name) as pref_name, trim(n.synonyms) as synonyms , trim(n.semantic_type) as semantic_type from ncit n join good_codes gc on n.code = gc.descendant
-	)	 
-'''	
-)
+cur.execute("""
+create or replace view good_pt_codes as (
+    with descendants as (
+        select descendant from ncit_tc where parent in ('C25218', 'C1908', 'C62634', 'C163758')
+    ),
+    descendants_to_remove as (
+        select descendant from ncit_tc where parent in ('C25294','C102116','C173045','C65141','C91102','C20993')
+        UNION
+        select 'C305' as descendant -- bilirubin
+        union
+        select 'C399' as descendant -- creatinine
+        union
+        select 'C37932' as descendant -- contraception
+        union
+        select 'C92949' as descendant -- pregnancy test
+        UNION
+        select 'C1505' as descendant -- dietary supplment
+        UNION
+        select 'C71961' as descendant -- grapefruit juice
+        UNION
+        select 'C71974' as descendant -- grapefruit
+        UNION
+        select 'C16124' as descendant -- prior therapy
+    ),
+    good_codes as (
+        select d.descendant from descendants d
+        except
+        select d2.descendant from descendants_to_remove d2
+    )
+    select n.code, trim(n.pref_name) as pref_name, trim(n.synonyms) as synonyms, trim(n.semantic_type) as semantic_type
+    from ncit n join good_codes gc on n.code = gc.descendant
+)""")
 
 # In[61]:
 
@@ -390,8 +404,8 @@ cur.execute('create index ncit_tc_descendant on ncit_tc (descendant) ')
 con.commit()
 
 # Now update the synonyms
-sql = '''select code, synonyms from ncit 
-where (concept_status is null or (concept_status not like '%Obsolete%' and concept_status not like '%Retired%') ) 
+sql = '''select code, synonyms from ncit
+where (concept_status is null or (concept_status not like '%Obsolete%' and concept_status not like '%Retired%') )
 '''
 
 insert_sql = '''
@@ -444,7 +458,7 @@ cur.execute("""
 DELETE FROM ncit_syns ns
 WHERE EXISTS
   (SELECT 1
-    FROM bad_ncit_syns bns 
+    FROM bad_ncit_syns bns
     WHERE ns.code = bns.code and ns.syn_name = bns.syn_name  );
 """);
 con.commit();

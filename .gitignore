@@ -11,3 +11,7 @@ __pycache__
 .Rhistory
 .RData
 .Ruserdata
+.vscode/linenote
+.rest-client/
+docs/stage_iv_hnc/stage_codes.json
+http_cache.sqlite
