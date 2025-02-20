@@ -1,13 +1,9 @@
-from requests_cache import CachedSession
+import requests
 import datetime
 import argparse
 import os
 import psycopg2
 import psycopg2.extras
-
-session = CachedSession(
-    expire_after=datetime.timedelta(days=1), allowable_methods=["GET", "POST"]
-)
 
 CTS_V2_API_KEY = os.getenv('CTS_V2_API_KEY')
 print(CTS_V2_API_KEY)
@@ -113,7 +109,7 @@ cur.execute("delete from maintypes")
 # First get the maintypes, then get the study data needed.
 
 try:
-    r = session.get('https://clinicaltrialsapi.cancer.gov/api/v2/diseases',
+    r = requests.get('https://clinicaltrialsapi.cancer.gov/api/v2/diseases',
                     params={'type': 'maintype', 'type_not': 'subtype', 'size': 100, 'include' : 'codes'}, headers = header_v2_api
     )
     r.raise_for_status()
@@ -179,7 +175,7 @@ cur.execute("delete from trial_unstructured_criteria")
 
 # NCT02944578
 try:
-    r = session.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
+    r = requests.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
                     headers = header_v2_api, json  = data)
 except Exception as err:
     con.rollback()
@@ -198,7 +194,7 @@ print("there are ", total, 'trials')
 run = True
 while run:
     print('START:', start)
-    r = session.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
+    r = requests.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
                       headers=header_v2_api, json=data, timeout=(5.0, 20.0) )
     print('status code returned = ', r.status_code)
     t = r.text
@@ -363,7 +359,7 @@ while run:
         con.commit()
         #print(str(trial['biomarkers']))
 
-    # r = session.post('https://clinicaltrialsapi.cancer.gov/v1/clinical-trials',
+    # r = requests.post('https://clinicaltrialsapi.cancer.gov/v1/clinical-trials',
     #                  data=data)
 
     r = cur.execute('select count(*) from trials')
