@@ -6,18 +6,17 @@ services:
       POSTGRES_USER: secapp
       POSTGRES_PASSWORD: 1234
     ports:
-      - 5433:5432
+      - 5434:5432
     volumes:
       - sec_poc_pg:/var/lib/postgresql/data
   app:
     # See ./Dockerfile
-    image: sec_poc/r
+    image: oel8/r:3.6.1
+    platform: linux/amd64
     volumes:
       - ~/Desktop/sec_poc_workspace:/opt/R/sec_poc_workspace
     depends_on:
       - postgres
-    ports:
-      - 8888:8888
 
 volumes:
   sec_poc_pg:
