@@ -1,5 +1,4 @@
 library(testthat)
-setwd("/opt/R/sec_poc/")
 source("tests/testthat/helper.R")
 source("get_api_studies_for_disease_v2.R", local = TRUE)
 
