@@ -274,7 +274,7 @@ create table ncit_tc_with_path as with recursive ncit_tc_rows(parent, descendant
         p.parent,
         n.descendant as descendant,
         n.level + 1 as level,
-        p.parent || ' | ' || n.path as path
+        p.parent || '|' || n.path as path
     from
         ncit_tc_rows n
         join parents p on n.parent = p.concept
