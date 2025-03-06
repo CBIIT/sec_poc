@@ -1,9 +1,9 @@
-#region RSQLite
+# region RSQLite
 pak::pkg_install("cran/glue@1.7.0")
 pak::pkg_install("cran/cpp11@0.4.7")
 pak::pkg_install("cran/RSQLite@2.3.5")
-#endregion
-#region devtools
+# endregion
+# region devtools
 pak::pkg_install("cran/downlit@0.4.3")
 pak::pkg_install("cran/purrr@1.0.2")
 pak::pkg_install("cran/pkgdown@2.0.7")
@@ -12,7 +12,7 @@ pak::pkg_install("cran/waldo@0.5.2")
 pak::pkg_install("cran/testthat@3.2.1.1")
 pak::pkg_install("cran/httr2@1.0.0")
 pak::pkg_install("cran/devtools@2.4.5")
-#endregion
+# endregion
 pak::pkg_install("cran/plyr@1.8.9")
 pak::pkg_install("cran/htmlwidgets@1.6.4")
 pak::pkg_install("cran/data.tree@1.1.0")
@@ -51,3 +51,4 @@ pak::pkg_install("cran/RPostgres@1.4.6")
 pak::pkg_install("cran/stringr@1.5.1")
 pak::pkg_install("cran/shinymanager@1.0.300")
 pak::pkg_install("cran/writexl@1.5.0")
+pak::pkg_install("cran/config@0.3.2")
