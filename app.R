@@ -33,15 +33,6 @@ library(RPostgres)
 dbinfo <- config::get()
 
 # Sys.setenv(LD_LIBRARY_PATH = "/usr/local/lib")
-# library(reticulate)
-## use_python('/usr/bin/python3', required=TRUE )
-# reticulate::py_discover_config()
-# source_python(paste(
-#  dbinfo$python_file_dir,
-#  '/create_performance_expression.py',
-#  sep = ""
-# ))
-
 
 local_dbname <- dbinfo$dbname
 local_host <- dbinfo$host
@@ -749,27 +740,12 @@ server <- function(input, output, session) {
     }
   }
 
-
   counter <- reactiveValues(countervalue = 0)
   shinyjs::disable("subtype_typer")
   shinyjs::disable("show_disease_tree_button")
 
-
   target_lvd <- ymd(today()) - years(2)
-  #  s1 <- Sys.time()
-  #  rvd_df <- get_api_studies_with_rvd_gte(target_lvd)
-  #  s2 <- Sys.time()
-  #  print(paste("rvd time ", s2-s1))
-  #  print(paste('nrow', nrow(rvd_df)))
-  # # browser()
-
-  # con = DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
   con <- pool_con
-
-  # s1 <- Sys.time()
-  #
-
-
 
   rvd_df <- safe_query(dbGetQuery, paste("select nct_id from trials where record_verification_date >= '", target_lvd, "'", sep = ""))
   print(paste("nrows", nrow(rvd_df)))
@@ -2736,57 +2712,6 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
       }
     }
     print(sessionInfo$biomarker_df)
-  })
-
-  observeEvent(input$gyn_add_disease, {
-    print("add gyn disease")
-    if (length(input$gyn_selected_node) > 0) {
-      new_disease <- input$gyn_selected_node[[length(input$gyn_selected_node)]]
-    } else {
-      new_disease <- "Malignant Female Reproductive System Neoplasm"
-    }
-
-    print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
-    df_new_disease <- safe_query(dbGetQuery, add_disease_sql, params = c(new_disease))
-    # browser()
-    print(df_new_disease)
-    sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
-    print(sessionInfo$disease_df)
-  })
-  observeEvent(input$lung_add_disease, {
-    print("add lung disease")
-    if (length(input$lung_selected_node) > 0) {
-      new_disease <- input$lung_selected_node[[length(input$lung_selected_node)]]
-    } else {
-      new_disease <- "Lung Cancer"
-    }
-
-    print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
-    session_conn <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-    df_new_disease <- dbGetQuery(session_conn, add_disease_sql, params = c(new_disease))
-    # browser()
-    DBI::dbDisconnect(session_conn)
-    sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
-    print(sessionInfo$disease_df)
-  })
-
-  observeEvent(input$solid_add_disease, {
-    print("add solid disease")
-    if (length(input$solid_selected_node) > 0) {
-      new_disease <- input$solid_selected_node[[length(input$solid_selected_node)]]
-    } else {
-      new_disease <- "Solid Tumor"
-    }
-    print(paste("new disease = ", new_disease))
-    add_disease_sql <- "select distinct nci_thesaurus_concept_id as \"Code\" , 'YES' as \"Value\", preferred_name as \"Diseases\" from  trial_diseases where display_name = $1"
-    session_conn <- DBI::dbConnect(RSQLite::SQLite(), dbinfo$db_file_location)
-    df_new_disease <- dbGetQuery(session_conn, add_disease_sql, params = c(new_disease))
-    # browser()
-    DBI::dbDisconnect(session_conn)
-    sessionInfo$disease_df <- rbind(sessionInfo$disease_df, df_new_disease)
-    print(sessionInfo$disease_df)
   })
 
   observeEvent(input$cancer_add_disease, {
