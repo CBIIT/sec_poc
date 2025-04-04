@@ -1,8 +1,8 @@
 library(shiny)
-require(RSQLite)
 library(DBI)
 library(xtable)
 library(DT)
+library(plyr)
 library(dplyr)
 library(httr)
 library(leaflet)
@@ -3164,6 +3164,11 @@ join ctrp_display_likes c on dtd.display_name like c.like_string
     }
   )
 }
+
+onStop(function() {
+  poolClose(pool_con)
+  cat("Closing database connection pool.\n")
+})
 
 shinyApp(ui, server)
 
