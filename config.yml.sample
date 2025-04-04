@@ -1,8 +1,0 @@
-# Set values as needed and name this file config.yml
-default:
-    db_file_location : <the location of the SQLite database file>
-    python_file_dir : <the full path of the python functions called via reticulate>
-    api_key : <umls api key>
-    enable_umls : <TRUE OR FALSE, enables UMLS crosswalk support>
-    debug_expressions : <TRUE or FALSE - turns on debugging of dynamic expressions>
-
