@@ -1,0 +1,8 @@
+docker-compose.dev.yml
+docker-compose.prod.yml
+Dockerfile.dev
+Dockerfile.prod
+Makefile
+requirements.txt
+shiny.runtime.env
+.env*

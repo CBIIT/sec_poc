@@ -1,0 +1,34 @@
+{
+  "folders": [
+    {
+      "path": "sec_poc"
+    },
+    {
+      "path": "sec_admin"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true,
+      "**/Thumbs.db": true,
+      "**/venv": true
+    },
+    "[r]": {
+      "editor.formatOnSave": false
+    },
+    "python.analysis.exclude": ["*.ipynb"],
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "rest-client.environmentVariables": {}
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": []
+  },
+  "extensions": {
+    "recommendations": ["REditorSupport.r", "RDebugger.r-debugger"]
+  }
+}

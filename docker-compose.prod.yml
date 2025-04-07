@@ -1,0 +1,14 @@
+services:
+  shiny:
+    image: sec_poc_prod
+    ports:
+      - 3838:3838
+    env_file:
+      - .env.prod.local
+    volumes:
+      - ./shiny-server-logs:/var/log/shiny-server
+
+  # Database is treated "externally."
+  # While developing locally, run the database outside of the
+  # compose stack to test connecting to an external data source (i.e., make
+  # sure the .env.prod passed in matches the external database connection details)
