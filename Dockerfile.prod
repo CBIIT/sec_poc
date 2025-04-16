@@ -19,13 +19,11 @@ RUN apt update && \
         libpng-dev \
         libpq-dev \
         libssl-dev \
-        pandoc \
-        && \
+        pandoc && \
     R -e "install.packages('renv', repos = c(CRAN = 'https://cloud.r-project.org'))"
 
 # copy shiny config
 COPY shiny-server.conf /etc/shiny-server/shiny-server.conf
-COPY --chown=shiny:shiny users.sqlite /opt/app_databases/users.sqlite
 
 # copy app source code
 COPY --chown=shiny:shiny . .
@@ -34,6 +32,7 @@ COPY --chown=shiny:shiny . .
 RUN --mount=type=cache,target=${RENV_PATHS_CACHE},id=renv-cache-v1 \
     chown -R shiny:shiny ${RENV_PATHS_CACHE} \
     && chown -R :shiny /usr/local/lib/R/site-library \
+    # See https://rstudio.github.io/renv/reference/isolate.html
     && echo 'options(renv.config.cache.symlinks = FALSE)' > /home/shiny/.Rprofile \
     && cd sec_poc \
     && su shiny -c 'R -e "renv::restore()"' \

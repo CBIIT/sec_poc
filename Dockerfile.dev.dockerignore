@@ -1,8 +1,14 @@
+.env*
+api_etl_pg.sh*
 docker-compose.dev.yml
 docker-compose.prod.yml
 Dockerfile.dev
+Dockerfile.dev.dockerignore
+Dockerfile.ETL
+Dockerfile.ETL.dockerignore
 Dockerfile.prod
+Dockerfile.prod.dockerignore
 Makefile
-requirements.txt
-shiny.runtime.env
-.env*
+sec_nlp/
+shiny-server-logs/
+shiny-server.conf

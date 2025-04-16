@@ -1,0 +1,22 @@
+FROM python:3.8
+
+WORKDIR /app
+VOLUME [ "/app/cache" ]
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y postgresql-common && \
+    yes | /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && \
+    apt install -y postgresql-client-16
+
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-v1 \
+    pip install -r requirements.txt && \
+    python -m spacy download en_core_web_sm && \
+    mkdir cache
+
+COPY sec_poc/db_api_etl/refresh_ncit_pg.py sec_poc/db_api_etl/nlp_tokenizer.py sec_poc/db_api_etl/api_etl_v2.py sec_poc/db_api_etl/get_associations.py .
+COPY sec_nlp/sec_poc_tokenizer.py sec_nlp/sec_poc_classifier.py sec_nlp/sec_poc_expression_generator.py sec_nlp/common_funcs.py sec_nlp/create_performance_expression.py nlp_pg/
+COPY --chmod=+x api_etl_pg.sh .
+
+ENV PYTHONUNBUFFERED=1
+CMD ["./api_etl_pg.sh"]
