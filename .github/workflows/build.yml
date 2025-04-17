@@ -1,0 +1,56 @@
+name: Build images
+
+on:
+  push:
+    branches: [$default-branch]
+  pull_request:
+    branches: [$default-branch]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          ref: $default-branch
+          path: sec_poc
+
+      - uses: actions/checkout@v4
+        with:
+          repository: CBIIT/sec_admin
+          path: sec_admin
+
+      - uses: actions/checkout@v4
+        with:
+          repository: CBIIT/sec_nlp
+          path: sec_nlp
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: |
+            renv-cache
+            pip-cache
+          key: cache-${{ hashFiles('sec_poc/renv.lock', 'sec_admin/renv.lock', 'sec_nlp/requirements.txt') }}
+
+      - uses: reproducible-containers/buildkit-cache-dance@v3.1.0
+        with:
+          cache-map: |
+            {
+              "renv-cache": "/root/.cache/R/renv",
+              "pip-cache": "/root/.cache/pip"
+            }
+          skip-extraction: ${{ steps.cache.outputs.cache-hit }}
+
+      - run: make docker_build docker_build_prod docker_save GHA=true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: sec_poc_*.tar
+          retention-days: 7

@@ -1,4 +1,4 @@
-.PHONY: all clone_sec_poc clone_sec_admin clone_sec_nlp update_repos docker_build docker_build_dev docker_build_prod docker_compose docker_compose_dev docker_compose_prod
+.PHONY: all clone_sec_poc clone_sec_admin clone_sec_nlp update_repos docker_build docker_build_dev docker_build_prod docker_compose docker_compose_dev docker_compose_prod docker_save
 
 SEC_POC_DIR = sec_poc
 SEC_ADMIN_DIR = sec_admin
@@ -6,6 +6,7 @@ SEC_NLP_DIR = sec_nlp
 SEC_POC_REPO = https://github.com/CBIIT/sec_poc.git
 SEC_ADMIN_REPO = https://github.com/CBIIT/sec_admin.git
 SEC_NLP_REPO = https://github.com/CBIIT/sec_nlp.git
+GHA ?= false
 
 all: check_clone update_repos
 
@@ -49,13 +50,23 @@ docker_build: docker_build_dev
 
 docker_build_dev:
 	@echo "Building Docker.dev"
-	docker build -f Dockerfile.dev -t sec_poc_dev .
-	docker build -f Dockerfile.ETL -t sec_poc_etl .
+	@if [ "${GHA}" == "true" ]; then \
+		docker build -f Dockerfile.dev --context-from type=gha --context-to type=gha,mode=max -t sec_poc_dev .; \
+		docker build -f Dockerfile.ETL --context-from type=gha --context-to type=gha,mode=max -t sec_poc_etl .; \
+	else \
+		docker build -f Dockerfile.dev -t sec_poc_dev .; \
+		docker build -f Dockerfile.ETL -t sec_poc_etl .; \
+	fi
 
 docker_build_prod:
 	@echo "Building Docker.prod"
-	docker buildx build --platform linux/amd64 -f Dockerfile.prod -t sec_poc_prod .
-	docker build -f Dockerfile.ETL -t sec_poc_etl .
+	@if [ "${GHA}" == "true" ]; then \
+		docker buildx build --platform linux/amd64 -f Dockerfile.prod --context-from type=gha --context-to type=gha,mode=max -t sec_poc_prod .; \
+		docker build -f Dockerfile.ETL --context-from type=gha --context-to type=gha,mode=max -t sec_poc_etl .; \
+	else \
+		docker buildx build --platform linux/amd64 -f Dockerfile.prod -t sec_poc_prod .; \
+		docker build -f Dockerfile.ETL -t sec_poc_etl .; \
+	fi
 
 docker_compose: docker_compose_dev
 
@@ -66,3 +77,8 @@ docker_compose_dev:
 docker_compose_prod:
 	@echo "Building docker-compose.prod.yml"
 	docker-compose -f docker-compose.prod.yml -p sec_poc_prod up -d
+
+docker_save: 
+	docker save -o sec_poc_dev.tar sec_poc_dev
+	docker save -o sec_poc_etl.tar sec_poc_etl
+	docker save -o sec_poc_prod.tar sec_poc_prod

@@ -1,6 +1,7 @@
 FROM python:3.8
 
 WORKDIR /app
+# speed up ETL by using requests-cache
 VOLUME [ "/app/cache" ]
 
 ENV DEBIAN_FRONTEND=noninteractive
