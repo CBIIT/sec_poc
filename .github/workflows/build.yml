@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          ref: $default-branch
+          ref: ${{ github.event.repository.default_branch }}
           path: sec_poc
 
       - uses: actions/checkout@v4
