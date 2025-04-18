@@ -9,7 +9,7 @@ RUN apt update && apt install -y postgresql-common && \
     yes | /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && \
     apt install -y postgresql-client-16
 
-COPY requirements.txt .
+COPY sec_nlp/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-v1 \
     pip install -r requirements.txt && \
     python -m spacy download en_core_web_sm && \
