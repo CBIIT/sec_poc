@@ -1293,7 +1293,7 @@ select count(nct_id) as number_sites, nct_id from trial_sites where org_status =
     output$guided_total_trials <- renderText({
       paste(sprintf("%s Trials match your criteria", nrow(holder())))
     })
-    if (input$gender_guided == "BOTH") {
+    if (input$gender_guided == "ALL") {
       updateRadioGroupButtons(session, "gender", selected = "Unspecified")
     } else {
       updateRadioGroupButtons(session, "gender", selected = str_to_title(input$gender_guided))
