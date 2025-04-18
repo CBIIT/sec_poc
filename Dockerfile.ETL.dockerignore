@@ -20,5 +20,6 @@ sec_nlp/
 !sec_nlp/sec_poc_expression_generator.py
 !sec_nlp/common_funcs.py
 !sec_nlp/create_performance_expression.py
+!sec_nlp/requirements.txt
 shiny-server-logs/
 shiny-server.conf
