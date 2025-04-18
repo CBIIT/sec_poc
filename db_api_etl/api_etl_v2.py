@@ -136,7 +136,7 @@ start = 0
 include_items = ['nct_id',
                  'eligibility.structured.max_age_in_years',
                  'eligibility.structured.min_age_in_years',
-                 'eligibility.structured.gender',
+                 'eligibility.structured.sex',
                  'eligibility.unstructured',
                  'diseases',
                  'brief_title',
@@ -218,12 +218,12 @@ while run:
             [trial['nct_id'], s['org_name'], s['org_family'], s['recruitment_status'],None])
 
         # print(trial['nct_id'])
-        if trial['eligibility']['structured']['gender'] == 'BOTH':
+        if trial['eligibility']['structured']['sex'] == 'ALL':
             gender_expression = 'TRUE'
-        elif trial['eligibility']['structured']['gender'] == 'MALE':
+        elif trial['eligibility']['structured']['sex'] == 'MALE':
             # gender_expression = "C46109 == 'YES'"
             gender_expression = "exists('C46109')"
-        elif trial['eligibility']['structured']['gender'] == 'FEMALE':
+        elif trial['eligibility']['structured']['sex'] == 'FEMALE':
             gender_expression = "exists('C46110')"
         else:
             gender_expression = 'TRUE'
@@ -265,7 +265,7 @@ while run:
                 trial["detail_description"],
                 max_age_in_years,
                 min_age_in_years,
-                trial["eligibility"]["structured"]["gender"],
+                trial["eligibility"]["structured"]["sex"],
                 None if max_age_in_years is None or min_age_in_years is None else "C25150 >= " + str(min_age_in_years) + " & C25150 <= " + str(max_age_in_years),
                 gender_expression,
                 trial["phase"],

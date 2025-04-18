@@ -194,14 +194,14 @@ getGuidedQuestionDataFrames <-  function(safe_query){
             modalParams=list(
                 'gender_guided',
                 'What is your gender??',
-                c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="BOTH"),
+                c("Female"="FEMALE", "Male"="MALE", "Rather not specify"="ALL"),
                 'guided_question2'
             ),
             isSelectizeInput=FALSE,
             calc=function(df, x){
                 search_value = x
-                if(x == 'BOTH'){
-                    search_value = c('FEMALE', 'MALE', 'BOTH')
+                if(x == 'ALL'){
+                    search_value = c('FEMALE', 'MALE', 'ALL')
                 }
                 df %>% filter(str_detect(Gender, paste(search_value, collapse="|")) | is.na(Gender)) 
             }

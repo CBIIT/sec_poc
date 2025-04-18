@@ -1,12 +1,13 @@
 default:
-    db_file_location : '/srv/app_databases/nci_v5.db'
-    api_key : 'CTS_API_KEY_GOES_HERE'
-    enable_umls : TRUE
-    debug_expressions : FALSE
-    bing_maps_api_key: 'IDontThinkThisIsUsedAnymoreButIfItIsHereIsWhere'
-    session_db_file_location : '/srv/app_databases/nci_v5.db'
-    dbname : 'sec'
-    host : 'localhost'
-    user : 'secapp'
-    port : 5432
-    password: 'DB_PASSWORD'
+  # db_file_location: "/srv/app_databases/nci_v5.db" # legacy used in util/
+  # python_file_dir: "/home/hickmanhb/shiny_apps/sec_poc" # legacy used in util/
+  api_key: !expr Sys.getenv("UMLS_API_KEY")
+  enable_umls: TRUE
+  debug_expressions: FALSE
+  bing_maps_api_key: !expr Sys.getenv("BING_MAPS_API_KEY")
+  # session_db_file_location: "/srv/app_databases/nci_v5.db" # not used
+  dbname: !expr Sys.getenv("DB_NAME", "sec")
+  host: !expr Sys.getenv("DB_HOST", "localhost")
+  user: !expr Sys.getenv("DB_USER", "secapp")
+  port: !expr Sys.getenv("DB_PORT", "5432")
+  password: !expr Sys.getenv("DB_PASS", "1234")
