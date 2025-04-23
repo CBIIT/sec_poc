@@ -54,6 +54,7 @@ jobs:
           key: pip-cache-${{ hashFiles('sec_nlp/requirements.txt') }}
 
       - name: echo renv cache contents
+        if: ${{ steps.renv-cache.outputs.cache-hit }}
         run: |
           echo "size of contents in renv-cache $(du -sh renv-cache)"
           ls -lah renv-cache
