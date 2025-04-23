@@ -32,21 +32,38 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - uses: actions/cache@v4
-        id: cache
+        id: apt-cache
+        with:
+          path: |
+            var-cache-apt
+            var-lib-apt
+          key: apt-cache-${{ hashFiles('Dockerfile.dev', 'Dockerfile.ETL', 'Dockerfile.prod') }}
+
+      - uses: actions/cache@v4
+        id: renv-cache
         with:
           path: |
             renv-cache
-            pip-cache
-          key: cache-${{ hashFiles('sec_poc/renv.lock', 'sec_admin/renv.lock', 'sec_nlp/requirements.txt') }}
+            renv-cache-tmp
+          key: renv-cache-${{ hashFiles('sec_poc/renv.lock', 'sec_admin/renv.lock') }}
+
+      - uses: actions/cache@v4
+        id: pip-cache
+        with:
+          path: pip-cache
+          key: pip-cache-${{ hashFiles('sec_nlp/requirements.txt') }}
 
       - uses: reproducible-containers/buildkit-cache-dance@v3.1.0
         with:
           cache-map: |
             {
               "renv-cache": "/root/.cache/R/renv",
-              "pip-cache": "/root/.cache/pip"
+              "renv-cache-tmp": "/tmp/renv/cache",
+              "pip-cache": "/root/.cache/pip",
+              "var-cache-apt": "/var/cache/apt",
+              "var-lib-apt": "/var/lib/apt",
             }
-          skip-extraction: ${{ steps.cache.outputs.cache-hit }}
+          skip-extraction: ${{ steps.apt-cache.outputs.cache-hit == 'true' && steps.renv-cache.outputs.cache-hit == 'true' && steps.pip-cache.outputs.cache-hit == 'true' }}
 
       - run: make docker_build docker_build_prod docker_save GHA=true
 
