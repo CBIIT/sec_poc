@@ -61,7 +61,7 @@ jobs:
               "renv-cache-tmp": "/tmp/renv/cache",
               "pip-cache": "/root/.cache/pip",
               "var-cache-apt": "/var/cache/apt",
-              "var-lib-apt": "/var/lib/apt",
+              "var-lib-apt": "/var/lib/apt"
             }
           skip-extraction: ${{ steps.apt-cache.outputs.cache-hit == 'true' && steps.renv-cache.outputs.cache-hit == 'true' && steps.pip-cache.outputs.cache-hit == 'true' }}
 
