@@ -31,11 +31,6 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: echo renv cache contents
-        run: |
-          echo "size of contents in renv-cache $(du -sh renv-cache)" &&
-          echo "size of contents in renv-cache-tmp $(du -sh renv-cache-tmp)"
-
       - uses: actions/cache@v4
         id: apt-cache
         with:
@@ -69,6 +64,11 @@ jobs:
               "var-lib-apt": "/var/lib/apt"
             }
           skip-extraction: ${{ steps.apt-cache.outputs.cache-hit == 'true' && steps.renv-cache.outputs.cache-hit == 'true' && steps.pip-cache.outputs.cache-hit == 'true' }}
+
+      - name: echo renv cache contents
+        run: |
+          echo "size of contents in renv-cache $(du -sh renv-cache)" &&
+          echo "size of contents in renv-cache-tmp $(du -sh renv-cache-tmp)"
 
       - run: make docker_build docker_build_prod docker_save GHA=true
 
