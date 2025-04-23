@@ -51,8 +51,8 @@ docker_build: docker_build_dev
 docker_build_dev:
 	@echo "Building Docker.dev"
 	@if [ "${GHA}" = "true" ]; then \
-		docker buildx build -f Dockerfile.dev --context-from type=gha --context-to type=gha,mode=max -t sec_poc_dev .; \
-		docker buildx build -f Dockerfile.ETL --context-from type=gha --context-to type=gha,mode=max -t sec_poc_etl .; \
+		docker build -f Dockerfile.dev --cache-from type=gha --cache-to type=gha,mode=max -t sec_poc_dev .; \
+		docker build -f Dockerfile.ETL --cache-from type=gha --cache-to type=gha,mode=max -t sec_poc_etl .; \
 	else \
 		docker build -f Dockerfile.dev -t sec_poc_dev .; \
 		docker build -f Dockerfile.ETL -t sec_poc_etl .; \
@@ -61,10 +61,10 @@ docker_build_dev:
 docker_build_prod:
 	@echo "Building Docker.prod"
 	@if [ "${GHA}" = "true" ]; then \
-		docker buildx build --platform linux/amd64 -f Dockerfile.prod --context-from type=gha --context-to type=gha,mode=max -t sec_poc_prod .; \
-		docker buildx build -f Dockerfile.ETL --context-from type=gha --context-to type=gha,mode=max -t sec_poc_etl .; \
+		docker build --platform linux/amd64 -f Dockerfile.prod --cache-from type=gha --cache-to type=gha,mode=max -t sec_poc_prod .; \
+		docker build -f Dockerfile.ETL --cache-from type=gha --cache-to type=gha,mode=max -t sec_poc_etl .; \
 	else \
-		docker buildx build --platform linux/amd64 -f Dockerfile.prod -t sec_poc_prod .; \
+		docker build --platform linux/amd64 -f Dockerfile.prod -t sec_poc_prod .; \
 		docker build -f Dockerfile.ETL -t sec_poc_etl .; \
 	fi
 
