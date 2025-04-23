@@ -56,7 +56,8 @@ jobs:
       - name: echo renv cache contents
         run: |
           echo "size of contents in renv-cache $(du -sh renv-cache)" &&
-          echo "size of contents in renv-cache-tmp $(du -sh renv-cache-tmp)"
+          echo "size of contents in renv-cache-tmp $(du -sh renv-cache-tmp)" &&
+          ls -lah renv-cache && ls -lah renv-cache-tmp
 
       - uses: reproducible-containers/buildkit-cache-dance@v3.1.0
         with:
