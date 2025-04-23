@@ -55,21 +55,38 @@ jobs:
 
       - name: echo renv cache contents
         run: |
-          echo "size of contents in renv-cache $(du -sh renv-cache)" &&
-          echo "size of contents in renv-cache-tmp $(du -sh renv-cache-tmp)" &&
-          ls -lah renv-cache && ls -lah renv-cache-tmp
+          echo "size of contents in renv-cache $(du -sh renv-cache)"
+          ls -lah renv-cache
 
-      - uses: reproducible-containers/buildkit-cache-dance@v3.1.0
+      - uses: reproducible-containers/buildkit-cache-dance@v2.1.4
         with:
-          cache-map: |
-            {
-              "renv-cache": "/root/.cache/R/renv",
-              "renv-cache-tmp": "/tmp/renv/cache",
-              "pip-cache": "/root/.cache/pip",
-              "var-cache-apt": "/var/cache/apt",
-              "var-lib-apt": "/var/lib/apt"
-            }
-          skip-extraction: ${{ steps.apt-cache.outputs.cache-hit == 'true' && steps.renv-cache.outputs.cache-hit == 'true' && steps.pip-cache.outputs.cache-hit == 'true' }}
+          cache-source: renv-cache
+          cache-target: /root/.cache/R/renv
+          skip-extraction: ${{ steps.renv-cache.outputs.cache-hit }}
+
+      - uses: reproducible-containers/buildkit-cache-dance@v2.1.4
+        with:
+          cache-source: renv-cache
+          cache-target: /tmp/renv/cache
+          skip-extraction: ${{ steps.renv-cache.outputs.cache-hit }}
+
+      - uses: reproducible-containers/buildkit-cache-dance@v2.1.4
+        with:
+          cache-source: pip-cache
+          cache-target: /root/.cache/pip
+          skip-extraction: ${{ steps.pip-cache.outputs.cache-hit }}
+
+      - uses: reproducible-containers/buildkit-cache-dance@v2.1.4
+        with:
+          cache-source: var-cache-apt
+          cache-target: /var/cache/apt
+          skip-extraction: ${{ steps.apt-cache.outputs.cache-hit }}
+
+      - uses: reproducible-containers/buildkit-cache-dance@v2.1.4
+        with:
+          cache-source: var-lib-apt
+          cache-target: /var/lib/apt
+          skip-extraction: ${{ steps.apt-cache.outputs.cache-hit }}
 
       - run: make docker_build docker_build_prod docker_save GHA=true
 
