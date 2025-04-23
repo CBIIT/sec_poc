@@ -50,7 +50,7 @@ docker_build: docker_build_dev
 
 docker_build_dev:
 	@echo "Building Docker.dev"
-	@if [ "${GHA}" == "true" ]; then \
+	@if [ "${GHA}" = "true" ]; then \
 		docker build -f Dockerfile.dev --context-from type=gha --context-to type=gha,mode=max -t sec_poc_dev .; \
 		docker build -f Dockerfile.ETL --context-from type=gha --context-to type=gha,mode=max -t sec_poc_etl .; \
 	else \
@@ -60,7 +60,7 @@ docker_build_dev:
 
 docker_build_prod:
 	@echo "Building Docker.prod"
-	@if [ "${GHA}" == "true" ]; then \
+	@if [ "${GHA}" = "true" ]; then \
 		docker buildx build --platform linux/amd64 -f Dockerfile.prod --context-from type=gha --context-to type=gha,mode=max -t sec_poc_prod .; \
 		docker build -f Dockerfile.ETL --context-from type=gha --context-to type=gha,mode=max -t sec_poc_etl .; \
 	else \
