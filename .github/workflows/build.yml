@@ -60,6 +60,7 @@ jobs:
         name: Build Dev Container
         with:
           push: false
+          context: .
           file: Dockerfile.dev
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -69,6 +70,7 @@ jobs:
         name: Build ETL Container
         with:
           push: false
+          context: .
           file: Dockerfile.ETL
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -78,6 +80,7 @@ jobs:
         name: Build Prod Container
         with:
           push: false
+          context: .
           file: Dockerfile.prod
           cache-from: type=gha
           cache-to: type=gha,mode=max
