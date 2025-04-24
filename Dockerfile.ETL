@@ -10,7 +10,7 @@ RUN apt update && apt install -y postgresql-common && \
     apt install -y postgresql-client-16
 
 COPY sec_nlp/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-v1 \
+RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt && \
     python -m spacy download en_core_web_sm && \
     mkdir cache
