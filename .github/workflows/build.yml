@@ -31,6 +31,8 @@ jobs:
           repository: CBIIT/sec_nlp
           path: sec_nlp
 
+      - uses: docker/setup-buildx-action@v3
+
       - uses: actions/cache@v3
         name: Save/Restore Cache
         id: cache
@@ -72,7 +74,6 @@ jobs:
           context: .
           file: Dockerfile.ETL
           load: true
-          platforms: linux/amd64
           push: false
           tags: sec_poc_etl:latest
 
