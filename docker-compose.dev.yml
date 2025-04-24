@@ -1,17 +1,19 @@
 services:
   shiny:
-    build:
-      dockerfile: Dockerfile.dev
-      context: .
-      args:
-        - tag=sec_poc_dev
+    image: sec_poc_dev:latest
     env_file:
       - .env.dev
     volumes:
+      # Clone the CBIIT/sec_poc and CBIIT/sec_admin repos ahead of time or clone them inside the container
       - ./sec_poc:/opt/R/sec_poc_workspace/sec_poc
       - ./sec_admin:/opt/R/sec_poc_workspace/sec_admin
     depends_on:
       - postgres
+    # Ports are not exposed because VS Code dev containers extension automatically forwards them.
+    # If not using vscode, then supply them here.
+    # ports:
+    #   - 8080:8080
+    #   - 8081:8081
   postgres:
     image: postgres:16
     environment:
@@ -19,10 +21,10 @@ services:
       POSTGRES_USER: secapp
       POSTGRES_PASSWORD: 1234
     ports:
+      # Use host port 5433 since 5432 may already be reserved by postgresql running on the host.
       - 5433:5432
     volumes:
-      - sec_poc_pg:/var/lib/postgresql/data
+      - sec_poc_db:/var/lib/postgresql/data
 
 volumes:
-  sec_poc_pg:
-    external: true
+  sec_poc_db:

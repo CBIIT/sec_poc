@@ -87,6 +87,9 @@ jobs:
           tags: sec_poc_prod:latest
           platforms: linux/amd64
 
+      - run: make docker_save
+        name: Save Docker Images to Tar Archives
+
       - uses: actions/upload-artifact@v4
         with:
           name: docker-images

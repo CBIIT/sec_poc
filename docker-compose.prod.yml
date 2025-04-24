@@ -1,6 +1,6 @@
 services:
   shiny:
-    image: sec_poc_prod
+    image: sec_poc_prod:latest
     ports:
       - 3838:3838
     env_file:
