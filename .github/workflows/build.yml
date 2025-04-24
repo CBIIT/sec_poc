@@ -65,6 +65,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: sec_poc_dev:latest
+          outputs: type=docker,tar=true,dest=sec_poc_dev.tar
 
       - uses: docker/build-push-action@v6
         name: Build ETL Container
@@ -75,6 +76,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: sec_poc_etl:latest
+          outputs: type=docker,tar=true,dest=sec_poc_etl.tar
 
       - uses: docker/build-push-action@v6
         name: Build Prod Container
@@ -86,9 +88,7 @@ jobs:
           cache-to: type=gha,mode=max
           tags: sec_poc_prod:latest
           platforms: linux/amd64
-
-      - run: make docker_save
-        name: Save Docker Images to Tar Archives
+          outputs: type=docker,tar=true,dest=sec_poc_prod.tar
 
       - uses: actions/upload-artifact@v4
         with:
