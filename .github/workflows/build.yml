@@ -3,8 +3,6 @@ name: Build images
 on:
   push:
     branches: [$default-branch]
-  pull_request:
-    branches: [$default-branch]
   workflow_dispatch:
 
 jobs:
@@ -33,7 +31,23 @@ jobs:
           repository: CBIIT/sec_nlp
           path: sec_nlp
 
+      - uses: docker/setup-docker-action@v4
+        name: Set up Docker
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - uses: docker/setup-qemu-action@v3
+        name: Set up QEMU
+
       - uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
 
       - uses: actions/cache@v3
         name: Save/Restore Cache
@@ -59,36 +73,38 @@ jobs:
       - uses: docker/build-push-action@v6
         name: Build Dev Container
         with:
-          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,scope=dev
           context: .
           file: Dockerfile.dev
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          load: true
+          platforms: linux/amd64,linux/arm64
+          push: false
           tags: sec_poc_dev:latest
-          outputs: type=docker,tar=true,dest=sec_poc_dev.tar
 
       - uses: docker/build-push-action@v6
         name: Build ETL Container
         with:
-          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,scope=etl
           context: .
           file: Dockerfile.ETL
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          load: true
+          platforms: linux/amd64,linux/arm64
+          push: false
           tags: sec_poc_etl:latest
-          outputs: type=docker,tar=true,dest=sec_poc_etl.tar
 
       - uses: docker/build-push-action@v6
         name: Build Prod Container
         with:
-          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,scope=prod
           context: .
           file: Dockerfile.prod
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          load: true
+          platforms: linux/amd64,linux/arm64
+          push: false
           tags: sec_poc_prod:latest
-          platforms: linux/amd64
-          outputs: type=docker,tar=true,dest=sec_poc_prod.tar
 
       - uses: actions/upload-artifact@v4
         with:
