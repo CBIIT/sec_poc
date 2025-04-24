@@ -32,6 +32,8 @@ jobs:
           path: sec_nlp
 
       - uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
 
       - uses: actions/cache@v3
         name: Save/Restore Cache
