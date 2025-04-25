@@ -65,7 +65,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=dev
           context: .
           file: Dockerfile.dev
-          outputs: type=docker,tar=true,dest=sec_poc_dev.tar
+          outputs: type=oci,tar=true,dest=sec_poc_dev.tar
           platforms: linux/amd64,linux/arm64
           push: false
           tags: sec_poc_dev:latest
@@ -77,7 +77,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=etl
           context: .
           file: Dockerfile.ETL
-          outputs: type=docker,tar=true,dest=sec_poc_etl.tar
+          outputs: type=oci,tar=true,dest=sec_poc_etl.tar
           platforms: linux/amd64,linux/arm64
           push: false
           tags: sec_poc_etl:latest
@@ -89,7 +89,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=prod
           context: .
           file: Dockerfile.prod
-          outputs: type=docker,tar=true,dest=sec_poc_prod.tar
+          outputs: type=oci,tar=true,dest=sec_poc_prod.tar
           platforms: linux/amd64
           push: false
           tags: sec_poc_prod:latest
