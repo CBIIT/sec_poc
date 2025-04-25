@@ -23,7 +23,6 @@ jobs:
         with:
           repository: CBIIT/sec_admin
           path: sec_admin
-          ref: cloud-migration
 
       - uses: actions/checkout@v4
         name: Checkout the SEC NLP
