@@ -31,6 +31,9 @@ jobs:
           repository: CBIIT/sec_nlp
           path: sec_nlp
 
+      - uses: docker/setup-qemu-action@v3
+        name: Set up QEMU
+
       - uses: docker/setup-buildx-action@v3
         with:
           buildkitd-flags: --debug
@@ -41,7 +44,7 @@ jobs:
         with:
           path: |
             renv-cache
-            renv-tmp-cache
+            renv-cache-shiny
             pip-cache
           key: cache-${{ hashFiles('sec_poc/renv.lock', 'sec_admin/renv.lock', 'sec_nlp/requirements.txt') }}
 
@@ -51,7 +54,7 @@ jobs:
           cache-map: |
             {
               "renv-cache": "/root/.cache/R/renv",
-              "renv-tmp-cache": "/tmp/renv/cache",
+              "renv-cache-shiny": "/home/shiny/.cache/R/renv",
               "pip-cache": "/root/.cache/pip"
             }
           skip-extraction: ${{ steps.cache.outputs.cache-hit }}
@@ -64,7 +67,7 @@ jobs:
           context: .
           file: Dockerfile.dev
           outputs: type=docker,tar=true,dest=sec_poc_dev.tar
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: false
           tags: sec_poc_dev:latest
 
@@ -76,6 +79,7 @@ jobs:
           context: .
           file: Dockerfile.ETL
           outputs: type=docker,tar=true,dest=sec_poc_etl.tar
+          platforms: linux/amd64,linux/arm64
           push: false
           tags: sec_poc_etl:latest
 
