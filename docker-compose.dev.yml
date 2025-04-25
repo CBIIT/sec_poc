@@ -17,9 +17,9 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: sec
-      POSTGRES_USER: secapp
-      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
     ports:
       # Use host port 5433 since 5432 may already be reserved by postgresql running on the host.
       - 5433:5432
