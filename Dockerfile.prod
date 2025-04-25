@@ -4,8 +4,6 @@ VOLUME [ "/var/log/shiny-server" ]
 
 WORKDIR /srv/shiny-server
 
-# set location of renv cache
-ENV RENV_PATHS_CACHE=/home/shiny/.cache/R/renv
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && \
@@ -28,9 +26,11 @@ COPY shiny-server.conf /etc/shiny-server/shiny-server.conf
 COPY --chown=shiny:shiny . .
 
 # renv restore from cache
+ENV RENV_PATHS_CACHE=/renv/cache
 RUN --mount=type=cache,target=${RENV_PATHS_CACHE} \
-    chown -R :shiny /usr/local/lib/R/site-library \
+    chown -R shiny:shiny ${RENV_PATHS_CACHE} \
+    && chown -R :shiny /usr/local/lib/R/site-library \
     && cd sec_poc \
     && su shiny -c 'R -e "renv::restore()"' \
     && cd ../sec_admin \
-    && su shiny -c 'R -e "renv::restore()"' \
+    && su shiny -c 'R -e "renv::restore()"'

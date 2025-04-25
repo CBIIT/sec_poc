@@ -4,8 +4,6 @@ VOLUME [ "/opt/R/sec_poc_workspace/sec_poc", "/opt/R/sec_poc_workspace/sec_admin
 
 WORKDIR /opt/R/sec_poc_workspace
 
-# set location of renv cache
-ENV RENV_PATHS_CACHE=/root/.cache/R/renv
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && \
@@ -27,6 +25,7 @@ COPY sec_poc/renv.lock sec_poc/
 COPY sec_admin/renv.lock sec_admin/
 
 # renv restore from cache
+ENV RENV_PATHS_CACHE=/renv/cache
 RUN --mount=type=cache,target=${RENV_PATHS_CACHE} \
     cd sec_poc \
     && R -e "renv::restore()" \

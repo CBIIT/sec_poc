@@ -15,8 +15,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     python -m spacy download en_core_web_sm && \
     mkdir cache
 
-COPY sec_poc/db_api_etl/refresh_ncit_pg.py sec_poc/db_api_etl/nlp_tokenizer.py sec_poc/db_api_etl/api_etl_v2.py sec_poc/db_api_etl/get_associations.py .
-COPY sec_nlp/sec_poc_tokenizer.py sec_nlp/sec_poc_classifier.py sec_nlp/sec_poc_expression_generator.py sec_nlp/common_funcs.py sec_nlp/create_performance_expression.py nlp_pg/
+COPY sec_poc/db_api_etl/refresh_ncit_pg.py sec_poc/db_api_etl/nlp_tokenizer.py sec_poc/db_api_etl/api_etl_v2.py sec_poc/db_api_etl/get_associations.py sec_poc/db_api_etl/nci_api_db.sql .
+COPY sec_nlp/sec_poc_tokenizer.py sec_nlp/sec_poc_classifier.py sec_nlp/sec_poc_expression_generator.py sec_nlp/common_funcs.py sec_nlp/create_performance_expression.py sec_nlp/nlp_schema.sql nlp_pg/
 COPY --chmod=+x api_etl_pg.sh .
 
 ENV PYTHONUNBUFFERED=1
