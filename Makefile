@@ -1,4 +1,4 @@
-.PHONY: all clone_sec_poc clone_sec_admin clone_sec_nlp update_repos docker_build docker_build_dev docker_build_prod docker_compose docker_compose_dev docker_compose_prod docker_save
+.PHONY: sync_remotes clone_sec_poc clone_sec_admin clone_sec_nlp update_repos docker_build docker_build_dev docker_build_prod docker_compose docker_compose_dev docker_compose_prod docker_save
 
 SEC_POC_DIR = sec_poc
 SEC_ADMIN_DIR = sec_admin
@@ -8,7 +8,7 @@ SEC_ADMIN_REPO = https://github.com/CBIIT/sec_admin.git
 SEC_NLP_REPO = https://github.com/CBIIT/sec_nlp.git
 GHA ?= false
 
-all: check_clone update_repos
+sync_remotes: check_clone update_repos
 
 check_clone: clone_sec_poc clone_sec_admin clone_sec_nlp
 
