@@ -1,13 +1,9 @@
 .env*
+.git/
+.github/
 api_etl_pg.sh*
-docker-compose.dev.yml
-docker-compose.prod.yml
-Dockerfile.dev
-Dockerfile.dev.dockerignore
-Dockerfile.ETL
-Dockerfile.ETL.dockerignore
-Dockerfile.prod
-Dockerfile.prod.dockerignore
+docker-compose*
+Dockerfile*
 Makefile
 sec_admin/.git
 sec_admin/.gitignore

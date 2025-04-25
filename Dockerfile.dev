@@ -1,6 +1,6 @@
-FROM rocker/r-ver:4 AS build
+FROM rocker/r-ver:4.4.3
 
-VOLUME ["/opt/R/sec_poc_workspace/sec_poc", "/opt/R/sec_poc_workspace/sec_admin"]
+VOLUME [ "/opt/R/sec_poc_workspace/sec_poc", "/opt/R/sec_poc_workspace/sec_admin" ]
 
 WORKDIR /opt/R/sec_poc_workspace
 
@@ -22,13 +22,9 @@ RUN apt update && \
     R -e "install.packages('renv', repos = c(CRAN = 'https://cloud.r-project.org'))"
 
 # copy renv files
-COPY sec_poc/renv sec_poc/renv
 COPY sec_poc/renv.lock sec_poc/
-COPY sec_poc/.Rprofile sec_poc/
 
-COPY sec_admin/renv sec_admin/renv
 COPY sec_admin/renv.lock sec_admin/
-COPY sec_admin/.Rprofile sec_admin/
 
 # renv restore from cache
 RUN --mount=type=cache,target=${RENV_PATHS_CACHE} \
@@ -40,3 +36,12 @@ RUN --mount=type=cache,target=${RENV_PATHS_CACHE} \
 COPY ./sec_poc.code-workspace .
 
 CMD [ "sleep", "infinity" ]
+
+
+# 1) Separate renv project libs for sec_poc and sec_admin (slow startup, but isolate)
+#  - cache mounts don't persist in the container so symlinks cannnot be used (must be copied)
+#  - use renv::isolate() to copy from cache to project lib
+#  - requires renv activation script (slow)
+# 2) Shared renv project libs for both (fast startup, works in both dev/prod without overwriting by mounts, not isolate)
+#  - only provide the renv.lock file
+#  - calling renv::restore() alone is sufficient

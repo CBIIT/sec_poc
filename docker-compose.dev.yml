@@ -24,7 +24,7 @@ services:
       # Use host port 5433 since 5432 may already be reserved by postgresql running on the host.
       - 5433:5432
     volumes:
-      - sec_poc_db:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
 
 volumes:
-  sec_poc_db:
+  db:

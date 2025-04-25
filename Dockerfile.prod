@@ -1,12 +1,11 @@
-FROM rocker/shiny:4
+FROM rocker/shiny:4.4.3
 
 VOLUME [ "/var/log/shiny-server" ]
 
 WORKDIR /srv/shiny-server
 
-ARG RENV_PATHS_CACHE_FINAL=/renv/cache
-ENV RENV_PATHS_CACHE_TMP=/tmp/renv/cache
-ENV RENV_PATHS_CACHE=${RENV_PATHS_CACHE_TMP}
+# set location of renv cache
+ENV RENV_PATHS_CACHE=/home/shiny/.cache/R/renv
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && \
@@ -30,15 +29,8 @@ COPY --chown=shiny:shiny . .
 
 # renv restore from cache
 RUN --mount=type=cache,target=${RENV_PATHS_CACHE} \
-    chown -R shiny:shiny ${RENV_PATHS_CACHE} \
-    && chown -R :shiny /usr/local/lib/R/site-library \
-    # See https://rstudio.github.io/renv/reference/isolate.html
-    && echo 'options(renv.config.cache.symlinks = FALSE)' > /home/shiny/.Rprofile \
+    chown -R :shiny /usr/local/lib/R/site-library \
     && cd sec_poc \
     && su shiny -c 'R -e "renv::restore()"' \
     && cd ../sec_admin \
     && su shiny -c 'R -e "renv::restore()"' \
-    && mkdir -p ${RENV_PATHS_CACHE_FINAL} \
-    && cp -a ${RENV_PATHS_CACHE_TMP}/* ${RENV_PATHS_CACHE_FINAL}
-
-ENV RENV_PATHS_CACHE=${RENV_PATHS_CACHE_FINAL}
