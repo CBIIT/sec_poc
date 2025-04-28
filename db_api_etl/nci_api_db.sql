@@ -280,3 +280,34 @@ insert into
   bad_ncit_syns(code, syn_name)
 values
   ('C161964', 'ECOG');
+
+insert into
+  criteria_types(
+    criteria_type_id,
+    criteria_type_code,
+    criteria_type_title,
+    criteria_type_desc,
+    criteria_type_active,
+    criteria_type_sense,
+    criteria_column_index
+  )
+values
+(1,'biomarker_exc','Biomarker Exclusion','Biomarker Exclusion','N','Exclusion',20),
+(2,'biomarker_inc','Biomarker Inclusion','Biomarker Inclusion','N','Inclusion',30),
+(3,'immunotherapy_exc','Immunotherapy Exclusion','Immunotherapy Exclusion','N','Exclusion',10),
+(4,'chemotherapy_exc','Chemotherapy Exclusion','Chemotherapy Exclusion','N','Exclusion',40),
+(5,'hiv_exc','HIV Exclusion','HIV Exclusion','Y','Exclusion',50),
+(6,'plt','PLT','Platelets','Y','Inclusion',2010),
+(7,'wbc','WBC','White Blood Count','Y','Inclusion',2020),
+(8,'perf','Performance Status','Performance Status','Y','Inclusion',2030),
+(11,'bmets','Brain Mets','brain mets','Y','Exclusion',60),
+(12,'pt_inc','PT Inclusion','Prior therapy inclusion criteria (includes chemotherapy & immunotherapy)','Y','Inclusion',70),
+(17,'surg','Prior Surgery','Prior therapy: surgery exclusion','N','Exclusion',50),
+(18,'pt_exc','PT Exclusion','chemotherapy, immunotherapy','Y','Exclusion',80),
+(19,'diseases_inc','Diseases Inclusion (NLP)','NLP derived diseases facts and expressions.','N','Inclusion',3),
+(254,'BMI','BMI','BMI inclusion','N','Inclusion',1910),
+(256,'hcv','Hepatitis C infection','Understood to be active Hepatitis C infection (C3098)','N','Exclusion',1930),
+(255,'hbv','Hepatitis B infection','Understood as active HBV infection (C3097)','N','Exclusion',1920),
+(257,'so_transplant','Solid Organ Transplant','Solid organ transplant (C15289)','N','Exclusion',1940),
+(253,'swallow','Able to swallow','Trials where participants are ineligible due to inability to swallow (and not having NG or G tube)','N','Exclusion',1900),
+(258,'seizures','Seizures','Coding for uncontrolled seizures, but using NCIt code for just "seizure" (C2962) -- search&match interface needs to specify that search criteria of seizure=yes means UNCONTROLLED seizures only','N','Exclusion',1950);
