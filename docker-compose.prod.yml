@@ -4,11 +4,20 @@ services:
     ports:
       - 3838:3838
     env_file:
-      - .env.prod.local
+      - .env.stage
     volumes:
       - ./shiny-server-logs:/var/log/shiny-server
+  db:
+    image: postgres:16
+    ports:
+      - 5434:5432
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - sec_poc_db:/var/lib/postgresql/data
 
-  # Database is treated "externally."
-  # While developing locally, run the database outside of the
-  # compose stack to test connecting to an external data source (i.e., make
-  # sure the .env.prod passed in matches the external database connection details)
+volumes:
+  sec_poc_db:
+    external: true
