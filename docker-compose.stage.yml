@@ -16,8 +16,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
     volumes:
-      - sec_poc_db:/var/lib/postgresql/data
+      - sec_poc_stage_db:/var/lib/postgresql/data
 
 volumes:
-  sec_poc_db:
+  sec_poc_stage_db:
     external: true
