@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.9.16
 
 WORKDIR /app
 # speed up ETL by using requests-cache
