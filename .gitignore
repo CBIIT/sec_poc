@@ -15,3 +15,4 @@ __pycache__
 .rest-client/
 docs/stage_iv_hnc/stage_codes.json
 http_cache.sqlite
+.posit/publish/deployments/
