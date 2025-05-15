@@ -3,7 +3,7 @@ local({
 
   # the requested version of renv
   version <- "1.1.4"
-  attr(version, "sha") <- "41b1c2b5e37279f8154f3319a34a56aaa06dec67"
+  attr(version, "sha") <- NULL
 
   # the project directory
   project <- Sys.getenv("RENV_PROJECT")
@@ -251,7 +251,7 @@ local({
   renv_bootstrap_repos <- function() {
   
     # get CRAN repository
-    cran <- getOption("renv.repos.cran", "https://cloud.r-project.org")
+    cran <- getOption("renv.repos.cran", "https://cran.rstudio.com")
   
     # check for repos override
     repos <- Sys.getenv("RENV_CONFIG_REPOS_OVERRIDE", unset = NA)
@@ -278,7 +278,7 @@ local({
     repos[repos == "@CRAN@"] <- cran
   
     # add in renv.bootstrap.repos if set
-    default <- c(FALLBACK = "https://cloud.r-project.org")
+    default <- c(FALLBACK = "https://cran.rstudio.com")
     extra <- getOption("renv.bootstrap.repos", default = default)
     repos <- c(repos, extra)
   
