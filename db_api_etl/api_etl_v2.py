@@ -6,7 +6,6 @@ import psycopg2
 import psycopg2.extras
 
 CTS_V2_API_KEY = os.getenv('CTS_V2_API_KEY')
-print(CTS_V2_API_KEY)
 header_v2_api = {"x-api-key" : CTS_V2_API_KEY, "Content-Type" : "application/json"}
 
 def get_maintypes(con, lead_disease):
