@@ -26,10 +26,10 @@ library(shinyWidgets)
 library(pool)
 library(RPostgres)
 
-# options(
-#   shiny.launch.browser = FALSE,
-#   shiny.port = 8080
-# )
+options(
+  shiny.launch.browser = FALSE,
+  shiny.port = 8080
+)
 
 #
 #
