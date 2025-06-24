@@ -1,7 +1,6 @@
 name: Build images
 permissions:
   contents: read
-  packages: write
   actions: write
 
 on:
