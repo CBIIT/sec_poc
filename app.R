@@ -26,14 +26,12 @@ library(shinyWidgets)
 library(pool)
 library(RPostgres)
 
-options(
-  shiny.launch.browser = FALSE,
-  shiny.port = 8080
-)
+dbinfo <- config::get(config = Sys.getenv("R_CONFIG_ACTIVE", "default"))
 
-#
-#
-dbinfo <- config::get()
+options(
+  shiny.launch.browser = dbinfo$shiny_launch_browser,
+  shiny.port = dbinfo$shiny_port
+)
 
 # Sys.setenv(LD_LIBRARY_PATH = "/usr/local/lib")
 

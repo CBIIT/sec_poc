@@ -1,4 +1,4 @@
-default:
+default: &default
   # db_file_location: "/srv/app_databases/nci_v5.db" # legacy used in util/
   # python_file_dir: "/home/hickmanhb/shiny_apps/sec_poc" # legacy used in util/
   api_key: !expr Sys.getenv("UMLS_API_KEY")
@@ -11,3 +11,8 @@ default:
   user: !expr Sys.getenv("DB_USER", "secapp")
   port: !expr Sys.getenv("DB_PORT", "5432")
   password: !expr Sys.getenv("DB_PASS", "1234")
+
+development:
+  <<: *default
+  shiny_launch_browser: FALSE
+  shiny_port: 8080
