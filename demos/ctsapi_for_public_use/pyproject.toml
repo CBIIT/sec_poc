@@ -1,0 +1,15 @@
+[project]
+name = "ctsapi-for-public-use"
+version = "0.1.0"
+description = "Experimenting with CTS API for public use"
+requires-python = ">=3.9"
+dependencies = [
+    "pandas>=2.3.1",
+    "requests>=2.32.4",
+    "streamlit>=1.46.1",
+    "streamlit-extras>=0.7.5",
+    "streamlit-scroll-to-top>=0.0.4",
+]
+
+[dependency-groups]
+dev = []
