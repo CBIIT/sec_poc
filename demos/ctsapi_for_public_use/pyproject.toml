@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Experimenting with CTS API for public use"
 requires-python = ">=3.9"
 dependencies = [
+    "haversine>=2.9.0",
     "pandas>=2.3.1",
     "requests>=2.32.4",
     "streamlit>=1.46.1",

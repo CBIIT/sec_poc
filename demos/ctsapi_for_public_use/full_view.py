@@ -1,3 +1,4 @@
+import math
 import os
 from typing import Literal
 
@@ -6,6 +7,7 @@ import requests
 import streamlit as st
 from data.trial_types_phases import trial_phases_map, trial_types_map
 from data.us_states import us_states, us_states_abbreviations
+from haversine import Unit, haversine
 from streamlit_extras.floating_button import floating_button
 from streamlit_scroll_to_top import scroll_to_here
 
@@ -54,13 +56,9 @@ def get_disease_decendents(
         "type": derivative_type,
     }
     if len(maintype_ids) > 1:
-        st.badge(
-            "Warning: Multiple maintype IDs provided, using all for subtype search, and 1 for finding search.",
-            color="orange",
-            icon=":material/warning:",
-        )
+        st.warning("Multiple maintype IDs provided, using all.")
     if derivative_type == "finding":
-        params["maintype"] = maintype_ids[0]  # Only one maintype for findings
+        params["maintype"] = maintype_ids
     else:
         params["ancestor_ids"] = maintype_ids
     disease_subtypes_res = requests.get(
@@ -80,9 +78,13 @@ def get_coordinates(zip_code: str):
     coords_res = requests.get(
         f"https://www.cancer.gov/cts_api/zip_code_lookup/{zip_code}"
     )
+    if coords_res.status_code != 200:
+        st.error(
+            f"Error fetching coordinates for zip code {zip_code}. Please check the zip code and try again."
+        )
     coords_res.raise_for_status()
     coords = coords_res.json()
-    return coords["lat"], coords["lon"]
+    return coords["lat"], coords["long"]
 
 
 def _get_interventions(name: str, category: list[str] = None):
@@ -107,9 +109,9 @@ def _get_interventions(name: str, category: list[str] = None):
     )
     interventions_res.raise_for_status()
     interventions = interventions_res.json()["data"]
-    return [
-        (intervention["name"], intervention["codes"]) for intervention in interventions
-    ]
+    names = [intervention["name"] for intervention in interventions]
+    codes = [intervention["codes"] for intervention in interventions]
+    return {"names": names, "codes": codes}
 
 
 @st.cache_data
@@ -294,6 +296,22 @@ def search_trials(
         ],
         "from": from_,
         "size": size,
+        "include": [
+            "nci_id",
+            "nct_id",
+            "brief_title",
+            "sites.org_name",
+            "sites.org_postal_code",
+            "eligibility.structured",
+            "current_trial_status",
+            "sites.org_va",
+            "sites.org_country",
+            "sites.org_state_or_province",
+            "sites.org_city",
+            "sites.org_coordinates",
+            "sites.recruitment_status",
+            "diseases",
+        ],
     }
     if drugs:
         body["arms.interventions.nci_thesaurus_concept_id"] = drugs
@@ -312,13 +330,20 @@ def search_trials(
     if lead_org:
         body["lead_org._fulltext"] = lead_org
     if cancer_type:
-        diseases_by_type = get_diseases_by_type(cancer_type)
-        body["maintype"] = diseases_by_type["maintype"]
+        codes = cancer_type
         if cancer_subtypes:
-            body["subtype"] = diseases_by_type["subtype"]
+            codes.extend(cancer_subtypes)
         if cancer_stages:
-            body["stage"] = diseases_by_type["stage"]
+            codes.extend(cancer_stages)
         if cancer_findings:
+            codes.extend(cancer_findings)
+        diseases_by_type = get_diseases_by_type(codes)
+        body["maintype"] = diseases_by_type["maintype"]
+        if diseases_by_type["subtype"]:
+            body["subtype"] = diseases_by_type["subtype"]
+        if diseases_by_type["stage"]:
+            body["stage"] = diseases_by_type["stage"]
+        if diseases_by_type["finding"]:
             body["finding"] = diseases_by_type["finding"]
     if investigator:
         body["principal_investigator._fulltext"] = investigator
@@ -326,7 +351,7 @@ def search_trials(
         coords = get_coordinates(zip_code)
         body["sites.org_coordinates_lat"] = coords[0]
         body["sites.org_coordinates_lon"] = coords[1]
-        body["sites.org_radius_miles"] = f"{radius}mi"
+        body["sites.org_coordinates_dist"] = f"{radius}mi"
     elif country:
         body["sites.org_country"] = country
         if state:
@@ -358,7 +383,6 @@ def search_trials(
         body["primary_purpose"] = [
             trial_types_map[trial_type] for trial_type in trial_types
         ]
-    print("Debugging search trials", body)
     trials_res = requests.post(
         "https://clinicaltrialsapi.cancer.gov/api/v2/trials",
         json=body,
@@ -369,8 +393,17 @@ def search_trials(
     trials, total = res_json["data"], res_json["total"]
     if not trials:
         st.warning("No trials found with the specified criteria.")
-        return pd.DataFrame(), 0
-    return pd.DataFrame(trials), total
+        return pd.DataFrame(), 0, body
+    return pd.DataFrame(trials), total, body
+
+
+@st.cache_data
+def get_trial(id_: str):
+    """Get full trial details by NCT ID."""
+    url = f"https://clinicaltrialsapi.cancer.gov/api/v2/trials/{id_}"
+    trial_res = requests.get(url, headers={"X-API-Key": os.environ["CTS_V2_API_KEY"]})
+    trial_res.raise_for_status()
+    return trial_res.json()
 
 
 with col1:
@@ -385,9 +418,9 @@ with col1:
         ),
         index=None,
     )
-    cancer_type_ids_sel = [
-        el[1] for el in cancer_type_options if el[0] == cancer_type_sel
-    ]
+    cancer_type_ids_sel = [el for el in cancer_type_options if el[0] == cancer_type_sel]
+    if cancer_type_ids_sel:
+        cancer_type_ids_sel = cancer_type_ids_sel[0][1]
     cancer_subtype_ids_sel = []
     cancer_stage_ids_sel = []
     cancer_finding_ids_sel = []
@@ -489,7 +522,7 @@ with col1:
         nih_campus = True
 
     # 5. Trial Type
-    st.subheader("Trial Type")
+    st.markdown("##### Trial Type")
     trial_types = st.multiselect(
         "Select trial type(s)",
         [
@@ -509,34 +542,44 @@ with col1:
     )
 
     # 6. Drug/Treatment
-    st.subheader("Drug/Treatment")
+    st.markdown("##### Drug/Treatment")
     # 6. Drug/Treatment (refactored)
     drug_search_text = st.text_input(
         "Drug/Drug Family Search",
     )
-    drugs_options = []
+    drug_options = {"names": [], "codes": []}
     if drug_search_text:
-        drugs_options = [name for name, _ in get_agents(drug_search_text)]
-    drugs = st.multiselect(
+        drug_options = get_agents(drug_search_text)
+    drugs_names_sel = st.multiselect(
         "Select Drug(s)/Drug Family(ies)",
-        options=drugs_options,
+        options=drug_options["names"],
     )
+    drugs_codes_sel = []
+    if drugs_names_sel:
+        # Get the codes for the selected drugs
+        for i, drug_name in enumerate(drug_options["names"]):
+            if drug_name in drugs_names_sel:
+                drugs_codes_sel.extend(drug_options["codes"][i])
     # 6b. Other Treatments (refactored)
     other_treatment_search_text = st.text_input(
         "Other Treatment Search",
     )
-    other_treatments_options = []
+    other_treatments_options = {"names": [], "codes": []}
     if other_treatment_search_text:
-        other_treatments_options = [
-            name for name, _ in get_other_treatments(other_treatment_search_text)
-        ]
-    other_treatments = st.multiselect(
+        other_treatments_options = get_other_treatments(other_treatment_search_text)
+    other_treatments_names_sel = st.multiselect(
         "Select Other Treatment(s)",
-        options=other_treatments_options,
+        options=other_treatments_options["names"],
     )
+    other_treatments_codes_sel = []
+    if other_treatments_names_sel:
+        # Get the codes for the selected other treatments
+        for i, other_treatment_name in enumerate(other_treatments_options["names"]):
+            if other_treatment_name in other_treatments_names_sel:
+                other_treatments_codes_sel.extend(other_treatments_options["codes"][i])
 
     # 7. Trial Phase
-    st.subheader("Trial Phase")
+    st.markdown("##### Trial Phase")
     trial_phases = st.multiselect(
         "Select trial phase(s)",
         ["Phase I", "Phase II", "Phase III", "Phase IV"],
@@ -581,16 +624,17 @@ with col2:
         st.session_state["search_results_total"] = 0
         st.session_state["search_results_size"] = 10
         st.session_state["search_results_from"] = 0
-        st.session_state["page_selector"] = 0
+        st.session_state["page_selector"] = 1
     submit = st.button("Search Trials")
 
     def update_trial_state():
         st.session_state["search_results_from"] = (
-            st.session_state["page_selector"]
+            (st.session_state["page_selector"] - 1)
+            * st.session_state["search_results_size"]
             if "page_selector" in st.session_state
             else 0
-        ) * st.session_state["search_results_size"]
-        trials, total = search_trials(
+        )
+        trials, total, body = search_trials(
             age=age,
             cancer_findings=cancer_finding_ids_sel,
             cancer_stages=cancer_stage_ids_sel,
@@ -598,14 +642,14 @@ with col2:
             cancer_type=cancer_type_ids_sel,
             city=city,
             country=country,
-            drugs=drugs,
+            drugs=drugs_codes_sel,
             healthy_volunteers=healthy_volunteers,
             institution=institution,
             investigator=investigator,
             keyword=keyword,
             lead_org=lead_org,
             nih_campus=nih_campus,
-            other_treatments=other_treatments,
+            other_treatments=other_treatments_codes_sel,
             radius=radius,
             state=state,
             trial_ids=trial_ids,
@@ -618,9 +662,14 @@ with col2:
         )
         st.session_state["search_results"] = trials
         st.session_state["search_results_total"] = total
+        st.session_state["search_trials_body"] = body
 
     if submit:
         update_trial_state()
+
+    if st.session_state.get("search_trials_body") is not None:
+        st.markdown("###### Request Body")
+        st.json(st.session_state["search_trials_body"])
 
     if st.session_state["search_results"] is not None:
         selected_row = st.dataframe(
@@ -631,45 +680,254 @@ with col2:
             hide_index=True,
         )
         st.write("Total Trials Found:", st.session_state["search_results_total"])
-        selected_page = st.selectbox(
-            "Select a page",
-            options=range(
-                0,
-                (
-                    st.session_state["search_results_total"]
-                    // st.session_state["search_results_size"]
-                )
-                + 1,
+        last_page = max(
+            1,
+            math.ceil(
+                st.session_state["search_results_total"]
+                / st.session_state["search_results_size"]
             ),
-            index=st.session_state["search_results_from"]
-            // st.session_state["search_results_size"],
+        )
+        cur_page = (
+            st.session_state["search_results_from"] // 10 + 1
+            if st.session_state["search_results_total"]
+            else 1
+        )
+        selected_page = st.number_input(
+            f"Page {cur_page} of {last_page}",
+            min_value=1,
+            max_value=last_page,
+            value=cur_page,
+            step=1,
             key="page_selector",
             on_change=update_trial_state,
-            width=120,
+            width=260,
         )
 
         if selected_row and selected_row["selection"]["rows"]:
             trial_sel: pd.Series = st.session_state["search_results"].iloc[
                 selected_row["selection"]["rows"][0]
             ]
-            st.subheader("Fields to Display")
+
+            st.subheader("Results List")
+            st.markdown(
+                "> This is how the results are listed in cancer.gov. *It includes PARTIAL fields*. See the `include` field in the above request."
+            )
+            st.write(f"<b>{trial_sel['brief_title']}</b>", unsafe_allow_html=True)
+            st.write(
+                "<b>Status:</b>",
+                trial_sel["current_trial_status"],
+                unsafe_allow_html=True,
+            )
+            age_requirement = ""
+            if "structured" in trial_sel["eligibility"]:
+                structured = trial_sel["eligibility"]["structured"]
+                if (
+                    structured.get("min_age_in_years") >= 0
+                    and structured.get("max_age_in_years") < 999
+                ):
+                    age_requirement = f"{int(structured['min_age_in_years'])} to {int(structured['max_age_in_years'])} years"
+                elif (
+                    structured.get("min_age_in_years") >= 0
+                    and structured.get("max_age_in_years") >= 999
+                ):
+                    age_requirement = f"{structured['min_age']} and over"
+            st.write(
+                "<b>Age:</b>",
+                age_requirement.lower(),
+                unsafe_allow_html=True,
+            )
+            sex = ""
+            if "structured" in trial_sel["eligibility"]:
+                structured = trial_sel["eligibility"]["structured"]
+                if structured["sex"] == "ALL" or structured["sex"] == "BOTH":
+                    sex = "Male or Female"
+                else:
+                    sex = structured["sex"].capitalize()
+            st.write("<b>Sex: </b>", sex, unsafe_allow_html=True)
+
+            def is_in_radius(query_coords, site_coords, radius):
+                haversine_distance_mi = haversine(
+                    query_coords,
+                    site_coords,
+                    unit=Unit.MILES,
+                )
+                if haversine_distance_mi <= float(radius):
+                    return True
+                return False
+
+            site_count = 0
+            nearby_sites = 0
+            for site in trial_sel["sites"]:
+                if site["org_country"] != "United States":
+                    continue
+                if site["recruitment_status"].lower() in [
+                    "active",
+                    "approved",
+                    "enrolling_by_invitation",
+                    "in_review",
+                    "temporarily_closed_to_accrual",
+                ]:
+                    site_count += 1
+                if (
+                    site
+                    and site["org_coordinates"]
+                    and st.session_state["search_trials_body"].get(
+                        "sites.org_coordinates_lat"
+                    )
+                    and is_in_radius(
+                        (
+                            st.session_state["search_trials_body"][
+                                "sites.org_coordinates_lat"
+                            ],
+                            st.session_state["search_trials_body"][
+                                "sites.org_coordinates_lon"
+                            ],
+                        ),
+                        (
+                            site["org_coordinates"]["lat"],
+                            site["org_coordinates"]["lon"],
+                        ),
+                        st.session_state["search_trials_body"][
+                            "sites.org_coordinates_dist"
+                        ].replace("mi", ""),
+                    )
+                ):
+                    nearby_sites += 1
+
+            location = f"{site_count} sites in the United States that are not closed, completed, or withdrawn"
+            if nearby_sites > 0:
+                location += f", including {nearby_sites} near you"
+
+            st.write(
+                f"<b>Location:</b> {location}",
+                unsafe_allow_html=True,
+            )
+
             if st.session_state.scroll_to_header:
                 scroll_to_here(0, key="header")
                 st.session_state.scroll_to_header = False
-            fields_sel = st.dataframe(
-                row_fields := sorted(trial_sel.keys()),
-                selection_mode="multi-row",
-                on_select="rerun",
+            st.divider()
+            st.subheader("Full Trial Details")
+            st.markdown(
+                "> This is how the full trial details are displayed in cancer.gov after a user clicks on a trial's title. *It includes ALL fields.*"
             )
-            if fields_sel and fields_sel["selection"]["rows"]:
-                for field in fields_sel["selection"]["rows"]:
-                    st.write(
-                        f"<b>{row_fields[field].upper()}:</b>",
-                        trial_sel[row_fields[field]],
-                        unsafe_allow_html=True,
-                        width=120,
-                    )
-                floating_button(
-                    ":material/arrow_upward: Back to Top",
-                    on_click=lambda: st.session_state.update(scroll_to_header=True),
+            full_trial = get_trial(trial_sel["nct_id"])
+            st.markdown("##### " + full_trial["brief_title"])
+            st.badge(
+                "Status: " + full_trial["current_trial_status"],
+            )
+            with st.expander("Description", expanded=True):
+                st.write(full_trial["brief_summary"])
+            with st.expander("Eligibility Criteria", expanded=True):
+                unstructured = (
+                    full_trial["eligibility"]["unstructured"]
+                    if "unstructured" in full_trial["eligibility"]
+                    else []
                 )
+                if unstructured:
+                    if len(unstructured) == 1:
+                        st.write(unstructured[0]["description"])
+                    else:
+                        st.markdown("###### Inclusion Criteria")
+                        inclusion_list = [
+                            f"<li>{criterion['description']}</li>"
+                            for criterion in unstructured
+                            if criterion["inclusion_indicator"]
+                        ]
+                        st.html(
+                            "<ul style='margin-left: 1em;'>"
+                            + "".join(inclusion_list)
+                            + "</ul>"
+                        )
+
+                        st.markdown("###### Exclusion Criteria")
+                        exclusion_list = [
+                            f"<li>{criterion['description']}</li>"
+                            for criterion in unstructured
+                            if not criterion["inclusion_indicator"]
+                        ]
+                        st.html(
+                            "<ul style='margin-left: 1em;'>"
+                            + "".join(exclusion_list)
+                            + "</ul>"
+                        )
+            with st.expander("Locations & Contacts", expanded=True):
+                us_sites_by_state = {}
+                for site in full_trial["sites"]:
+                    if site["org_country"] != "United States":
+                        continue
+                    if site["recruitment_status"].lower() not in [
+                        "active",
+                        "approved",
+                        "enrolling_by_invitation",
+                        "in_review",
+                        "temporarily_closed_to_accrual",
+                    ]:
+                        continue
+                    state = site["org_state_or_province"]
+                    if state not in us_sites_by_state:
+                        us_sites_by_state[state] = []
+                    us_sites_by_state[state].append(site)
+                st.html("<h2 style='margin: 0;'>United States</h4>")
+                for state in sorted(us_sites_by_state.keys()):
+                    st.html(f"<h3 style='margin: 0; margin-left: 1em;'>{state}</h5>")
+                    by_city = {}
+                    for site in us_sites_by_state[state]:
+                        city = site["org_city"]
+                        if city not in by_city:
+                            by_city[city] = []
+                        by_city[city].append(site)
+                    for city in sorted(by_city.keys()):
+                        st.html(f"<h4 style='margin: 0; margin-left: 2em;'>{city}</h4>")
+                        for site in by_city[city]:
+                            st.html(f"""
+                                <div style='margin-left: 3em;'>
+                                    <strong>{site["org_name"]}</strong><br>
+                                    Status: {site["recruitment_status"].replace("_", " ").capitalize()}<br>
+                                    Contact: {site["contact_name"]}<br>
+                                    Phone: {site["contact_phone"]}<br>
+                                    Email: {site["contact_email"]}<br>
+                                </div>
+                            """)
+            with st.expander("Trial Objectives and Outline", expanded=True):
+                st.write(full_trial["detail_description"])
+            with st.expander("Trial Phase and Type", expanded=True):
+                st.write(
+                    "<b>Trial Phase </b>",
+                    "Phase",
+                    full_trial["phase"],
+                    unsafe_allow_html=True,
+                )
+                st.write(
+                    "<b>Trial Type </b>",
+                    full_trial["primary_purpose"].capitalize(),
+                    unsafe_allow_html=True,
+                )
+            with st.expander("Lead Organization", expanded=True):
+                st.write(
+                    "<b>Lead Organization: </b>",
+                    full_trial["lead_org"],
+                    unsafe_allow_html=True,
+                )
+                st.write(
+                    "<b>Principal Investigator: </b>",
+                    full_trial["principal_investigator"],
+                    unsafe_allow_html=True,
+                )
+            with st.expander("Trial IDs", expanded=True):
+                st.write(
+                    "<b>Primary ID: </b>",
+                    full_trial["protocol_id"],
+                    unsafe_allow_html=True,
+                )
+                st.write(
+                    "<b>Secondary IDs: </b>",
+                    full_trial["nci_id"],
+                    "<br><b>ClinicalTrials.gov ID: </b>",
+                    f'<a href="https://clinicaltrials.gov/study/{full_trial["nct_id"]}" target="_blank">{full_trial["nct_id"]}</a>',
+                    unsafe_allow_html=True,
+                )
+        floating_button(
+            ":material/arrow_upward: Back to Top",
+            on_click=lambda: st.session_state.update(scroll_to_header=True),
+        )
