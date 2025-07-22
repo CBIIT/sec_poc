@@ -1,3 +1,4 @@
+import json
 import math
 import os
 from typing import Literal
@@ -297,20 +298,20 @@ def search_trials(
         "from": from_,
         "size": size,
         "include": [
+            "brief_title",
+            "current_trial_status",
+            "diseases",
+            "eligibility.structured",
             "nci_id",
             "nct_id",
-            "brief_title",
-            "sites.org_name",
-            "sites.org_postal_code",
-            "eligibility.structured",
-            "current_trial_status",
-            "sites.org_va",
-            "sites.org_country",
-            "sites.org_state_or_province",
             "sites.org_city",
             "sites.org_coordinates",
+            "sites.org_country",
+            "sites.org_name",
+            "sites.org_postal_code",
+            "sites.org_state_or_province",
+            "sites.org_va",
             "sites.recruitment_status",
-            "diseases",
         ],
     }
     if drugs:
@@ -619,12 +620,15 @@ with col2:
     if "scroll_to_header" not in st.session_state:
         st.session_state.scroll_to_header = False
 
-    if "search_results" not in st.session_state:
+    def reset_page():
         st.session_state["search_results"] = None
         st.session_state["search_results_total"] = 0
         st.session_state["search_results_size"] = 10
         st.session_state["search_results_from"] = 0
-        st.session_state["page_selector"] = 1
+
+    if "search_results" not in st.session_state:
+        reset_page()
+
     submit = st.button("Search Trials")
 
     def update_trial_state():
@@ -665,11 +669,21 @@ with col2:
         st.session_state["search_trials_body"] = body
 
     if submit:
+        reset_page()
         update_trial_state()
 
     if st.session_state.get("search_trials_body") is not None:
-        st.markdown("###### Request Body")
-        st.json(st.session_state["search_trials_body"])
+        st.markdown("###### Request Information")
+        request_info = st.session_state["search_trials_body"]
+        st.code(
+            f"""
+requests.post(
+    "https://clinicaltrialsapi.cancer.gov/api/v2/trials",
+    json={json.dumps(request_info, indent=6)},
+    headers={{"X-API-Key": "<API_KEY>"}},
+)""",
+            language="javascript",
+        )
 
     if st.session_state["search_results"] is not None:
         selected_row = st.dataframe(
@@ -679,6 +693,7 @@ with col2:
             column_order=["nct_id", "nci_id", "brief_title", "current_trial_status"],
             hide_index=True,
         )
+        st.markdown("> :material/info: Click on a row to view full trial details.")
         st.write("Total Trials Found:", st.session_state["search_results_total"])
         last_page = max(
             1,
@@ -710,7 +725,7 @@ with col2:
 
             st.subheader("Results List")
             st.markdown(
-                "> This is how the results are listed in cancer.gov. *It includes PARTIAL fields*. See the `include` field in the above request."
+                "> This is how the results are listed in cancer.gov. It requests a **subset** (only 12%) of the available fields. See the `include` parameter in the above request."
             )
             st.write(f"<b>{trial_sel['brief_title']}</b>", unsafe_allow_html=True)
             st.write(
@@ -809,7 +824,15 @@ with col2:
             st.divider()
             st.subheader("Full Trial Details")
             st.markdown(
-                "> This is how the full trial details are displayed in cancer.gov after a user clicks on a trial's title. *It includes ALL fields.*"
+                "> This is how the full trial details are displayed in cancer.gov after a user clicks on a trial's title. It requests **ALL** fields from CTS API but only displays **~22%** of them."
+            )
+            st.code(
+                f"""
+requests.get(
+    "https://clinicaltrialsapi.cancer.gov/api/v2/trials/{trial_sel["nci_id"]}",
+    headers={{"X-API-Key": "<API_KEY>"}},
+)""",
+                language="javascript",
             )
             full_trial = get_trial(trial_sel["nct_id"])
             st.markdown("##### " + full_trial["brief_title"])
@@ -927,7 +950,7 @@ with col2:
                     f'<a href="https://clinicaltrials.gov/study/{full_trial["nct_id"]}" target="_blank">{full_trial["nct_id"]}</a>',
                     unsafe_allow_html=True,
                 )
-        floating_button(
-            ":material/arrow_upward: Back to Top",
-            on_click=lambda: st.session_state.update(scroll_to_header=True),
-        )
+            floating_button(
+                ":material/arrow_upward: Back to Top",
+                on_click=lambda: st.session_state.update(scroll_to_header=True),
+            )
