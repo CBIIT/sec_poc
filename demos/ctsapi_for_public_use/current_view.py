@@ -6,9 +6,15 @@ from typing import Literal
 import pandas as pd
 import requests
 import streamlit as st
+from common import (
+    display_age,
+    display_eligibility_unstructured,
+    display_location_summary,
+    display_sex,
+    display_sites,
+)
 from data.trial_types_phases import trial_phases_map, trial_types_map
 from data.us_states import us_states, us_states_abbreviations
-from haversine import Unit, haversine
 from streamlit_extras.floating_button import floating_button
 from streamlit_scroll_to_top import scroll_to_here
 
@@ -693,7 +699,7 @@ requests.post(
             column_order=["nct_id", "nci_id", "brief_title", "current_trial_status"],
             hide_index=True,
         )
-        st.markdown("> :material/info: Click on a row to view full trial details.")
+        st.markdown("> :material/info: Click on a row to view trial details.")
         st.write("Total Trials Found:", st.session_state["search_results_total"])
         last_page = max(
             1,
@@ -725,102 +731,24 @@ requests.post(
 
             st.subheader("Results List")
             st.markdown(
-                "> This is how the results are listed in cancer.gov. It requests a **subset** (only 12%) of the available fields. See the `include` parameter in the above request."
+                "> This is how the results are listed in cancer.gov. It requests a **subset (only 12%)** of the available fields. See the `include` parameter in the above request."
             )
+
             st.write(f"<b>{trial_sel['brief_title']}</b>", unsafe_allow_html=True)
             st.write(
                 "<b>Status:</b>",
                 trial_sel["current_trial_status"],
                 unsafe_allow_html=True,
             )
-            age_requirement = ""
-            if "structured" in trial_sel["eligibility"]:
-                structured = trial_sel["eligibility"]["structured"]
-                if (
-                    structured.get("min_age_in_years") >= 0
-                    and structured.get("max_age_in_years") < 999
-                ):
-                    age_requirement = f"{int(structured['min_age_in_years'])} to {int(structured['max_age_in_years'])} years"
-                elif (
-                    structured.get("min_age_in_years") >= 0
-                    and structured.get("max_age_in_years") >= 999
-                ):
-                    age_requirement = f"{structured['min_age']} and over"
-            st.write(
-                "<b>Age:</b>",
-                age_requirement.lower(),
-                unsafe_allow_html=True,
-            )
-            sex = ""
-            if "structured" in trial_sel["eligibility"]:
-                structured = trial_sel["eligibility"]["structured"]
-                if structured["sex"] == "ALL" or structured["sex"] == "BOTH":
-                    sex = "Male or Female"
-                else:
-                    sex = structured["sex"].capitalize()
-            st.write("<b>Sex: </b>", sex, unsafe_allow_html=True)
 
-            def is_in_radius(query_coords, site_coords, radius):
-                haversine_distance_mi = haversine(
-                    query_coords,
-                    site_coords,
-                    unit=Unit.MILES,
-                )
-                if haversine_distance_mi <= float(radius):
-                    return True
-                return False
-
-            site_count = 0
-            nearby_sites = 0
-            for site in trial_sel["sites"]:
-                if site["org_country"] != "United States":
-                    continue
-                if site["recruitment_status"].lower() in [
-                    "active",
-                    "approved",
-                    "enrolling_by_invitation",
-                    "in_review",
-                    "temporarily_closed_to_accrual",
-                ]:
-                    site_count += 1
-                if (
-                    site
-                    and site["org_coordinates"]
-                    and st.session_state["search_trials_body"].get(
-                        "sites.org_coordinates_lat"
-                    )
-                    and is_in_radius(
-                        (
-                            st.session_state["search_trials_body"][
-                                "sites.org_coordinates_lat"
-                            ],
-                            st.session_state["search_trials_body"][
-                                "sites.org_coordinates_lon"
-                            ],
-                        ),
-                        (
-                            site["org_coordinates"]["lat"],
-                            site["org_coordinates"]["lon"],
-                        ),
-                        st.session_state["search_trials_body"][
-                            "sites.org_coordinates_dist"
-                        ].replace("mi", ""),
-                    )
-                ):
-                    nearby_sites += 1
-
-            location = f"{site_count} sites in the United States that are not closed, completed, or withdrawn"
-            if nearby_sites > 0:
-                location += f", including {nearby_sites} near you"
-
-            st.write(
-                f"<b>Location:</b> {location}",
-                unsafe_allow_html=True,
-            )
+            display_age(trial_sel)
+            display_sex(trial_sel)
+            display_location_summary(trial_sel)
 
             if st.session_state.scroll_to_header:
                 scroll_to_here(0, key="header")
                 st.session_state.scroll_to_header = False
+
             st.divider()
             st.subheader("Full Trial Details")
             st.markdown(
@@ -834,7 +762,9 @@ requests.get(
 )""",
                 language="javascript",
             )
+
             full_trial = get_trial(trial_sel["nct_id"])
+
             st.markdown("##### " + full_trial["brief_title"])
             st.badge(
                 "Status: " + full_trial["current_trial_status"],
@@ -842,76 +772,9 @@ requests.get(
             with st.expander("Description", expanded=True):
                 st.write(full_trial["brief_summary"])
             with st.expander("Eligibility Criteria", expanded=True):
-                unstructured = (
-                    full_trial["eligibility"]["unstructured"]
-                    if "unstructured" in full_trial["eligibility"]
-                    else []
-                )
-                if unstructured:
-                    if len(unstructured) == 1:
-                        st.write(unstructured[0]["description"])
-                    else:
-                        st.markdown("###### Inclusion Criteria")
-                        inclusion_list = [
-                            f"<li>{criterion['description']}</li>"
-                            for criterion in unstructured
-                            if criterion["inclusion_indicator"]
-                        ]
-                        st.html(
-                            "<ul style='margin-left: 1em;'>"
-                            + "".join(inclusion_list)
-                            + "</ul>"
-                        )
-
-                        st.markdown("###### Exclusion Criteria")
-                        exclusion_list = [
-                            f"<li>{criterion['description']}</li>"
-                            for criterion in unstructured
-                            if not criterion["inclusion_indicator"]
-                        ]
-                        st.html(
-                            "<ul style='margin-left: 1em;'>"
-                            + "".join(exclusion_list)
-                            + "</ul>"
-                        )
+                display_eligibility_unstructured(full_trial)
             with st.expander("Locations & Contacts", expanded=True):
-                us_sites_by_state = {}
-                for site in full_trial["sites"]:
-                    if site["org_country"] != "United States":
-                        continue
-                    if site["recruitment_status"].lower() not in [
-                        "active",
-                        "approved",
-                        "enrolling_by_invitation",
-                        "in_review",
-                        "temporarily_closed_to_accrual",
-                    ]:
-                        continue
-                    state = site["org_state_or_province"]
-                    if state not in us_sites_by_state:
-                        us_sites_by_state[state] = []
-                    us_sites_by_state[state].append(site)
-                st.html("<h2 style='margin: 0;'>United States</h4>")
-                for state in sorted(us_sites_by_state.keys()):
-                    st.html(f"<h3 style='margin: 0; margin-left: 1em;'>{state}</h5>")
-                    by_city = {}
-                    for site in us_sites_by_state[state]:
-                        city = site["org_city"]
-                        if city not in by_city:
-                            by_city[city] = []
-                        by_city[city].append(site)
-                    for city in sorted(by_city.keys()):
-                        st.html(f"<h4 style='margin: 0; margin-left: 2em;'>{city}</h4>")
-                        for site in by_city[city]:
-                            st.html(f"""
-                                <div style='margin-left: 3em;'>
-                                    <strong>{site["org_name"]}</strong><br>
-                                    Status: {site["recruitment_status"].replace("_", " ").capitalize()}<br>
-                                    Contact: {site["contact_name"]}<br>
-                                    Phone: {site["contact_phone"]}<br>
-                                    Email: {site["contact_email"]}<br>
-                                </div>
-                            """)
+                display_sites(full_trial)
             with st.expander("Trial Objectives and Outline", expanded=True):
                 st.write(full_trial["detail_description"])
             with st.expander("Trial Phase and Type", expanded=True):
