@@ -59,13 +59,13 @@ else:
     st.markdown("> :material/info: Click on a row to view trial details.")
     if selected_row and selected_row["selection"]["rows"]:
         st.html("""
-        <div style="margin-bottom: 1em;">
-            <h3>Legend</h3>
+        <div style="margin-bottom: 1em; border: 1px solid #ccc; padding: 1em; border-radius: 8px; width: fit-content;">
+            <h3 style="margin-top: 0; width: fit-content;">Legend</h3>
             <span style="background-color: #fff0ee; padding: 0.5em 1em; border-radius: 6px; margin-right: 1em;">
-            <b>Removed</b> from current, full-trial details
+            <b>Removed</b> from current view's full-trial details
             </span>
             <span style="background-color: #edf9f0; padding: 0.5em 1em; border-radius: 6px;">
-            <b>Added</b> to the current, full-trial details
+            <b>Added</b> to the current view's full-trial details
             </span>
         </div>
         """)
@@ -103,7 +103,7 @@ requests.post(
             language="javascript",
         )
         # st.markdown("##### " + trial_minimal["brief_title"])
-        st.error("missing brief_title")
+        st.error("brief_title")
 
         st.badge(
             "Status: " + trial_minimal["current_trial_status"],
@@ -115,14 +115,14 @@ requests.post(
     </div>""")
         # with st.expander("Description", expanded=True):
         #     st.write(trial_minimal["brief_summary"])
-        st.error("missing brief_summary")
+        st.error("brief_summary")
         with st.expander("Eligibility Criteria", expanded=True):
             display_eligibility_unstructured(trial_minimal)
         with st.expander("Locations & Contacts", expanded=True):
             display_sites(trial_minimal)
         with st.expander("Trial Objectives and Outline", expanded=True):
             # st.write(trial_minimal["detail_description"])
-            st.error("missing detail_description")
+            st.error("detail_description")
         with st.expander("Trial Phase and Type", expanded=True):
             # st.write(
             #     "<b>Trial Phase </b>",
@@ -130,33 +130,33 @@ requests.post(
             #     trial_minimal["phase"],
             #     unsafe_allow_html=True,
             # )
-            st.error("missing phase")
+            st.error("phase")
             # st.write(
             #     "<b>Trial Type </b>",
             #     trial_minimal["primary_purpose"].capitalize(),
             #     unsafe_allow_html=True,
             # )
-            st.error("missing primary_purpose")
+            st.error("primary_purpose")
         with st.expander("Lead Organization", expanded=True):
             # st.write(
             #     "<b>Lead Organization: </b>",
             #     trial_minimal["lead_org"],
             #     unsafe_allow_html=True,
             # )
-            st.error("missing lead_org")
+            st.error("lead_org")
             # st.write(
             #     "<b>Principal Investigator: </b>",
             #     trial_minimal["principal_investigator"],
             #     unsafe_allow_html=True,
             # )
-            st.error("missing principal_investigator")
+            st.error("principal_investigator")
         with st.expander("Trial IDs", expanded=True):
             # st.write(
             #     "<b>Primary ID: </b>",
             #     trial_minimal["protocol_id"],
             #     unsafe_allow_html=True,
             # )
-            st.error("missing protocol_id")
+            st.error("protocol_id")
             st.write(
                 "<b>Secondary IDs: </b>",
                 trial_minimal["nci_id"],
