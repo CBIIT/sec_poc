@@ -777,40 +777,26 @@ requests.get(
             with st.expander("Trial Objectives and Outline", expanded=True):
                 st.write(full_trial["detail_description"])
             with st.expander("Trial Phase and Type", expanded=True):
-                st.write(
-                    "<b>Trial Phase </b>",
-                    "Phase",
-                    full_trial["phase"],
-                    unsafe_allow_html=True,
-                )
-                st.write(
-                    "<b>Trial Type </b>",
-                    full_trial["primary_purpose"].capitalize(),
-                    unsafe_allow_html=True,
+                st.html(
+                    f"""
+<b>Trial Phase:</b> {full_trial["phase"]}<br>
+<b>Trial Type:</b> {full_trial["primary_purpose"].capitalize()}
+"""
                 )
             with st.expander("Lead Organization", expanded=True):
-                st.write(
-                    "<b>Lead Organization: </b>",
-                    full_trial["lead_org"],
-                    unsafe_allow_html=True,
-                )
-                st.write(
-                    "<b>Principal Investigator: </b>",
-                    full_trial["principal_investigator"],
-                    unsafe_allow_html=True,
+                st.html(
+                    f"""
+<b>Lead Organization:</b> {full_trial["lead_org"]}<br>
+<b>Principal Investigator:</b> {full_trial["principal_investigator"]}
+"""
                 )
             with st.expander("Trial IDs", expanded=True):
-                st.write(
-                    "<b>Primary ID: </b>",
-                    full_trial["protocol_id"],
-                    unsafe_allow_html=True,
-                )
-                st.write(
-                    "<b>Secondary IDs: </b>",
-                    full_trial["nci_id"],
-                    "<br><b>ClinicalTrials.gov ID: </b>",
-                    f'<a href="https://clinicaltrials.gov/study/{full_trial["nct_id"]}" target="_blank">{full_trial["nct_id"]}</a>',
-                    unsafe_allow_html=True,
+                st.html(
+                    f"""
+<b>Primary ID:</b> {full_trial["protocol_id"]}<br>
+<b>Secondary IDs:</b> {full_trial["nci_id"]}<br>
+<b>ClinicalTrials.gov ID:</b> <a href="https://clinicaltrials.gov/study/{full_trial["nct_id"]}" target="_blank">{full_trial["nct_id"]}</a>
+"""
                 )
             floating_button(
                 ":material/arrow_upward: Back to Top",

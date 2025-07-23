@@ -78,7 +78,7 @@ df = df.merge(suggested_fields_df, on="field", how="left", right_index=False)
 df = df.set_index(pd.RangeIndex(start=1, stop=len(df) + 1), drop=True)
 df["nci_internal_source"] = False
 
-st.header("CTS API v2 Trial Fields")
+st.subheader("CTS API v2 Trial Fields (from /docs trial.json)")
 field_filter_a = st.text_input(
     "Search for a field",
     key="field_search_a",
@@ -125,7 +125,7 @@ if edited is not None:
     st.subheader("Suggested Differences from Current Use on Cancer.gov")
     st.dataframe(comparison_table, hide_index=True)
 
-st.subheader("Field Sources")
+st.subheader("Field Sources (from glossary)")
 field_filter_b = st.text_input(
     "Search for a field",
     key="field_search_b",
@@ -139,8 +139,55 @@ st.dataframe(
         )
     ]
 )
+with st.expander("Field Definitions and Debugging Information", expanded=False):
+    st.markdown("##### Field Glossary")
 
-st.markdown("##### Fields documented in API schema but not in field glossary")
-st.json(sorted(set(df["field"]).difference(set(field_sources_df[" Field"]))))
-st.markdown("##### Fields listed in field glossary but not in API schema")
-st.json(sorted(set(field_sources_df[" Field"]).difference(set(df["field"]))))
+    glossary_html = """
+    <dl>
+        <dt>NCI</dt>
+        <dd>
+            National Cancer Institute
+            <dl>
+                <dt>CCCT</dt>
+                <dd>
+                    Coordinating Center for Clinical Trials (CCCT)
+                    <dl>
+                        <dt>CTRP</dt>
+                        <dd>Clinical Trials Reporting Program (CTRP)</dd>
+                        <dt>CTRO</dt>
+                        <dd>Clinical Trials Reporting Office (CTRO)</dd>
+                    </dl>
+                </dd>
+                <dt>CCR</dt>
+                <dd>Center for Cancer Research (CCR)</dd>
+                <dt>CTSU</dt>
+                <dd>Clinical Trials Support Unit (CTSU)</dd>
+                <dt>DCTD</dt>
+                <dd>
+                    Division of Cancer Treatment and Diagnosis (DCTD)
+                    <dl>
+                        <dt>CTEP</dt>
+                        <dd>Cancer Therapy Evaluation Program of the NCI (CTEP)</dd>
+                    </dl>
+                </dd>
+                <dt>DCP</dt>
+                <dd>
+                    Division of Cancer Prevention (DCP)
+                    <dl>
+                        <dt>PIO</dt>
+                        <dd>Protocol Information Office (PIO)</dd>
+                    </dl>
+                </dd>
+            </dl>
+        </dd>
+        <dt>"The Lead Organization"</dt>
+        <dd></dd>
+    </dl>
+    """
+
+    st.html(glossary_html)
+
+    st.markdown("##### Fields documented in API schema but not in field glossary")
+    st.json(sorted(set(df["field"]).difference(set(field_sources_df[" Field"]))))
+    st.markdown("##### Fields listed in field glossary but not in API schema")
+    st.json(sorted(set(field_sources_df[" Field"]).difference(set(df["field"]))))
