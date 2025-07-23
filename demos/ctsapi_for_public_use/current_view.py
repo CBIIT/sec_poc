@@ -414,7 +414,6 @@ def get_trial(id_: str):
 
 
 with col1:
-    st.title("NCI-Supported Clinical Trials Advanced Search")
     st.header("Find NCI-Supported Clinical Trials")
     # 1. Primary Cancer Type/Condition
     cancer_type_sel = st.selectbox(
@@ -731,7 +730,7 @@ requests.post(
 
             st.subheader("Results List")
             st.markdown(
-                "> This is how the results are listed in cancer.gov. It requests a **subset (only 12%)** of the available fields. See the `include` parameter in the above request."
+                "> This is how the results are listed in cancer.gov. It requests a **subset (only 10%)** of the available fields. See the `include` parameter in the above request."
             )
 
             st.write(f"<b>{trial_sel['brief_title']}</b>", unsafe_allow_html=True)
@@ -752,7 +751,7 @@ requests.post(
             st.divider()
             st.subheader("Full Trial Details")
             st.markdown(
-                "> This is how the full trial details are displayed in cancer.gov after a user clicks on a trial's title. It requests **ALL** fields from CTS API but only displays **~22%** of them."
+                "> This is how the full trial details are displayed in cancer.gov after a user clicks on a trial's title. It requests **ALL** fields from CTS API but only displays **~24%** of them."
             )
             st.code(
                 f"""

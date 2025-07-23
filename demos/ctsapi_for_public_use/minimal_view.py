@@ -40,14 +40,14 @@ def get_trial_minimal(nct_id: str):
     return response.json()["data"][0]
 
 
-st.subheader("Results List")
+st.header("Results List")
 
 if (
     st.session_state.get("search_results") is None
     or st.session_state["search_results"].empty
 ):
     st.write("No results to display.")
-    st.page_link(page="current_view.py", label="Please update your search.")
+    st.page_link(page="current_view.py", label="click here to update your search.")
 else:
     selected_row = st.dataframe(
         st.session_state["search_results"],

@@ -1,0 +1,137 @@
+﻿field,currently_used_by_cancer.gov,where_used
+_current_trial_status_sort_order,false,
+_phase_sort_order,false,
+_primary_purpose_sort_order,false,
+_study_protocol_type_sort_order,false,
+acronym,false,
+active_sites_count,false,
+amendment_date,false,
+anatomic_sites,false,
+arms.description,false,
+arms.interventions.category,false,
+arms.interventions.description,false,
+arms.interventions.inclusion_indicator,false,
+arms.interventions.name,false,
+arms.interventions.nci_thesaurus_concept_id,false,
+arms.interventions.parents,false,
+arms.interventions.synonyms,false,
+arms.interventions.type,false,
+arms.name,false,
+arms.type,false,
+associated_studies.study_id,false,
+associated_studies.study_id_type,false,
+biomarkers.ancestors,false,
+biomarkers.assay_purpose,false,
+biomarkers.eligibility_criterion,false,
+biomarkers.inclusion_indicator,false,
+biomarkers.name,false,
+biomarkers.nci_thesaurus_concept_id,false,
+biomarkers.parents,false,
+biomarkers.semantic_types,false,
+biomarkers.synonyms,false,
+biomarkers.type,false,
+brief_summary,true,Used in full trial details page
+brief_title,true,Used in search results listing and full trial details page
+ccr_id,false,
+central_contact.email,false,
+central_contact.name,false,
+central_contact.phone,false,
+central_contact.type,false,
+classification_code,false,
+collaborators.functional_role,false,
+collaborators.name,false,
+completion_date,false,
+completion_date_type_code,false,
+ctep_id,false,
+current_trial_status,true,Used in search results listing and full trial details page
+current_trial_status_date,false,
+dcp_id,false,
+detail_description,true,Used in full trial details page
+diseases.inclusion_indicator,false,
+diseases.is_lead_disease,false,
+diseases.name,false,
+diseases.nci_thesaurus_concept_id,false,
+diseases.parents,false,
+diseases.synonyms,false,
+diseases.type,false,
+eligibility.structured.accepts_healthy_volunteers,false,
+eligibility.structured.max_age,true,Used in search results listing
+eligibility.structured.max_age_in_years,true,Used in search results listing
+eligibility.structured.max_age_number,true,Used in search results listing
+eligibility.structured.max_age_unit,true,Used in search results listing
+eligibility.structured.min_age,true,Used in search results listing
+eligibility.structured.min_age_in_years,true,Used in search results listing
+eligibility.structured.min_age_number,true,Used in search results listing
+eligibility.structured.min_age_unit,true,Used in search results listing
+eligibility.structured.sex,true,Used in search results listing
+eligibility.unstructured.description,true,Used in full trial details page
+eligibility.unstructured.display_order,false,
+eligibility.unstructured.inclusion_indicator,true,Used in full trial details page
+interventional_model,false,
+keywords,false,
+lead_org,true,Used in full trial details page
+lead_org_cancer_center,false,
+masking.allocation_code,false,
+masking.masking,false,
+masking.role_caregiver,false,
+masking.role_investigator,false,
+masking.role_outcome_assessor,false,
+masking.role_subject,false,
+minimum_target_accrual_number,false,
+nci_funded,false,
+nci_id,true,Used in search results listing and full trial details page
+nci_programs,false,
+nct_id,true,Used in full trial details page
+number_of_arms,false,
+official_title,false,
+other_ids.name,false,
+other_ids.value,false,
+outcome_measures.description,false,
+outcome_measures.name,false,
+outcome_measures.time_frame,false,
+outcome_measures.type_code,false,
+phase,true,Used in full trial details page
+primary_purpose,true,Used in full trial details page
+principal_investigator,true,Used in full trial details page
+prior_therapy.ancestor_ids,false,
+prior_therapy.branch,false,
+prior_therapy.eligibility_criterion,false,
+prior_therapy.inclusion_indicator,false,
+prior_therapy.name,false,
+prior_therapy.nci_thesaurus_concept_id,false,
+prior_therapy.parents,false,
+prior_therapy.semantic_types,false,
+prior_therapy.synonyms,false,
+protocol_id,true,Used in full trial details page
+record_verification_date,false,
+sampling_method_code,false,
+sites.contact_email,true,Used in full trial details page
+sites.contact_name,true,Used in full trial details page
+sites.contact_phone,true,Used in full trial details page
+sites.org_address_line_1,false,
+sites.org_address_line_2,false,
+sites.org_city,true,Used in full trial details page
+sites.org_coordinates,true,Used in search results listing to determine if sites are nearby to input zip code/radius
+sites.org_country,true,Used in search results listing and full trial details page
+sites.org_email,false,
+sites.org_family,false,
+sites.org_fax,false,
+sites.org_name,true,Used in full trial details page
+sites.org_phone,false,
+sites.org_postal_code,true,May be used to obtain coordinates?
+sites.org_state_or_province,true,Used in full trial details page
+sites.org_tty,false,
+sites.org_va,true,May be used in full trial details page?
+sites.recruitment_status,true,Used in search results listing and full trial details page
+sites.recruitment_status_date,false,
+start_date,false,
+start_date_type_code,false,
+status_history.status,false,
+status_history.status_date,false,
+study_model_code,false,
+study_model_other_text,false,
+study_population_description,false,
+study_protocol_type,false,
+study_source,false,
+study_subtype_code,false,
+why_study_stopped,false,
