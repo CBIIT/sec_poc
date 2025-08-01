@@ -98,9 +98,6 @@ st.markdown(
 if edited is not None:
     currently_used_fields = set(edited[edited["currently_used_by_cancer.gov"]]["field"])
     suggested_fields = set(edited[edited["suggested_fields"]]["field"])
-    intersection = currently_used_fields & suggested_fields
-    union = currently_used_fields | suggested_fields
-    similarity_msg = f"{round(len(intersection) / len(union) * 100)}% of fields currently used by cancer.gov are also suggested for use"
     diff_current = currently_used_fields - suggested_fields
     diff_suggested = suggested_fields - currently_used_fields
     comparison_table = pd.DataFrame()

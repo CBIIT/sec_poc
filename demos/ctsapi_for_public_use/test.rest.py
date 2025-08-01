@@ -10,13 +10,13 @@ def get_all_trials(from_=0, results=[]):
         headers={"x-api-key": os.getenv("CTS_V2_API_KEY")},
         json={
             "include": [
-                "lead_org",
+                # "lead_org",
                 # "current_trial_status",
                 # "current_trial_status_date",
                 # "ccr_id",
                 # "nct_id",
                 # "protocol_id",
-                # "study_source",
+                "study_source",
                 # "nci_funded",
                 # "ctep_id",
             ],
@@ -24,9 +24,9 @@ def get_all_trials(from_=0, results=[]):
             # "lead_org._raw": "NCI - Center for Cancer Research",
             # "nci_funded_not": "Direct",
             # "study_source_not": "Institutional",
-            "missing_not": ["ctep_id"],
-            "nci_funded": "Direct",
-            "study_source": "National",
+            # "missing_not": ["ctep_id"],
+            # "nci_funded": "Direct",
+            # "study_source": "National",
             # "outer_or_lead_org._fulltext": "NCI",
             "current_trial_status": [
                 "Active",
@@ -54,5 +54,7 @@ def get_all_trials(from_=0, results=[]):
 
 
 all_trials = get_all_trials()
-lead_orgs = set([trial["lead_org"] for trial in all_trials])
-lead_orgs
+# lead_orgs = set([trial["lead_org"] for trial in all_trials])
+# lead_orgs
+study_source = set([trial["study_source"] for trial in all_trials])
+study_source
