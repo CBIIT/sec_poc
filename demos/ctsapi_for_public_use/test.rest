@@ -1,1 +1,43 @@
+###
 GET https://www.cancer.gov/cts_api/zip_code_lookup/28502
+
+###
+@from = 0
+POST https://clinicaltrialsapi.cancer.gov/api/v2/trials
+x-api-key: {{$processEnv CTS_V2_API_KEY}}
+
+{
+    "include": [
+        "lead_org",
+        "current_trial_status",
+        "current_trial_status_date",
+        "ccr_id",
+        "nct_id",
+        "protocol_id",
+        "study_source",
+        "nci_funded",
+        "ctep_id",
+        "sites.recruitment_status"
+    ],
+    # "lead_org._raw": "National Cancer Institute",
+    # "lead_org._raw": "NCI - Center for Cancer Research",
+
+    # "nci_funded_not": "Direct",
+    # "study_source_not": "Institutional",
+
+    "missing_not": ["ctep_id"],
+    "nci_funded": "Direct",
+    "study_source": "National",
+    # "outer_or_lead_org._fulltext": "NCI",
+ 
+    "current_trial_status": [
+        "Active",
+        "Approved",
+        "Enrolling by Invitation",
+        "In Review",
+        "Temporarily Closed to Accrual",
+        "Temporarily Closed to Accrual and Intervention"
+    ],
+    "from": {{from}},
+    "size": 50
+}

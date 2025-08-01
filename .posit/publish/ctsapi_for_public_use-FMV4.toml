@@ -7,12 +7,19 @@ entrypoint = 'demos/ctsapi_for_public_use/app.py'
 validate = true
 files = [
   '/demos/ctsapi_for_public_use/app.py',
-  '/demos/ctsapi_for_public_use/requirements.txt',
   '/demos/ctsapi_for_public_use/data',
   '/demos/ctsapi_for_public_use/full_view.py',
   '/demos/ctsapi_for_public_use/pared_view.py',
   '/.posit/publish/ctsapi_for_public_use-FMV4.toml',
-  '/.posit/publish/deployments/deployment-2VBJ.toml'
+  '/.posit/publish/deployments/deployment-2VBJ.toml',
+  '/demos/ctsapi_for_public_use/common.py',
+  '/demos/ctsapi_for_public_use/current_view.py',
+  '/demos/ctsapi_for_public_use/field_exploration.py',
+  '/demos/ctsapi_for_public_use/field_sources.csv',
+  '/demos/ctsapi_for_public_use/fields_suggested.csv',
+  '/demos/ctsapi_for_public_use/fields_used.csv',
+  '/demos/ctsapi_for_public_use/minimal_view.py',
+  '/demos/ctsapi_for_public_use/requirements.txt'
 ]
 title = 'ctsapi_for_public_use'
 secrets = ['CTS_V2_API_KEY']

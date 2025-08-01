@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
-from collections import defaultdict
+import os
 
 st.set_page_config(layout="wide")
 
@@ -30,29 +30,16 @@ def flatten_dict(d, parent_key="", sep="."):
     return items
 
 
-cancergov_used_fields_df = pd.read_csv("fields_used.csv")
-suggested_fields_df = pd.read_csv("fields_suggested.csv")
-field_sources_df = pd.read_csv("field_sources.csv")
-field_sources_df = field_sources_df.set_index(
-    pd.RangeIndex(start=1, stop=len(field_sources_df) + 1), drop=True
-)
-# Drop rows where all specified columns are NaN
-field_sources_df = field_sources_df.dropna(
-    how="all",
-    subset=[
-        "Protocol Trials",
-        "Imported Trials",
-        "All",
-        "Protocol Trials.Cancer Centers",
-        "Protocol Trials.CTEP and DCP",
-        "Protocol Trials.DCP",
-        "Protocol Trials.CTEP Rostered; NCORP Studies",
-        "Protocol Trials.CTEP Non-rostered",
-        "Imported Trials.Cancer Centers",
-        "Imported Trials.CCR",
-        "Protocol Trials.CTEP and/or DCP",
-    ],
-)
+cwd = os.getcwd()
+if "demos" in cwd and "ctsapi_for_public_use" in cwd:
+    path = "."
+else:
+    path = os.path.join("demos", "ctsapi_for_public_use")
+cancergov_used_fields_df = pd.read_csv(os.path.join(path, "fields_used.csv"))
+suggested_fields_df = pd.read_csv(os.path.join(path, "fields_suggested.csv"))
+field_sources_df = pd.read_csv(os.path.join(path, "field_sources.csv"))
+field_sources_df = field_sources_df.set_index("Field", drop=True)
+field_sources_df = field_sources_df.dropna(how="all")
 
 
 # Create a hierarchical (MultiIndex) columns DataFrame
@@ -76,7 +63,7 @@ df = pd.DataFrame(flat_data)
 df = df.merge(cancergov_used_fields_df, on="field", how="left", right_index=False)
 df = df.merge(suggested_fields_df, on="field", how="left", right_index=False)
 df = df.set_index(pd.RangeIndex(start=1, stop=len(df) + 1), drop=True)
-df["nci_internal_source"] = False
+df["nci_internal_source"] = ""
 
 st.subheader("CTS API v2 Trial Fields (from /docs trial.json)")
 field_filter_a = st.text_input(
@@ -85,8 +72,11 @@ field_filter_a = st.text_input(
     placeholder="Type to search for a field...",
     width=500,
 )
+filtered_fields = df[
+    df["field"].str.contains(field_filter_a, case=False, na=False, regex=False)
+]
 edited = st.data_editor(
-    df[df["field"].str.contains(field_filter_a, case=False, na=False, regex=False)],
+    filtered_fields,
     use_container_width=True,
     disabled=(
         "field",
@@ -95,6 +85,7 @@ edited = st.data_editor(
         "currently_used_by_cancer.gov",
     ),
 )
+st.html(f"<sub>showing {len(filtered_fields)} of {len(df)} fields</sub>")
 
 st.markdown(
     f"> ~{round(df['currently_used_by_cancer.gov'].sum() / len(df) * 100)}%* of the fields requested by cancer.gov are used on the site."
@@ -132,13 +123,17 @@ field_filter_b = st.text_input(
     placeholder="Type to search for a field...",
     width=500,
 )
-st.dataframe(
-    field_sources_df[
-        field_sources_df[" Field"].str.contains(
-            field_filter_b, case=False, na=False, regex=False
-        )
-    ]
+
+filtered_field_sources = field_sources_df[
+    field_sources_df.index.to_series().str.contains(
+        field_filter_b, case=False, na=False, regex=False
+    )
+]
+st.dataframe(filtered_field_sources)
+st.html(
+    f"<sub>showing {len(filtered_field_sources)} of {len(field_sources_df)} fields</sub>"
 )
+
 with st.expander("Field Definitions and Debugging Information", expanded=False):
     st.markdown("##### Field Glossary")
 
@@ -167,7 +162,7 @@ with st.expander("Field Definitions and Debugging Information", expanded=False):
                     Division of Cancer Treatment and Diagnosis (DCTD)
                     <dl>
                         <dt>CTEP</dt>
-                        <dd>Cancer Therapy Evaluation Program of the NCI (CTEP)</dd>
+                        <dd>Cancer Therapy Evaluation Program (CTEP)</dd>
                     </dl>
                 </dd>
                 <dt>DCP</dt>
@@ -178,6 +173,10 @@ with st.expander("Field Definitions and Debugging Information", expanded=False):
                         <dd>Protocol Information Office (PIO)</dd>
                     </dl>
                 </dd>
+                <dt>EVS</dt>
+                <dd>Enterprise Vocabulary Services (EVS)</dd>
+                <dt>NCI Designated Cancer Centers</dt>
+                <dd>There are 73 NCI-Designated Cancer Centers, located in 37 states and the District of Columbia, that are funded by NCI to deliver cutting-edge cancer treatments to patients. <a href="https://www.cancer.gov/research/infrastructure/cancer-centers" target="_blank">source</a></dd>
             </dl>
         </dd>
         <dt>"The Lead Organization"</dt>
@@ -187,7 +186,21 @@ with st.expander("Field Definitions and Debugging Information", expanded=False):
 
     st.html(glossary_html)
 
+    # These were confirmed by Mike to be intentionally left out of the field glossary
+    excludes = set(
+        [
+            "_current_trial_status_sort_order",
+            "_primary_purpose_sort_order",
+            "_phase_sort_order",
+            "_current_trial_status_sort_order",
+            "_study_protocol_type_sort_order",
+            "active_sites_count",
+            "classification_code",
+        ]
+    )
+    api_fields = set(df["field"]) - excludes
+    glossary_fields = set(field_sources_df.index)
     st.markdown("##### Fields documented in API schema but not in field glossary")
-    st.json(sorted(set(df["field"]).difference(set(field_sources_df[" Field"]))))
+    st.json(sorted(api_fields.difference(glossary_fields)))
     st.markdown("##### Fields listed in field glossary but not in API schema")
-    st.json(sorted(set(field_sources_df[" Field"]).difference(set(df["field"]))))
+    st.json(sorted(glossary_fields.difference(api_fields)))
