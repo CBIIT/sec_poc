@@ -11,12 +11,13 @@ id = '5c166cef-768e-4f21-9faf-5ec22fa089e2'
 dashboard_url = 'https://appshare-dev.cancer.gov/connect/#/apps/5c166cef-768e-4f21-9faf-5ec22fa089e2'
 direct_url = 'https://appshare-dev.cancer.gov/content/5c166cef-768e-4f21-9faf-5ec22fa089e2/'
 logs_url = 'https://appshare-dev.cancer.gov/connect/#/apps/5c166cef-768e-4f21-9faf-5ec22fa089e2/logs'
-deployed_at = '2025-07-23T16:43:34Z'
-bundle_id = '1018'
-bundle_url = 'https://appshare-dev.cancer.gov/__api__/v1/content/5c166cef-768e-4f21-9faf-5ec22fa089e2/bundles/1018/download'
+deployed_at = '2025-08-06T13:09:33Z'
+bundle_id = '1025'
+bundle_url = 'https://appshare-dev.cancer.gov/__api__/v1/content/5c166cef-768e-4f21-9faf-5ec22fa089e2/bundles/1025/download'
 files = [
   '.posit/publish/ctsapi_for_public_use-FMV4.toml',
   '.posit/publish/deployments/deployment-2VBJ.toml',
+  'demos/ctsapi_for_public_use/api_proposal.py',
   'demos/ctsapi_for_public_use/app.py',
   'demos/ctsapi_for_public_use/common.py',
   'demos/ctsapi_for_public_use/current_view.py',
@@ -1626,7 +1627,8 @@ files = [
   '/demos/ctsapi_for_public_use/fields_suggested.csv',
   '/demos/ctsapi_for_public_use/fields_used.csv',
   '/demos/ctsapi_for_public_use/minimal_view.py',
-  '/demos/ctsapi_for_public_use/requirements.txt'
+  '/demos/ctsapi_for_public_use/requirements.txt',
+  '/demos/ctsapi_for_public_use/api_proposal.py'
 ]
 title = 'ctsapi_for_public_use'
 secrets = ['CTS_V2_API_KEY']

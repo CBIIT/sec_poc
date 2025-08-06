@@ -19,7 +19,8 @@ files = [
   '/demos/ctsapi_for_public_use/fields_suggested.csv',
   '/demos/ctsapi_for_public_use/fields_used.csv',
   '/demos/ctsapi_for_public_use/minimal_view.py',
-  '/demos/ctsapi_for_public_use/requirements.txt'
+  '/demos/ctsapi_for_public_use/requirements.txt',
+  '/demos/ctsapi_for_public_use/api_proposal.py'
 ]
 title = 'ctsapi_for_public_use'
 secrets = ['CTS_V2_API_KEY']
