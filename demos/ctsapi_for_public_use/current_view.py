@@ -46,7 +46,7 @@ def get_disease_maintypes():
 
 
 @st.cache_data
-def get_disease_decendents(
+def get_disease_descendants(
     maintype_ids: list[str], derivative_type: Literal["subtype", "stage", "finding"]
 ):
     """Helper function to get disease subtypes for a given maintype."""
@@ -434,7 +434,7 @@ with col1:
     if cancer_type_sel:
         # Get the maintype ID for the selected cancer type
         # Get subtypes and findings for the selected maintype
-        cancer_subtype_options = get_disease_decendents(
+        cancer_subtype_options = get_disease_descendants(
             cancer_type_ids_sel, derivative_type="subtype"
         )
         cancer_subtypes_sel = st.multiselect(
@@ -445,7 +445,7 @@ with col1:
             el[1] for el in cancer_subtype_options if el[0] in cancer_subtypes_sel
         ]
 
-        cancer_stage_options = get_disease_decendents(
+        cancer_stage_options = get_disease_descendants(
             cancer_type_ids_sel, derivative_type="stage"
         )
         cancer_stages_sel = st.multiselect(
@@ -456,7 +456,7 @@ with col1:
             el[1] for el in cancer_stage_options if el[0] in cancer_stages_sel
         ]
 
-        cancer_finding_options = get_disease_decendents(
+        cancer_finding_options = get_disease_descendants(
             cancer_type_ids_sel, derivative_type="finding"
         )
         cancer_findings_sel = st.multiselect(

@@ -6,41 +6,16 @@ st.set_page_config(layout="wide")
 
 st.header("API Proposal")
 
-study_source = st.selectbox(
-    "Study Source",
-    options=["Externally Peer Reviewed", "Industrial", "Institutional", "National"],
-    width=260,
-)
-st.info(
-    """
-Select a study source which we will treat as a "private" field for search.
-""",
-    icon=":material/info:",
-    width=500,
-)
-
 
 @st.cache_data
-def query_ctsapi(study_source: str):
+def query_ctsapi_hacker(**kwargs):
     body = {
         "include": [
-            "brief_title",
-            "current_trial_status",
-            "nci_id",
             "nct_id",
-            "study_source",
-        ],
-        "current_trial_status": [
-            "Active",
-            "Approved",
-            "Enrolling by Invitation",
-            "In Review",
-            "Temporarily Closed to Accrual",
-            "Temporarily Closed to Accrual and Intervention",
         ],
         "from": 0,
-        "size": 50,
-        "study_source": study_source,
+        "size": 1,
+        **kwargs,
     }
     trials_res = requests.post(
         "https://clinicaltrialsapi.cancer.gov/api/v2/trials",
@@ -53,48 +28,82 @@ def query_ctsapi(study_source: str):
     return trials, total
 
 
-st.markdown(f"""#### Using query
+st.markdown("## 1. Searchable fields should not [cannot] be private")
+st.markdown(
+    'If fields are private and searchable, there\'s an inherent problem with that. One could ask a probing question: "Does X=Y data exist in the system?" If the query for X=Y returns results, regardless of the structure of that data, the answer is known, at least in part. Take for example the hacker\'s query below. Let\'s say that any trial with `current_trial_status="Approved"` is now considered private information. If a hacker uses that query, any results that come back are positive hits for their probing question, regardless of the data that is returned. This could lead to potential exposure of private information.',
+)
+
+st.markdown("""### Hacker's query
 ```javascript
-body = {{
+body = {
     "include": [
-        "brief_title",
-        "current_trial_status",
-        "nci_id",
-        "nct_id",
-        "study_source" // <- Even if study_source is requested, the API should not return it.
-                       //    This will need to be implemented by the CTS API team. 
+        "nct_id" // <- The structure of the data returned is not essential for leaking private information
+                 //    as long as there is at least one identifying field
     ],
-    "current_trial_status": [
-        "Active",
-        "Approved",
-        "Enrolling by Invitation",
-        "In Review",
-        "Temporarily Closed to Accrual",
-        "Temporarily Closed to Accrual and Intervention",
-    ],
+    "current_trial_status": "Approved", // <- This is our new "private" key=value pair
     "from": 0,
-    "size": 50,
-    "study_source": "{study_source}", // <- Here we query on a field that is "private"; it's for searching only
-}}
+    "size": 1,
+}
 requests.post(
     "https://clinicaltrialsapi.cancer.gov/api/v2/trials",
     json=body,
-    headers={{"X-API-Key": "<API_KEY>"}},
+    headers={"X-API-Key": "<API_KEY>"},
 )
 ```
 """)
-
-if st.button("Search", disabled=not study_source):
-    trials, total = query_ctsapi(study_source)
+btn1 = st.button(
+    "Hacker Search for Approved Trials",
+)
+if "approved_trials_search" not in st.session_state:
+    st.session_state["approved_trials_search"] = False
+if btn1 or st.session_state["approved_trials_search"]:
+    trials, total = query_ctsapi_hacker(current_trial_status="Approved")
+    st.session_state["approved_trials_search"] = True
     st.write("Total Trials Found:", total)
     st.write("Example Response:")
-    for trial in trials:
-        assert trial["study_source"] == study_source, "Study source mismatch"
-    del trial["study_source"]  # Remove study_source for display
-    trial["matched_on"] = {"study_source": study_source}
-    st.json(trial)
-    st.info(
-        "The study_source field is not included in the response because it is treated as a private field for searching only.",
-        icon=":material/info:",
-        width=500,
-    )
+    if trials:
+        st.json(trials[-1])
+        st.warning(
+            f'Even though the `current_trial_status` field is not included in the response, it was used to probe for private data. The results here tell us that there are {total} trials with `current_trial_status="Approved"`.',
+            icon=":material/warning:",
+            width=750,
+        )
+
+st.markdown("""### Taking it a step further
+Let's use a hypothetical example where a participating site's person of contact is repeatedly pestered by spam calls, and so, the API maintainers have decided to make the `sites.contact_email` field private but searchable. A hacker could then construct a query body like this:""")
+email = st.text_input("Email address", width=500)
+st.markdown(f"""
+```javascript
+body = {{
+    "include": [
+        "nct_id"
+    ],
+    "sites.contact_email": "{email}",
+    "from": 0,
+    "size": 1,
+}}
+```
+            """)
+
+btn2 = st.button("Hacker Search for Email", disabled=not email)
+if "email_search" not in st.session_state:
+    st.session_state["email_search"] = False
+if btn2 or st.session_state["email_search"]:
+    trials, total = query_ctsapi_hacker(**{"sites.contact_email": email})
+    st.session_state["email_search"] = True
+    st.write("Total Trials Found:", total)
+    st.write("Example Response:")
+    if trials:
+        st.json(trials[-1])
+        st.warning(
+            f'Even though the `sites.contact_email` field is not included in the response, it was used to probe for private data. The results here tell us that there are {total} trials with `sites.contact_email="{email}"`. So if the hacker was looking for a specific email address, they now know that it exists in the system.',
+            icon=":material/warning:",
+            width=750,
+        )
+
+st.markdown("## 2. Private fields should be removed altogether")
+st.markdown("""
+This is the approach used by the CTS API for trial/site statuses = "In Review." The private data is deleted directly from the database, so there will never be results returned for queries that include private fields. This is the most secure way to handle private data because it ensures that no information can be leaked/inferred through the API.
+
+If private data is to be made searchable, it should be done through an authorization layer using a provider like Auth0 or Okta. This way, the data is only exposed through the API for authorized users. It would require replicating the database and retaining the private data in this new database for authorized queries only.
+            """)
