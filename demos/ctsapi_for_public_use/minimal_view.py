@@ -3,16 +3,15 @@ import os
 import pandas as pd
 import requests
 import streamlit as st
-from streamlit_extras.floating_button import floating_button
-from streamlit_scroll_to_top import scroll_to_here
-
 from common import (
-    display_eligibility_unstructured,
-    display_sites,
     display_age,
+    display_eligibility_unstructured,
     display_location_summary,
     display_sex,
+    display_sites,
 )
+from streamlit_extras.floating_button import floating_button
+from streamlit_scroll_to_top import scroll_to_here
 
 st.set_page_config(layout="wide")
 

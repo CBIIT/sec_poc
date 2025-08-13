@@ -1,0 +1,2238 @@
+{
+  "type": "object",
+  "properties": {
+    "protocolSection": {
+      "type": "object",
+      "properties": {
+        "identificationModule": {
+          "type": "object",
+          "properties": {
+            "nctId": {
+              "type": "string"
+            },
+            "nctIdAliases": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "orgStudyIdInfo": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "NIH",
+                    "FDA",
+                    "VA",
+                    "CDC",
+                    "AHRQ",
+                    "SAMHSA"
+                  ]
+                },
+                "link": {
+                  "type": "string"
+                }
+              }
+            },
+            "secondaryIdInfos": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "NIH",
+                      "FDA",
+                      "VA",
+                      "CDC",
+                      "AHRQ",
+                      "SAMHSA",
+                      "OTHER_GRANT",
+                      "EUDRACT_NUMBER",
+                      "CTIS",
+                      "REGISTRY",
+                      "OTHER"
+                    ]
+                  },
+                  "domain": {
+                    "type": "string"
+                  },
+                  "link": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "briefTitle": {
+              "type": "string"
+            },
+            "officialTitle": {
+              "type": "string"
+            },
+            "acronym": {
+              "type": "string"
+            },
+            "organization": {
+              "type": "object",
+              "properties": {
+                "fullName": {
+                  "type": "string"
+                },
+                "class": {
+                  "type": "string",
+                  "enum": [
+                    "NIH",
+                    "FED",
+                    "OTHER_GOV",
+                    "INDIV",
+                    "INDUSTRY",
+                    "NETWORK",
+                    "AMBIG",
+                    "OTHER",
+                    "UNKNOWN"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "statusModule": {
+          "type": "object",
+          "properties": {
+            "statusVerifiedDate": {
+              "type": "string",
+              "description": "Date in `yyyy`, `yyyy-MM`, or `yyyy-MM-dd` format"
+            },
+            "overallStatus": {
+              "type": "string",
+              "enum": [
+                "ACTIVE_NOT_RECRUITING",
+                "COMPLETED",
+                "ENROLLING_BY_INVITATION",
+                "NOT_YET_RECRUITING",
+                "RECRUITING",
+                "SUSPENDED",
+                "TERMINATED",
+                "WITHDRAWN",
+                "AVAILABLE",
+                "NO_LONGER_AVAILABLE",
+                "TEMPORARILY_NOT_AVAILABLE",
+                "APPROVED_FOR_MARKETING",
+                "WITHHELD",
+                "UNKNOWN"
+              ]
+            },
+            "lastKnownStatus": {
+              "type": "string",
+              "enum": [
+                "ACTIVE_NOT_RECRUITING",
+                "COMPLETED",
+                "ENROLLING_BY_INVITATION",
+                "NOT_YET_RECRUITING",
+                "RECRUITING",
+                "SUSPENDED",
+                "TERMINATED",
+                "WITHDRAWN",
+                "AVAILABLE",
+                "NO_LONGER_AVAILABLE",
+                "TEMPORARILY_NOT_AVAILABLE",
+                "APPROVED_FOR_MARKETING",
+                "WITHHELD",
+                "UNKNOWN"
+              ]
+            },
+            "delayedPosting": {
+              "type": "boolean"
+            },
+            "whyStopped": {
+              "type": "string"
+            },
+            "expandedAccessInfo": {
+              "type": "object",
+              "properties": {
+                "hasExpandedAccess": {
+                  "type": "boolean"
+                },
+                "nctId": {
+                  "type": "string"
+                },
+                "statusForNctId": {
+                  "type": "string",
+                  "enum": [
+                    "AVAILABLE",
+                    "NO_LONGER_AVAILABLE",
+                    "TEMPORARILY_NOT_AVAILABLE",
+                    "APPROVED_FOR_MARKETING"
+                  ]
+                }
+              }
+            },
+            "startDateStruct": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "Date in `yyyy`, `yyyy-MM`, or `yyyy-MM-dd` format"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ACTUAL",
+                    "ESTIMATED"
+                  ]
+                }
+              }
+            },
+            "primaryCompletionDateStruct": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "Date in `yyyy`, `yyyy-MM`, or `yyyy-MM-dd` format"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ACTUAL",
+                    "ESTIMATED"
+                  ]
+                }
+              }
+            },
+            "completionDateStruct": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "Date in `yyyy`, `yyyy-MM`, or `yyyy-MM-dd` format"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ACTUAL",
+                    "ESTIMATED"
+                  ]
+                }
+              }
+            },
+            "studyFirstSubmitDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "studyFirstSubmitQcDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "studyFirstPostDateStruct": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ACTUAL",
+                    "ESTIMATED"
+                  ]
+                }
+              }
+            },
+            "resultsWaived": {
+              "type": "boolean"
+            },
+            "resultsFirstSubmitDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "resultsFirstSubmitQcDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "resultsFirstPostDateStruct": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ACTUAL",
+                    "ESTIMATED"
+                  ]
+                }
+              }
+            },
+            "dispFirstSubmitDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "dispFirstSubmitQcDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "dispFirstPostDateStruct": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ACTUAL",
+                    "ESTIMATED"
+                  ]
+                }
+              }
+            },
+            "lastUpdateSubmitDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "lastUpdatePostDateStruct": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ACTUAL",
+                    "ESTIMATED"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "sponsorCollaboratorsModule": {
+          "type": "object",
+          "properties": {
+            "responsibleParty": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "SPONSOR",
+                    "PRINCIPAL_INVESTIGATOR",
+                    "SPONSOR_INVESTIGATOR"
+                  ]
+                },
+                "investigatorFullName": {
+                  "type": "string"
+                },
+                "investigatorTitle": {
+                  "type": "string"
+                },
+                "investigatorAffiliation": {
+                  "type": "string"
+                },
+                "oldNameTitle": {
+                  "type": "string"
+                },
+                "oldOrganization": {
+                  "type": "string"
+                }
+              }
+            },
+            "leadSponsor": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "class": {
+                  "type": "string",
+                  "enum": [
+                    "NIH",
+                    "FED",
+                    "OTHER_GOV",
+                    "INDIV",
+                    "INDUSTRY",
+                    "NETWORK",
+                    "AMBIG",
+                    "OTHER",
+                    "UNKNOWN"
+                  ]
+                }
+              }
+            },
+            "collaborators": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "class": {
+                    "type": "string",
+                    "enum": [
+                      "NIH",
+                      "FED",
+                      "OTHER_GOV",
+                      "INDIV",
+                      "INDUSTRY",
+                      "NETWORK",
+                      "AMBIG",
+                      "OTHER",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "oversightModule": {
+          "type": "object",
+          "properties": {
+            "oversightHasDmc": {
+              "type": "boolean"
+            },
+            "isFdaRegulatedDrug": {
+              "type": "boolean"
+            },
+            "isFdaRegulatedDevice": {
+              "type": "boolean"
+            },
+            "isUnapprovedDevice": {
+              "type": "boolean"
+            },
+            "isPpsd": {
+              "type": "boolean"
+            },
+            "isUsExport": {
+              "type": "boolean"
+            },
+            "fdaaa801Violation": {
+              "type": "boolean"
+            }
+          }
+        },
+        "descriptionModule": {
+          "type": "object",
+          "properties": {
+            "briefSummary": {
+              "type": "string"
+            },
+            "detailedDescription": {
+              "type": "string"
+            }
+          }
+        },
+        "conditionsModule": {
+          "type": "object",
+          "properties": {
+            "conditions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "keywords": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "designModule": {
+          "type": "object",
+          "properties": {
+            "studyType": {
+              "type": "string",
+              "enum": [
+                "EXPANDED_ACCESS",
+                "INTERVENTIONAL",
+                "OBSERVATIONAL"
+              ]
+            },
+            "nPtrsToThisExpAccNctId": {
+              "type": "number"
+            },
+            "expandedAccessTypes": {
+              "type": "object",
+              "properties": {
+                "individual": {
+                  "type": "boolean"
+                },
+                "intermediate": {
+                  "type": "boolean"
+                },
+                "treatment": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "patientRegistry": {
+              "type": "boolean"
+            },
+            "targetDuration": {
+              "type": "string",
+              "pattern": "^\\d+ (Year|Years|Month|Months|Week|Weeks|Day|Days|Hour|Hours|Minute|Minutes)$"
+            },
+            "phases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "NA",
+                  "EARLY_PHASE1",
+                  "PHASE1",
+                  "PHASE2",
+                  "PHASE3",
+                  "PHASE4"
+                ]
+              }
+            },
+            "designInfo": {
+              "type": "object",
+              "properties": {
+                "allocation": {
+                  "type": "string",
+                  "enum": [
+                    "RANDOMIZED",
+                    "NON_RANDOMIZED",
+                    "NA"
+                  ]
+                },
+                "interventionModel": {
+                  "type": "string",
+                  "enum": [
+                    "SINGLE_GROUP",
+                    "PARALLEL",
+                    "CROSSOVER",
+                    "FACTORIAL",
+                    "SEQUENTIAL"
+                  ]
+                },
+                "interventionModelDescription": {
+                  "type": "string"
+                },
+                "primaryPurpose": {
+                  "type": "string",
+                  "enum": [
+                    "TREATMENT",
+                    "PREVENTION",
+                    "DIAGNOSTIC",
+                    "ECT",
+                    "SUPPORTIVE_CARE",
+                    "SCREENING",
+                    "HEALTH_SERVICES_RESEARCH",
+                    "BASIC_SCIENCE",
+                    "DEVICE_FEASIBILITY",
+                    "OTHER"
+                  ]
+                },
+                "observationalModel": {
+                  "type": "string",
+                  "enum": [
+                    "COHORT",
+                    "CASE_CONTROL",
+                    "CASE_ONLY",
+                    "CASE_CROSSOVER",
+                    "ECOLOGIC_OR_COMMUNITY",
+                    "FAMILY_BASED",
+                    "DEFINED_POPULATION",
+                    "NATURAL_HISTORY",
+                    "OTHER"
+                  ]
+                },
+                "timePerspective": {
+                  "type": "string",
+                  "enum": [
+                    "RETROSPECTIVE",
+                    "PROSPECTIVE",
+                    "CROSS_SECTIONAL",
+                    "OTHER"
+                  ]
+                },
+                "maskingInfo": {
+                  "type": "object",
+                  "properties": {
+                    "masking": {
+                      "type": "string",
+                      "enum": [
+                        "NONE",
+                        "SINGLE",
+                        "DOUBLE",
+                        "TRIPLE",
+                        "QUADRUPLE"
+                      ]
+                    },
+                    "maskingDescription": {
+                      "type": "string"
+                    },
+                    "whoMasked": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "PARTICIPANT",
+                          "CARE_PROVIDER",
+                          "INVESTIGATOR",
+                          "OUTCOMES_ASSESSOR"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "bioSpec": {
+              "type": "object",
+              "properties": {
+                "retention": {
+                  "type": "string",
+                  "enum": [
+                    "NONE_RETAINED",
+                    "SAMPLES_WITH_DNA",
+                    "SAMPLES_WITHOUT_DNA"
+                  ]
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            },
+            "enrollmentInfo": {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "type": "integer"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ACTUAL",
+                    "ESTIMATED"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "armsInterventionsModule": {
+          "type": "object",
+          "properties": {
+            "armGroups": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "EXPERIMENTAL",
+                      "ACTIVE_COMPARATOR",
+                      "PLACEBO_COMPARATOR",
+                      "SHAM_COMPARATOR",
+                      "NO_INTERVENTION",
+                      "OTHER"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "interventionNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "interventions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "BEHAVIORAL",
+                      "BIOLOGICAL",
+                      "COMBINATION_PRODUCT",
+                      "DEVICE",
+                      "DIAGNOSTIC_TEST",
+                      "DIETARY_SUPPLEMENT",
+                      "DRUG",
+                      "GENETIC",
+                      "PROCEDURE",
+                      "RADIATION",
+                      "OTHER"
+                    ]
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "armGroupLabels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "otherNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "outcomesModule": {
+          "type": "object",
+          "properties": {
+            "primaryOutcomes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "measure": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "timeFrame": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "secondaryOutcomes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "measure": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "timeFrame": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "otherOutcomes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "measure": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "timeFrame": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "eligibilityModule": {
+          "type": "object",
+          "properties": {
+            "eligibilityCriteria": {
+              "type": "string"
+            },
+            "healthyVolunteers": {
+              "type": "boolean"
+            },
+            "sex": {
+              "type": "string",
+              "enum": [
+                "FEMALE",
+                "MALE",
+                "ALL"
+              ]
+            },
+            "genderBased": {
+              "type": "boolean"
+            },
+            "genderDescription": {
+              "type": "string"
+            },
+            "minimumAge": {
+              "type": "string",
+              "pattern": "^\\d+ (Year|Years|Month|Months|Week|Weeks|Day|Days|Hour|Hours|Minute|Minutes)$"
+            },
+            "maximumAge": {
+              "type": "string",
+              "pattern": "^\\d+ (Year|Years|Month|Months|Week|Weeks|Day|Days|Hour|Hours|Minute|Minutes)$"
+            },
+            "stdAges": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "CHILD",
+                  "ADULT",
+                  "OLDER_ADULT"
+                ]
+              }
+            },
+            "studyPopulation": {
+              "type": "string"
+            },
+            "samplingMethod": {
+              "type": "string",
+              "enum": [
+                "PROBABILITY_SAMPLE",
+                "NON_PROBABILITY_SAMPLE"
+              ]
+            }
+          }
+        },
+        "contactsLocationsModule": {
+          "type": "object",
+          "properties": {
+            "centralContacts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "STUDY_CHAIR",
+                      "STUDY_DIRECTOR",
+                      "PRINCIPAL_INVESTIGATOR",
+                      "SUB_INVESTIGATOR",
+                      "CONTACT"
+                    ]
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "phoneExt": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "overallOfficials": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "affiliation": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "STUDY_CHAIR",
+                      "STUDY_DIRECTOR",
+                      "PRINCIPAL_INVESTIGATOR",
+                      "SUB_INVESTIGATOR"
+                    ]
+                  }
+                }
+              }
+            },
+            "locations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "facility": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE_NOT_RECRUITING",
+                      "COMPLETED",
+                      "ENROLLING_BY_INVITATION",
+                      "NOT_YET_RECRUITING",
+                      "RECRUITING",
+                      "SUSPENDED",
+                      "TERMINATED",
+                      "WITHDRAWN",
+                      "AVAILABLE"
+                    ]
+                  },
+                  "city": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "zip": {
+                    "type": "string"
+                  },
+                  "country": {
+                    "type": "string"
+                  },
+                  "contacts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "STUDY_CHAIR",
+                            "STUDY_DIRECTOR",
+                            "PRINCIPAL_INVESTIGATOR",
+                            "SUB_INVESTIGATOR",
+                            "CONTACT"
+                          ]
+                        },
+                        "phone": {
+                          "type": "string"
+                        },
+                        "phoneExt": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "countryCode": {
+                    "type": "string"
+                  },
+                  "geoPoint": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number"
+                      },
+                      "lon": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lon"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "referencesModule": {
+          "type": "object",
+          "properties": {
+            "references": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "pmid": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "BACKGROUND",
+                      "RESULT",
+                      "DERIVED"
+                    ]
+                  },
+                  "citation": {
+                    "type": "string"
+                  },
+                  "retractions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "pmid": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "seeAlsoLinks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "availIpds": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "comment": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ipdSharingStatementModule": {
+          "type": "object",
+          "properties": {
+            "ipdSharing": {
+              "type": "string",
+              "enum": [
+                "YES",
+                "NO",
+                "UNDECIDED"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "infoTypes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "STUDY_PROTOCOL",
+                  "SAP",
+                  "ICF",
+                  "CSR",
+                  "ANALYTIC_CODE"
+                ]
+              }
+            },
+            "timeFrame": {
+              "type": "string"
+            },
+            "accessCriteria": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "resultsSection": {
+      "type": "object",
+      "properties": {
+        "participantFlowModule": {
+          "type": "object",
+          "properties": {
+            "preAssignmentDetails": {
+              "type": "string"
+            },
+            "recruitmentDetails": {
+              "type": "string"
+            },
+            "typeUnitsAnalyzed": {
+              "type": "string"
+            },
+            "groups": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "periods": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "milestones": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "comment": {
+                          "type": "string"
+                        },
+                        "achievements": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "groupId": {
+                                "type": "string"
+                              },
+                              "comment": {
+                                "type": "string"
+                              },
+                              "numSubjects": {
+                                "type": "string"
+                              },
+                              "numUnits": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "dropWithdraws": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "comment": {
+                          "type": "string"
+                        },
+                        "reasons": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "groupId": {
+                                "type": "string"
+                              },
+                              "comment": {
+                                "type": "string"
+                              },
+                              "numSubjects": {
+                                "type": "string"
+                              },
+                              "numUnits": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "baselineCharacteristicsModule": {
+          "type": "object",
+          "properties": {
+            "populationDescription": {
+              "type": "string"
+            },
+            "typeUnitsAnalyzed": {
+              "type": "string"
+            },
+            "groups": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "denoms": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "units": {
+                    "type": "string"
+                  },
+                  "counts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "groupId": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "measures": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "populationDescription": {
+                    "type": "string"
+                  },
+                  "paramType": {
+                    "type": "string",
+                    "enum": [
+                      "GEOMETRIC_MEAN",
+                      "GEOMETRIC_LEAST_SQUARES_MEAN",
+                      "LEAST_SQUARES_MEAN",
+                      "LOG_MEAN",
+                      "MEAN",
+                      "MEDIAN",
+                      "NUMBER",
+                      "COUNT_OF_PARTICIPANTS",
+                      "COUNT_OF_UNITS"
+                    ]
+                  },
+                  "dispersionType": {
+                    "type": "string",
+                    "enum": [
+                      "NA",
+                      "STANDARD_DEVIATION",
+                      "STANDARD_ERROR",
+                      "INTER_QUARTILE_RANGE",
+                      "FULL_RANGE",
+                      "CONFIDENCE_80",
+                      "CONFIDENCE_90",
+                      "CONFIDENCE_95",
+                      "CONFIDENCE_975",
+                      "CONFIDENCE_99",
+                      "CONFIDENCE_OTHER",
+                      "GEOMETRIC_COEFFICIENT"
+                    ]
+                  },
+                  "unitOfMeasure": {
+                    "type": "string"
+                  },
+                  "calculatePct": {
+                    "type": "boolean"
+                  },
+                  "denomUnitsSelected": {
+                    "type": "string"
+                  },
+                  "denoms": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "units": {
+                          "type": "string"
+                        },
+                        "counts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "groupId": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "classes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "denoms": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "units": {
+                                "type": "string"
+                              },
+                              "counts": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "groupId": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "categories": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "measurements": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "groupId": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    },
+                                    "spread": {
+                                      "type": "string"
+                                    },
+                                    "lowerLimit": {
+                                      "type": "string"
+                                    },
+                                    "upperLimit": {
+                                      "type": "string"
+                                    },
+                                    "comment": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "outcomeMeasuresModule": {
+          "type": "object",
+          "properties": {
+            "outcomeMeasures": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "PRIMARY",
+                      "SECONDARY",
+                      "OTHER_PRE_SPECIFIED",
+                      "POST_HOC"
+                    ]
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "populationDescription": {
+                    "type": "string"
+                  },
+                  "reportingStatus": {
+                    "type": "string",
+                    "enum": [
+                      "NOT_POSTED",
+                      "POSTED"
+                    ]
+                  },
+                  "anticipatedPostingDate": {
+                    "type": "string",
+                    "description": "Date in `yyyy`, `yyyy-MM`, or `yyyy-MM-dd` format"
+                  },
+                  "paramType": {
+                    "type": "string",
+                    "enum": [
+                      "GEOMETRIC_MEAN",
+                      "GEOMETRIC_LEAST_SQUARES_MEAN",
+                      "LEAST_SQUARES_MEAN",
+                      "LOG_MEAN",
+                      "MEAN",
+                      "MEDIAN",
+                      "NUMBER",
+                      "COUNT_OF_PARTICIPANTS",
+                      "COUNT_OF_UNITS"
+                    ]
+                  },
+                  "dispersionType": {
+                    "type": "string"
+                  },
+                  "unitOfMeasure": {
+                    "type": "string"
+                  },
+                  "calculatePct": {
+                    "type": "boolean"
+                  },
+                  "timeFrame": {
+                    "type": "string"
+                  },
+                  "typeUnitsAnalyzed": {
+                    "type": "string"
+                  },
+                  "denomUnitsSelected": {
+                    "type": "string"
+                  },
+                  "groups": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "denoms": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "units": {
+                          "type": "string"
+                        },
+                        "counts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "groupId": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "classes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "denoms": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "units": {
+                                "type": "string"
+                              },
+                              "counts": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "groupId": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "categories": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "measurements": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "groupId": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    },
+                                    "spread": {
+                                      "type": "string"
+                                    },
+                                    "lowerLimit": {
+                                      "type": "string"
+                                    },
+                                    "upperLimit": {
+                                      "type": "string"
+                                    },
+                                    "comment": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "analyses": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "paramType": {
+                          "type": "string"
+                        },
+                        "paramValue": {
+                          "type": "string"
+                        },
+                        "dispersionType": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD_DEVIATION",
+                            "STANDARD_ERROR_OF_MEAN"
+                          ]
+                        },
+                        "dispersionValue": {
+                          "type": "string"
+                        },
+                        "statisticalMethod": {
+                          "type": "string"
+                        },
+                        "statisticalComment": {
+                          "type": "string"
+                        },
+                        "pValue": {
+                          "type": "string"
+                        },
+                        "pValueComment": {
+                          "type": "string"
+                        },
+                        "ciNumSides": {
+                          "type": "string",
+                          "enum": [
+                            "ONE_SIDED",
+                            "TWO_SIDED"
+                          ]
+                        },
+                        "ciPctValue": {
+                          "type": "string"
+                        },
+                        "ciLowerLimit": {
+                          "type": "string"
+                        },
+                        "ciUpperLimit": {
+                          "type": "string"
+                        },
+                        "ciLowerLimitComment": {
+                          "type": "string"
+                        },
+                        "ciUpperLimitComment": {
+                          "type": "string"
+                        },
+                        "estimateComment": {
+                          "type": "string"
+                        },
+                        "testedNonInferiority": {
+                          "type": "boolean"
+                        },
+                        "nonInferiorityType": {
+                          "type": "string",
+                          "enum": [
+                            "SUPERIORITY",
+                            "NON_INFERIORITY",
+                            "EQUIVALENCE",
+                            "OTHER",
+                            "NON_INFERIORITY_OR_EQUIVALENCE",
+                            "SUPERIORITY_OR_OTHER",
+                            "NON_INFERIORITY_OR_EQUIVALENCE_LEGACY",
+                            "SUPERIORITY_OR_OTHER_LEGACY"
+                          ]
+                        },
+                        "nonInferiorityComment": {
+                          "type": "string"
+                        },
+                        "otherAnalysisDescription": {
+                          "type": "string"
+                        },
+                        "groupDescription": {
+                          "type": "string"
+                        },
+                        "groupIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "adverseEventsModule": {
+          "type": "object",
+          "properties": {
+            "frequencyThreshold": {
+              "type": "string"
+            },
+            "timeFrame": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "allCauseMortalityComment": {
+              "type": "string"
+            },
+            "eventGroups": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "deathsNumAffected": {
+                    "type": "integer"
+                  },
+                  "deathsNumAtRisk": {
+                    "type": "integer"
+                  },
+                  "seriousNumAffected": {
+                    "type": "integer"
+                  },
+                  "seriousNumAtRisk": {
+                    "type": "integer"
+                  },
+                  "otherNumAffected": {
+                    "type": "integer"
+                  },
+                  "otherNumAtRisk": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "seriousEvents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "term": {
+                    "type": "string"
+                  },
+                  "organSystem": {
+                    "type": "string"
+                  },
+                  "sourceVocabulary": {
+                    "type": "string"
+                  },
+                  "assessmentType": {
+                    "type": "string",
+                    "enum": [
+                      "NON_SYSTEMATIC_ASSESSMENT",
+                      "SYSTEMATIC_ASSESSMENT"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "stats": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "groupId": {
+                          "type": "string"
+                        },
+                        "numEvents": {
+                          "type": "integer"
+                        },
+                        "numAffected": {
+                          "type": "integer"
+                        },
+                        "numAtRisk": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "otherEvents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "term": {
+                    "type": "string"
+                  },
+                  "organSystem": {
+                    "type": "string"
+                  },
+                  "sourceVocabulary": {
+                    "type": "string"
+                  },
+                  "assessmentType": {
+                    "type": "string",
+                    "enum": [
+                      "NON_SYSTEMATIC_ASSESSMENT",
+                      "SYSTEMATIC_ASSESSMENT"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "stats": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "groupId": {
+                          "type": "string"
+                        },
+                        "numEvents": {
+                          "type": "integer"
+                        },
+                        "numAffected": {
+                          "type": "integer"
+                        },
+                        "numAtRisk": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "moreInfoModule": {
+          "type": "object",
+          "properties": {
+            "limitationsAndCaveats": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
+            },
+            "certainAgreement": {
+              "type": "object",
+              "properties": {
+                "piSponsorEmployee": {
+                  "type": "boolean"
+                },
+                "restrictionType": {
+                  "type": "string",
+                  "enum": [
+                    "LTE60",
+                    "GT60",
+                    "OTHER"
+                  ]
+                },
+                "restrictiveAgreement": {
+                  "type": "boolean"
+                },
+                "otherDetails": {
+                  "type": "string"
+                }
+              }
+            },
+            "pointOfContact": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "organization": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": "string"
+                },
+                "phoneExt": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "annotationSection": {
+      "type": "object",
+      "properties": {
+        "annotationModule": {
+          "type": "object",
+          "properties": {
+            "unpostedAnnotation": {
+              "type": "object",
+              "properties": {
+                "unpostedResponsibleParty": {
+                  "type": "string"
+                },
+                "unpostedEvents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "RESET",
+                          "RELEASE",
+                          "UNRELEASE"
+                        ]
+                      },
+                      "date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "dateUnknown": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "violationAnnotation": {
+              "type": "object",
+              "properties": {
+                "violationEvents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "VIOLATION_IDENTIFIED",
+                          "CORRECTION_CONFIRMED",
+                          "PENALTY_IMPOSED",
+                          "ISSUES_IN_LETTER_ADDRESSED_CONFIRMED"
+                        ]
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "creationDate": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "issuedDate": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "releaseDate": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "postedDate": {
+                        "type": "string",
+                        "format": "date"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "documentSection": {
+      "type": "object",
+      "properties": {
+        "largeDocumentModule": {
+          "type": "object",
+          "properties": {
+            "noSap": {
+              "type": "boolean"
+            },
+            "largeDocs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "typeAbbrev": {
+                    "type": "string"
+                  },
+                  "hasProtocol": {
+                    "type": "boolean"
+                  },
+                  "hasSap": {
+                    "type": "boolean"
+                  },
+                  "hasIcf": {
+                    "type": "boolean"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "uploadDate": {
+                    "type": "string",
+                    "description": "Date and time in `yyyy-MM-dd'T'HH:mm` format"
+                  },
+                  "filename": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "derivedSection": {
+      "type": "object",
+      "properties": {
+        "miscInfoModule": {
+          "type": "object",
+          "properties": {
+            "versionHolder": {
+              "type": "string",
+              "format": "date"
+            },
+            "removedCountries": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "submissionTracking": {
+              "type": "object",
+              "properties": {
+                "estimatedResultsFirstSubmitDate": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "firstMcpInfo": {
+                  "type": "object",
+                  "properties": {
+                    "postDateStruct": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "ACTUAL",
+                            "ESTIMATED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "submissionInfos": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "releaseDate": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "unreleaseDate": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "unreleaseDateUnknown": {
+                        "type": "boolean"
+                      },
+                      "resetDate": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "mcpReleaseN": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "conditionBrowseModule": {
+          "type": "object",
+          "properties": {
+            "meshes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "term": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "ancestors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "term": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "browseLeaves": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "asFound": {
+                    "type": "string"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "enum": [
+                      "LOW",
+                      "HIGH"
+                    ]
+                  }
+                }
+              }
+            },
+            "browseBranches": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "abbrev": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "interventionBrowseModule": {
+          "type": "object",
+          "properties": {
+            "meshes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "term": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "ancestors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "term": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "browseLeaves": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "asFound": {
+                    "type": "string"
+                  },
+                  "relevance": {
+                    "type": "string",
+                    "enum": [
+                      "LOW",
+                      "HIGH"
+                    ]
+                  }
+                }
+              }
+            },
+            "browseBranches": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "abbrev": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "hasResults": {
+      "type": "boolean"
+    }
+  }
+}

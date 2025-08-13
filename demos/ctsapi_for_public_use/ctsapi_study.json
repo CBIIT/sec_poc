@@ -1,0 +1,1326 @@
+{
+  "current_trial_status": {
+    "Description": "The recruitment status for the clinical study as a whole, based upon the status of the individual sites. If at least one facility in a multi-site clinical study has an Individual Site Status of \"Recruiting,\" then the Overall Recruitment Status for the study must be \"Recruiting.\".",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": [
+      "Approved, In Review",
+      "Active",
+      "Enrolling by invitation",
+      "Temporarily Closed to Accrual, Temporarily Closed to Accrual and Intervention",
+      "Closed to Accrual, Closed to Accrual and Intervention",
+      "Complete",
+      "Administratively Complete",
+      "Withdrawn"
+    ],
+    "type": "string"
+  },
+  "current_trial_status_date": {
+    "Description": "The date on which the current study status became effective.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Derived by the date the status is changed in ClinicalTrials.gov."
+    },
+    "type": "date"
+  },
+  "why_study_stopped": {
+    "Description": "A brief explanation of the reason(s) why such clinical study was stopped (for a clinical study that is \"Temporarily Closed to Accrual,\" \"Temporarily Closed to Accrual and Intervention,\" \"Administratively Complete,\" or \"Withdrawn\" prior to its planned completion as anticipated by the protocol).",
+    "Source": "Assigned by the Lead Organization.",
+    "Character Limit": 2000,
+    "type": "string"
+  },
+  "start_date": {
+    "Description": "The estimated date on which the clinical study will be open for recruitment of participants, or the actual date on which the first participant was enrolled. This date can be Anticipated (the expected recruitment/enrollment date) or Actual (the exact recruitment/enrollment date).",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "type": "date"
+  },
+  "start_date_type_code": {
+    "Description": "The type of start date.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "Format": "LOV",
+    "Character Limit": 50,
+    "enum": ["Actual", "Anticipated"],
+    "type": "string"
+  },
+  "completion_date": {
+    "Description": "The date the final participant was examined or received an intervention for purposes of final collection of data for the primary and secondary outcome measures and adverse events (e.g., last participant\u2019s last visit), whether the clinical study concluded according to the pre-specified protocol or was terminated. This date can be Anticipated (the expected final examination or intervention date for the final participant) or Actual (the exact final examination or intervention date for the final participant).",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "date"
+  },
+  "completion_date_type_code": {
+    "Description": "The type of completion date.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 50,
+    "enum": ["Actual", "Anticipated"],
+    "type": "string"
+  },
+  "record_verification_date": {
+    "Description": "Date the protocol information was last verified. Verification date is shown along with organization name on ClinicalTrials.gov to indicate to the public whether the information is being kept current, particularly recruiting status and contact information. Update verification date when reviewing the record for accuracy and completeness, even if no other changes are made. In CTRP, the Last Verified date is the most recent date on which the CTRO confirmed all of a clinical study's information in CTRP as accurate and current.",
+    "Source": {
+      "Protocol Trials": "System automated updates when trial owner made changes",
+      "Imported Trials": "System updated when record gets updated via import."
+    },
+    "type": "date"
+  },
+  "diseases.nci_thesaurus_concept_id": {
+    "Description": "A unique concept ID within the NCI Enterprise Vocabulary Service's (EVS) NCI Thesaurus (NCIt).",
+    "Source": "Data Enrichment (EVS)",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "diseases.name": {
+    "Description": "The disease name from the NCI Thesaurus (NCIt). This can either be the CTRP Display Name (DN) or NCI Preferred Name.",
+    "Source": "Data Enrichment (EVS)",
+    "Character Limit": 1000,
+    "type": "string"
+  },
+  "diseases.synonyms": {
+    "Description": "A comma-delimited list of alternative names for the preferred name of the disease or condition.",
+    "Source": "Data Enrichment (EVS)",
+    "type": "string"
+  },
+  "diseases.inclusion_indicator": {
+    "Description": "Indicates whether the disease code has been included due to being directly coded onto the trial (TRIAL) or has been included due to being coded during the enrichment process (TREE).",
+    "Source": "Data Enrichment (EVS)",
+    "Format": "LOV",
+    "enum": ["Trial", "Tree"],
+    "type": "string"
+  },
+  "diseases.is_lead_disease": {
+    "Description": "Indicates when a disease(s) on a study is the focus of the study as indicated by the NCI.",
+    "Source": "Abstracted by the CTRO",
+    "Format": "Boolean",
+    "enum": ["true", "false"],
+    "type": "string"
+  },
+  "diseases.type": {
+    "Description": "Hierarchical grouping of the disease",
+    "Source": "Data Enrichment (EVS)",
+    "Format": "LOV",
+    "enum": ["Maintype", "Subtype", "Grade", "Finding", "Stage"],
+    "type": "string"
+  },
+  "diseases.parents": {
+    "Description": "A comma-delimited list of concepts in the hierarchy above the disease/condition concept. Also known as super-concepts.",
+    "Source": "Data Enrichment (EVS)",
+    "type": "string"
+  },
+  "arms.interventions.description": {
+    "Description": "Succinctly describes the key details of the intervention. For drug interventions, a summary of the drug\u2019s chemical nature and (potential) mechanism of action, and/or details such as dosage form, dosage, frequency, and duration. For other interventions, a summary of the procedure or device that provides key details that distinguish it from similar interventions.",
+    "Source": "Abstracted by the CTRO",
+    "Character Limit": 1000,
+    "type": "string"
+  },
+  "arms.interventions.name": {
+    "Description": "The standard name of the intervention being studied. For a drug, this is the generic name. For an investigational new drug that does not yet have a generic name, this may be the chemical name, company code, or serial number.",
+    "Source": "Abstracted by the CTRO",
+    "Character Limit": 1000,
+    "type": "string"
+  },
+  "arms.interventions.nci_thesaurus_concept_id": {
+    "Description": "The code (NCI Thesaurus Concept ID) of the intervention being studied.",
+    "Source": "Abstracted by the CTRO",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "arms.interventions.type": {
+    "Description": "For each intervention studied in the clinical study, the general type of intervention.",
+    "Source": "Abstracted by the CTRO",
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": [
+      "Drug",
+      "Device",
+      "Biological/Vaccine",
+      "Procedure/Surgery",
+      "Radiation",
+      "Behavioral",
+      "Genetic",
+      "Dietary Supplement",
+      "Other"
+    ],
+    "type": "string"
+  },
+  "arms.interventions.category": {
+    "Description": "Additional categorization that is used to group interventions.",
+    "Source": "Data Enrichment (EVS)",
+    "Format": "LOV",
+    "enum": ["Agent", "Agent Category", "None", "Other"],
+    "type": "string"
+  },
+  "arms.interventions.inclusion_indicator": {
+    "Description": "Indicates whether the intervention code has been included due to being directly coded onto the trial (TRIAL) or has been included due to being coded during the enrichment process (TREE).",
+    "Source": "Data Enrichment (EVS)",
+    "Format": "LOV",
+    "enum": ["Tree", "Trial"],
+    "type": "string"
+  },
+  "arms.interventions.synonyms": {
+    "Description": "A comma-delimited list of alternative names for the intervention, including brand names, abbreviations, code names, and chemical structure.",
+    "Source": "Data Enrichment (EVS)",
+    "type": "string"
+  },
+  "arms.interventions.parents": {
+    "Description": "A comma-delimited list of concepts in the hierarchy above the intervention concept. Also known as super-concepts.",
+    "Source": "Data Enrichment (EVS)",
+    "type": "string"
+  },
+  "biomarkers": {
+    "Description": "A defined characteristic that is measured as an indicator of normal biological processes, pathogenic processes, or responses to an exposure or intervention, including therapeutic interventions. Molecular, histologic, radiographic, or physiologic characteristics are types of biomarkers. A biomarker is not an assessment of how an individual feels, functions, or survives. (Each Biomarker in the Reference Terminology source is associated with an EVS ID.)",
+    "Source": "Abstracted by the CTRO",
+    "Format": "LOV",
+    "enum": ["https://evsexplore.semantics.cancer.gov/evsexplore/welcome"]
+  },
+  "biomarkers.name": {
+    "Description": "Name of biomarker.",
+    "Source": "Data Enrichment (EVS)",
+    "Character Limit": 2000,
+    "type": "string"
+  },
+  "biomarkers.nci_thesaurus_concept_id": {
+    "Description": "A unique ID for the biomarker within the NCI Enterprise Vocabulary Service's (EVS) NCI Thesaurus (NCIt).",
+    "Source": "Data Enrichment (EVS)",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "biomarkers.eligibility_criterion": {
+    "Description": "Indicates whether the subject that has this biomarker is included or excluded in the study.",
+    "Source": "Derived",
+    "type": "string"
+  },
+  "biomarkers.type": {
+    "Description": "Indicates if the biomarker has been added (by enrichment) to the trial as a reference gene or branch.",
+    "Source": "Abstracted by the CTRO",
+    "Character Limit": 400,
+    "enum": ["branch", "reference_gene"],
+    "type": "string"
+  },
+  "biomarkers.assay_purpose": {
+    "Description": "Why the biomarker is being measured.",
+    "Source": "Abstracted by the CTRO",
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": [
+      "Eligibility Criterion - Exclusion",
+      "Eligibility Criterion - Inclusion"
+    ],
+    "type": "string"
+  },
+  "biomarkers.semantic_types": {
+    "Description": "Broad subject categories that provide a consistent categorization of all concepts represented.",
+    "Source": "Abstracted by the CTRO",
+    "type": "string"
+  },
+  "biomarkers.synonyms": {
+    "Description": "Alternative names for the biomarker.",
+    "Source": "Data Enrichment (EVS)",
+    "Character Limit": 2000,
+    "type": "string"
+  },
+  "biomarkers.ancestors": {
+    "Description": "A comma-delimited list of concepts in the hierarchy above the biomarker concept.",
+    "Source": "Data Enrichment (EVS)",
+    "type": "string"
+  },
+  "biomarkers.parents": {
+    "Description": "A comma-delimited list of concepts including the direct parent(s) of the biomarker concept as well as associated & related concepts.",
+    "Source": "Data Enrichment (EVS)",
+    "type": "string"
+  },
+  "anatomic_sites": {
+    "Description": "The anatomic site(s) in which the trial or study is focused.",
+    "Source": "Abstracted by the CTRO",
+    "Format": "LOV",
+    "Character Limit": 1000,
+    "enum": [
+      "https://wiki.nci.nih.gov/display/CTRPdoc/Data+Table+4+Anatomic+Site+Values"
+    ],
+    "type": "string"
+  },
+  "interventional_model": {
+    "Description": "The strategy for assigning interventions to participants.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 255,
+    "enum": [
+      "Single Group",
+      "Parallel",
+      "cross-over",
+      "Factorial",
+      "sequential_assignment"
+    ],
+    "type": "string"
+  },
+  "official_title": {
+    "Description": "The title of the clinical study, corresponding to the title of the protocol.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "Character Limit": 600,
+    "type": "string"
+  },
+  "brief_title": {
+    "Description": "A short title of the clinical study written in language intended for the lay public.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "string"
+  },
+  "brief_summary": {
+    "Description": "A short description of the clinical study, including a brief statement of the clinical study's hypothesis, written in language intended for the lay public.",
+    "Source": "Abstracted by the CTRO",
+    "type": "string"
+  },
+  "detail_description": {
+    "Description": "Extended description of the protocol, including more technical information (as compared to the Brief Summary), if desired.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 32000,
+    "type": "string"
+  },
+  "keywords": {
+    "Description": "Words or phrases that best describe the protocol. Keywords help users find studies in the database.",
+    "Source": "Assigned by the Lead Organization",
+    "Character Limit": 4000,
+    "type": "string"
+  },
+  "acronym": {
+    "Description": "The acronym or initials used to identify a clinical study, if any.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "sampling_method_code": {
+    "Description": "The sampling method code indicating the processes to select the study population. Applies to observational studies only.",
+    "Source": "Abstracted by the CTRO",
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["non_probability_sample", "probability_sample"],
+    "type": "string"
+  },
+  "phase": {
+    "Description": "For a clinical trial of a drug product (including a biological product), the numerical phase of such clinical trial, consistent with terminology in 21 CFR 312.21 and in 21 CFR 312.85 for phase 4 studies.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "Format": "LOV",
+    "Character Limit": 255,
+    "enum": ["NA", "0", "I", "I_II", "II", "II_III", "III", "IV"],
+    "type": "string"
+  },
+  "study_subtype_code": {
+    "Description": "Subtype of non-interventional trials.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 64,
+    "enum": ["Observational", "ancillary_correlative"],
+    "type": "string"
+  },
+  "primary_purpose": {
+    "Description": "The main objective of the intervention(s) being evaluated by the clinical trial.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "Format": "LOV",
+    "Character Limit": 255,
+    "enum": [
+      "Basis Science (BAS)",
+      "Diagnostic (DIA)",
+      "Health Services Research (HSR)",
+      "Prevention (PRE)",
+      "Screening (SCR)",
+      "Supportive Care (SUP)",
+      "Treatment (TRE)",
+      "Device - Device Feasibility (DEV)",
+      "Other (OTH)"
+    ],
+    "type": "string"
+  },
+  "arms": {
+    "Description": "A pre-specified group or subgroup of participant(s) in a clinical trial assigned to receive specific intervention(s) (or no intervention) according to a protocol.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "string"
+  },
+  "arms.description": {
+    "Description": "If needed, additional descriptive information (including which interventions are administered in each arm) to differentiate each arm from other arms in the clinical trial.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 1000,
+    "type": "string"
+  },
+  "arms.name": {
+    "Description": "The short name used to identify the arm.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "arms.type": {
+    "Description": "The role of each Arm in the clinical trial.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": [
+      "experimental",
+      "active_comparator",
+      "placebo_comparator",
+      "sham_comparator",
+      "no_intervention",
+      "other"
+    ],
+    "type": "string"
+  },
+  "number_of_arms": {
+    "Description": "The number of arms in the clinical trial. For a trial with multiple periods or phases that have different numbers of arms, the maximum number of arms during all periods or phases.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "integer"
+  },
+  "minimum_target_accrual_number": {
+    "Description": "The anticipated (target) number of subjects in the trial.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "integer"
+  },
+  "masking.masking": {
+    "Description": "A clinical trial design strategy in which one or more parties involved in the trial, such as the investigator or participants, do not know which participants have been assigned which interventions.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["DOUBLE_BLIND", "OPEN", "SINGLE_BLIND"],
+    "type": "string"
+  },
+  "masking.allocation_code": {
+    "Description": "The clinical trial design strategy used to assign participants to an arm of a study.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Non-Randomized Trial", "NA", "Randomized Controlled Trial"],
+    "type": "string"
+  },
+  "masking.role_caregiver": {
+    "Description": "This element indicates that the caregiver is blind to the intervention assignments.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Caregiver"],
+    "type": "string"
+  },
+  "masking.role_investigator": {
+    "Description": "This element indicates that the investigator is blind to the intervention assignments.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Investigator"],
+    "type": "string"
+  },
+  "masking.role_outcome_assessor": {
+    "Description": "This element indicates that the outcome assessor is blind to the intervention assignments.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Outcomes_Assessor"],
+    "type": "string"
+  },
+  "masking.role_subject": {
+    "Description": "This element indicates that the subject is blind to the intervention assignments.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Subject"],
+    "type": "string"
+  },
+  "study_model_other_text": {
+    "Description": "A detailed description of the trial\u2019s study model, if the study model code is Other.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "study_model_code": {
+    "Description": "The study model is the primary strategy for subject identification and follow-up. Applies to non-interventional trials.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": [
+      "Cohort",
+      "Case Control",
+      "Case Only",
+      "Case Crossover",
+      "Ecologic or Community Studies",
+      "Family Based",
+      "Other"
+    ],
+    "type": "string"
+  },
+  "accepts_healthy_volunteers": {
+    "Description": "Indication that participants who do not have a disease or condition, or related conditions or symptoms, under study in the clinical study are permitted to participate in the clinical study.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "enum": ["true", "false"],
+    "type": "boolean"
+  },
+  "eligibility.structured.sex": {
+    "Description": "Sex means a person's classification as male or female based on biological distinctions.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Male", "Female", "All"],
+    "type": "string"
+  },
+  "eligibility.structured.min_age": {
+    "Description": "Minimum age of participants. The value \"0 Years\" represents no minimum age.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "eligibility.structured.min_age_in_years": {
+    "Description": "Minimum age of participants, expressed in years.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "integer"
+  },
+  "eligibility.structured.min_age_number": {
+    "Description": "Provide a number for the minimum age of participants.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "integer"
+  },
+  "eligibility.structured.min_age_unit": {
+    "Description": "Select a unit of time for the minimum age of participants.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Years", "Months", "Weeks", "Days", "Hours", "Minutes"],
+    "type": "string"
+  },
+  "eligibility.structured.max_age": {
+    "Description": "Maximum age of participants. The value \"999 Years\" represents no maximum age.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "eligibility.structured.max_age_in_years": {
+    "Description": "Maximum age of participants, expressed in years.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "integer"
+  },
+  "eligibility.structured.max_age_number": {
+    "Description": "Provide a number for the maximum age of participants.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "integer"
+  },
+  "eligibility.structured.max_age_unit": {
+    "Description": "Select a unit of time for the maximum age of participants.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Years", "Months", "Weeks", "Days", "Hours", "Minutes"],
+    "type": "string"
+  },
+  "eligibility.structured.inclusion_indicator": {
+    "Description": "Indicates whether the prior therapy code has been included due to being directly coded onto the trial (TRIAL) or has been included due to being coded during the enrichment process (TREE).",
+    "Source": {
+      "Protocol Trials": "Data Enrichment (EVS)",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "study_population_description": {
+    "Description": "A description of the population from which the groups or cohorts will be selected (for example, primary care clinic, community sample, residents of a certain town). Applies to non-interventional studies only.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 800,
+    "type": "string"
+  },
+  "prior_therapy.nci_thesaurus_concept_id": {
+    "Description": "A unique ID for the prior therapy within the NCI Enterprise Vocabulary Service's (EVS) NCI Thesaurus (NCIt).",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "prior_therapy.eligibility_criterion": {
+    "Description": "Indicates whether the subject that has this prior therapy can be included or should be excluded in the study",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Exclusion", "Inclusion"],
+    "type": "string"
+  },
+  "prior_therapy.name": {
+    "Description": "The name of the specific prior therapy. (This would be the EVS CTRP DN Name if presented. If not then use the EVS Preferred name)",
+    "Source": {
+      "Protocol Trials": "Data Enrichment (EVS)",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "prior_therapy.synonyms": {
+    "Description": "A comma-delimited list of alternative names for the prior therapy. (Defined by the EVS)",
+    "Source": {
+      "Protocol Trials": "Data Enrichment (EVS)",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "prior_therapy.parents": {
+    "Description": "A comma-delimited list of concepts in the hierarchy above the prior therapy concept. Also known as super-concepts.",
+    "Source": {
+      "Protocol Trials": "Data Enrichment (EVS)",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "prior_therapy.inclusion_indicator": {
+    "Description": "Indicates whether the prior therapy code has been included due to being directly coded onto the trial (TRIAL) or has been included due to being coded during the enrichment process (TREE or DESCENDANT).",
+    "Source": "Data Enrichment (EVS)",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "prior_therapy.ancestor_ids": {
+    "Description": "none",
+    "Source": "Data Enrichment (EVS)",
+    "type": "string"
+  },
+  "prior_therapy.branch": {
+    "Description": "The hierarchically highest concept in the NCI Thesaurus (NCIt) for the branch which contains this specific SEC",
+    "Source": "Data Enrichment (EVS)",
+    "type": "string"
+  },
+  "prior_therapy.semantic_type": {
+    "Description": "Broad subject categories from the NCI Thesaurus (NCIt) for the specific SEC. The Semantic types provide a consistent categorization of all concepts represented",
+    "Source": "Data Enrichment (EVS)",
+    "Character Limit": 400,
+    "type": "string"
+  },
+  "eligibility.unstructured.description": {
+    "Description": "A description of the population included or exluded from the trial.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 15000,
+    "type": "string"
+  },
+  "eligibility.unstructured.display_order": {
+    "Description": "The order in which the trial lists unstructured eligibility criteria.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "integer"
+  },
+  "eligibility.unstructured.inclusion_indicator": {
+    "Description": "Indicates whether the specified criterion (population description) is an inclusion indicator (t) or exclusion indicator (f) for participation in this trial.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "enum": ["true", "false"],
+    "type": "boolean"
+  },
+  "outcome_measures.type_code": {
+    "Description": "Indicates the type of Outcome Measure",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Primary", "Secondary", "other_pre_specified"],
+    "type": "string"
+  },
+  "outcome_measures.name": {
+    "Description": "Name of the specific Outcome Measure.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 2000,
+    "type": "string"
+  },
+  "outcome_measures.description": {
+    "Description": "Description of the metric used to characterize the specific outcome measure, if not included in the outcome measure title.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 1000,
+    "type": "string"
+  },
+  "outcome_measures.timeframe": {
+    "Description": "Time point(s) at which the measurement is assessed for the specific metric used. The description of the time point(s) of assessment must be specific to the outcome measure and is generally the specific duration of time over which each participant is assessed (not the overall duration of the study).",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 255,
+    "type": "string"
+  },
+  "nci_id": {
+    "Description": "The unique ID assigned to the trial by CTRP.",
+    "Source": "Assigned by NCI",
+    "Character Limit": 30,
+    "type": "string"
+  },
+  "nct_id": {
+    "Description": "The unique ID assigned to the trial by the ClinicalTrials.gov Protocol Registration and Results System (PRS). This ClinicalTrials.gov ID appears as \u201cNCT\u201d followed by 8 numeric characters (e.g., NCT12345678).",
+    "Source": {
+      "Protocol Trials": "Added by the Lead Organization at time of registration or with a subsequent amendment or update submission.",
+      "NCI Sponsored": "Added by the CTRO once the trial is registered on ClinicalTrials.gov.",
+      "Imported Trials": "System generated by ClinicalTrials.gov Protocol Registration and Results System (PRS) and imported from ClinicalTrials.gov into CTRP."
+    },
+    "Character Limit": 32,
+    "type": "string"
+  },
+  "protocol_id": {
+    "Description": "The unique ID assigned to the trial by the sponsoring organization, usually an accession number or a variation of a grant number. Multiple studies conducted under the same grant must each have a unique number.",
+    "Source": "Assigned by the Lead Organization.",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "ctep_id": {
+    "Description": "The unique identifier assigned to the trial submitted by the Cancer Therapy Evaluation Program (CTEP).",
+    "Source": "Assigned by CTEP",
+    "Character Limit": 30,
+    "type": "string"
+  },
+  "dcp_id": {
+    "Description": "The unique identifier assigned to the trial submitted by the Division of Cancer Prevention (DCP).",
+    "Source": "Assigned by DCP.",
+    "Character Limit": 30,
+    "type": "string"
+  },
+  "ccr_id": {
+    "Description": "The unique identifier assigned to the trial submitted by the Center for Cancer Research (CCR).",
+    "Source": "Assigned by CCR.",
+    "Character Limit": 30,
+    "type": "string"
+  },
+  "other_ids": {
+    "Description": "Additional IDs assigned to the trial.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "Character Limit": 4000,
+    "type": "string"
+  },
+  "other_ids.name": {
+    "Description": "Name of the other ID.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "type": "string"
+  },
+  "other_ids.value": {
+    "Description": "Value of the other ID.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization.",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov."
+    },
+    "type": "string"
+  },
+  "nci_programs": {
+    "Description": "The NCI Program(s) providing coordination, support and/or funding to a study.",
+    "Source": "Assigned by CTRO, when applicable",
+    "Format": "LOV",
+    "enum": ["NCORP", "NCTN", "ETCTN"],
+    "type": "string"
+  },
+  "study_protocol_type": {
+    "Description": "The nature of the investigation or investigational use for which clinical study information is being submitted.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 100,
+    "enum": ["Interventional", "Non-interventional"],
+    "type": "string"
+  },
+  "study_source": {
+    "Description": "The type of Data Table 4 funding sponsorship as defined by the Office of Cancer Centers (OCC).",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Assigned by the Lead Organization",
+        "CTEP and/or DCP": "Assigned by the submitter"
+      },
+      "Imported Trials": "Assigned by the CTRO"
+    },
+    "Format": "LOV",
+    "Character Limit": 50,
+    "enum": [
+      "National",
+      "Institutional",
+      "Externally Peer-Reviewed",
+      "Industrial"
+    ],
+    "type": "string"
+  },
+  "associated_studies": {
+    "Description": "Associated trials, as listed in the API.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "type": "string"
+  },
+  "associated_studies.study_id": {
+    "Description": "The ID of an associated trial.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 255,
+    "type": "string"
+  },
+  "associated_studies.study_id_type": {
+    "Description": "The type of associated trial.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "Character Limit": 32,
+    "enum": ["CTEP", "Lead Organization", "NCI", "NCT", "Other Identifier"],
+    "type": "string"
+  },
+  "nci_funded": {
+    "Description": "Indicator if/how the trial is funded by an NCI grant.",
+    "Source": "Abstracted by CTRO",
+    "Format": "LOV",
+    "Character Limit": 32,
+    "enum": ["Direct", "Indirect", "false"],
+    "type": "string"
+  },
+  "amendment_date": {
+    "Description": "Date on which the trial record was last amended. The amendment date is generally entered by the trial submitter.",
+    "Source": "Abstracted by the CTRO",
+    "type": "date"
+  },
+  "central_contact.email": {
+    "Description": "The main email address of the central contact person.",
+    "Source": "Abstracted by the CTRO",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "central_contact.name": {
+    "Description": "The name of the central contact person.",
+    "Source": "Abstracted by the CTRO",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "central_contact.phone": {
+    "Description": "The main (toll free) phone number of the central contact person.",
+    "Source": "Abstracted by the CTRO",
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "central_contact.type": {
+    "Description": "The contact type.",
+    "Source": "Abstracted by the CTRO",
+    "Character Limit": 50,
+    "type": "string"
+  },
+  "lead_org": {
+    "Description": "The coordinating/lead center of the trial, responsible for the trial\u2019s research protocol. Organization responsible for the overall scientific and administrative coordination, study monitoring, and data management activities of the trial.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Selected from a curated list in CTRP by the Lead Organization",
+        "CTEP and DCP": "Provided by CTEP or DCP as the trial data submitter to CTRP"
+      },
+      "Imported Trials": "Sponsor on ClinicalTrials.gov maps to Lead Organization within CTRP"
+    },
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": ["Curated list of Organizations maintained in CTRP"],
+    "type": "string"
+  },
+  "principal_investigator": {
+    "Description": "Primary medical researcher in charge of carrying out a clinical trial\u2019s protocol. Appointed investigator responsible for conducting the clinical trial, or, for multi-site trials, the study chair. The Principal Investigator assumes full responsibility for the treatment and evaluation of human subjects, and for the integrity of the research data and results.",
+    "Source": {
+      "Protocol Trials": "Assigned by the Lead Organization."
+    },
+    "Format": "LOV",
+    "Character Limit": 1000,
+    "enum": ["Curated list of Investigators maintained in CTRP"],
+    "type": "string"
+  },
+  "collaborators": {
+    "Description": "Other organizations (if any) providing support. Support may include funding, design, implementation, data analysis or reporting.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "enum": ["Curated list of Organizations maintained in CTRP"],
+    "type": "string"
+  },
+  "collaborators.functional_role": {
+    "Description": "The type of organization that provides support.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Format": "LOV",
+    "enum": ["funding_source", "agent_source", "laboratory"],
+    "type": "string"
+  },
+  "collaborators.name": {
+    "Description": "Name of the collaborator organization.",
+    "Source": {
+      "Protocol Trials": "Abstracted by the CTRO",
+      "Imported Trials": "Assigned by the Sponsor/Responsible Party on ClinicalTrials.gov"
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "lead_org_cancer_center": {
+    "Description": "A grouping of organizations. Typically for representing the organizations in a Cancer Center but can represent other groups or networks.",
+    "Source": "Curated by CTRO",
+    "Character Limit": 160,
+    "type": "string"
+  },
+  "sites.org_family": {
+    "Description": "A representation of an NCI-designated Cancer Center comprised of unique enrolling institutions/organizations which may include the Cancer Center, its formal Consortium Partners, hospitals, treatment facilities, and/or research facilities that are associated with, but not a formal part, of the Cancer Center. Organizations and Affiliates can only be assigned formally to one designated Cancer Center at a time.",
+    "Source": "Defined by the NCI Designated Cancer Centers; curated and maintained by the CTRO within CTRP",
+    "Format": "LOV",
+    "Character Limit": 200,
+    "enum": [
+      "https://www.cancer.gov/research/infrastructure/cancer-centers/find"
+    ],
+    "type": "string"
+  },
+  "sites.org_va": {
+    "Description": "Indicates whether the organization is a Veteran's Affairs (VA) organization",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Format": "LOV",
+    "enum": ["true", "false"],
+    "type": "boolean"
+  },
+  "sites.org_coordinates": {
+    "Description": "The geographic coordinates of the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "type": "geo_point"
+  },
+  "sites.org_tty": {
+    "Description": "The TTY number of the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 2000,
+    "type": "string"
+  },
+  "sites.org_name": {
+    "Description": "The full name of the participating site (the organization where the protocol is being conducted).",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 200,
+    "type": "string"
+  },
+  "sites.org_address_line_1": {
+    "Description": "The first part of an address for the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 254,
+    "type": "string"
+  },
+  "sites.org_address_line_2": {
+    "Description": "The second part of an address for the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 254,
+    "type": "string"
+  },
+  "sites.org_city": {
+    "Description": "The city of the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 50,
+    "type": "string"
+  },
+  "sites.org_state_or_province": {
+    "Description": "The two-letter abbreviation for the participating site's state or province.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 255,
+    "type": "string"
+  },
+  "sites.org_postal_code": {
+    "Description": "The postal code of the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 30,
+    "type": "string"
+  },
+  "sites.org_country": {
+    "Description": "The country of the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 50,
+    "type": "string"
+  },
+  "sites.org_phone": {
+    "Description": "The phone number of the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 2000,
+    "type": "string"
+  },
+  "sites.org_email": {
+    "Description": "The email address of the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 2000,
+    "type": "string"
+  },
+  "sites.org_fax": {
+    "Description": "The fax number of the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 2000,
+    "type": "string"
+  },
+  "sites.recruitment_status": {
+    "Description": "The recruitment status of each participating site on a clinical study.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Format": "LOV",
+    "Character Limit": 50,
+    "enum": [
+      "active",
+      "approved",
+      "administratively_complete",
+      "closed_to_accrual",
+      "complete",
+      "closed_to_accrual_and_intervention",
+      "enrolling_by_invitation",
+      "in_review",
+      "temporarily_closed_to_accrual",
+      "temporarily_closed_to_accrual_and_intervention",
+      "Withdrawn"
+    ],
+    "type": "string"
+  },
+  "sites.recruitment_status_date": {
+    "Description": "The date the current recruitment status was enacted for the participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "type": "date"
+  },
+  "sites.contact_name": {
+    "Description": "Primary contact for a participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 600,
+    "type": "string"
+  },
+  "sites.contact_email": {
+    "Description": "The name of the primary contact for a participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 600,
+    "type": "string"
+  },
+  "sites.contact_phone": {
+    "Description": "The phone number of the primary contact for a participating site.",
+    "Source": {
+      "Protocol Trials": {
+        "Cancer Centers": "Abstracted by the CTRO from information provided by the Lead Organization.",
+        "DCP": "DCP Protocol Information Office (PIO)",
+        "CTEP Rostered; NCORP Studies": "Cancer Trials Support Unit (CTSU)/RSS",
+        "CTEP Non-rostered": "CTEP"
+      },
+      "Imported Trials": {
+        "Cancer Centers": "Added by the Cancer Center once a trial has been imported into CTRP.",
+        "CCR": "Abstracted by the CTRO"
+      }
+    },
+    "Character Limit": 200,
+    "type": "string"
+  }
+}

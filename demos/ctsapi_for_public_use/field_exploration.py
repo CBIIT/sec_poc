@@ -1,43 +1,14 @@
-import streamlit as st
-import requests
 import pandas as pd
-import os
+import streamlit as st
+from common import explore_ctsapi_fields, get_project_file, get_trial_doc
 
 st.set_page_config(layout="wide")
 
-
-@st.cache_data
-def get_trial_doc():
-    url = "https://clinicaltrialsapi.cancer.gov/api/v2/docs/trial.json"
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()
-
-
 trial_doc = get_trial_doc()
 
-
-def flatten_dict(d, parent_key="", sep="."):
-    items = []
-    for k, v in d.items():
-        new_key = f"{parent_key}{sep}{k}" if parent_key else k
-        if isinstance(v, dict) and isinstance(v.get("properties"), dict):
-            items.extend(flatten_dict(v["properties"], new_key, sep=sep))
-        else:
-            if "fields" in v:
-                del v["fields"]
-            items.append({"field": new_key, **v})
-    return items
-
-
-cwd = os.getcwd()
-if "demos" in cwd and "ctsapi_for_public_use" in cwd:
-    path = "."
-else:
-    path = os.path.join("demos", "ctsapi_for_public_use")
-cancergov_used_fields_df = pd.read_csv(os.path.join(path, "fields_used.csv"))
-suggested_fields_df = pd.read_csv(os.path.join(path, "fields_suggested.csv"))
-field_sources_df = pd.read_csv(os.path.join(path, "field_sources.csv"))
+cancergov_used_fields_df = pd.read_csv(get_project_file("fields_used.csv"))
+suggested_fields_df = pd.read_csv(get_project_file("fields_suggested.csv"))
+field_sources_df = pd.read_csv(get_project_file("field_sources.csv"))
 field_sources_df = field_sources_df.set_index("Field", drop=True)
 field_sources_df = field_sources_df.dropna(how="all")
 
@@ -58,7 +29,7 @@ def make_multiindex_columns(df):
 field_sources_df = make_multiindex_columns(field_sources_df)
 field_sources_df.sort_index(axis=1, inplace=True)
 
-flat_data = flatten_dict(trial_doc)
+flat_data = explore_ctsapi_fields(trial_doc)
 df = pd.DataFrame(flat_data)
 df = df.merge(cancergov_used_fields_df, on="field", how="left", right_index=False)
 df = df.merge(suggested_fields_df, on="field", how="left", right_index=False)

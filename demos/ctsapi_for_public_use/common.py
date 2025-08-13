@@ -1,3 +1,6 @@
+import os
+
+import requests
 import streamlit as st
 from haversine import Unit, haversine
 
@@ -163,3 +166,33 @@ def display_location_summary(trial, passthru=False):
         f"<b>Location:</b> {location}",
         unsafe_allow_html=True,
     )
+
+
+def get_project_file(name: str):
+    cwd = os.getcwd()
+    if "demos" in cwd and "ctsapi_for_public_use" in cwd:
+        path = "."
+    else:
+        path = os.path.join("demos", "ctsapi_for_public_use")
+    return os.path.join(path, name)
+
+
+@st.cache_data
+def get_trial_doc():
+    url = "https://clinicaltrialsapi.cancer.gov/api/v2/docs/trial.json"
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
+
+
+def explore_ctsapi_fields(d, parent_key="", sep="."):
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict) and isinstance(v.get("properties"), dict):
+            items.extend(explore_ctsapi_fields(v["properties"], new_key, sep=sep))
+        else:
+            if "fields" in v:
+                del v["fields"]
+            items.append({"field": new_key, **v})
+    return items
