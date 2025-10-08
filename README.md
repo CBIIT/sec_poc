@@ -4,42 +4,20 @@ Proof-of-concept code to match cancer patients with clinical trials. Makes heavy
 
 This code is intended for demonstrations only; features of interest will likely be re-implemented in productionized systems such as [emFACT](https://em-fact.com/) or NCI CTS.
 
-SEC POC consists of a PostgreSQL database populated by python ETL jobs, and a UI implemented in R and [Shiny](https://shiny.posit.co/). The two primary ETL jobs are [refresh_ncit_pg.py](https://github.com/CBIIT/sec_poc/blob/master/db_api_etl/refresh_ncit_pg.py), which pulls data from the NCI Thesaurus, and [api_etl_v2.py](https://github.com/CBIIT/sec_poc/blob/master/db_api_etl/api_etl_v2.py), which pulls trial data from the [NCI CTS API](https://clinicaltrialsapi.cancer.gov/). These jobs run nightly from the shiny user's crontab on ncias-d2064-v.nci.nih.gov. The R/Shiny frontend also runs on ncias-d2064-v.nci.nih.gov.
+SEC POC consists of a PostgreSQL database populated by python ETL jobs and a UI implemented in R and [Shiny](https://shiny.posit.co/). See [etl.qmd](https://github.com/CBIIT/sec_etl/blob/main/etl.qmd) for the ETL process details.
 
-## Python Development
-
-### Install Python Dependencies
-
-It's recommended that you install python dependencies in an isolated environment, especially if you work with other projects. For example, using a virtual environment:
-
-```bash
-# make a virtual environment in the current direcory called "venv"
-python3 -m venv venv
-source venv/bin/activate
-```
-
-You'll need to run the last line every time you launch a new shell.
-
-Install development dependencies:
-
-```bash
-pip install -r requirements.dev.txt
-```
-
-### Set Up a Local Development Database
+## Set Up a Local Development Database
 
 Install PostgreSQL. How you do this will depend on your OS and your tastes. For example, you can install it as a Docker container if you like.
 
 To install on MacOS using [Homebrew](https://brew.sh/):
 
 ```bash
-brew install postgresql@11
-brew services start postgresql@11 # launches the postgres service whenever your computer launches
+brew install postgresql@16
+brew services start postgresql@16 # launches the postgres service whenever your computer launches
 ```
 
-Homebrew will install the psql client (psql) under /opt/homebrew/Cellar/postgresql@11/11.20_2/bin/ ; you may want to create a symlink from here to somewhere in your path.
-
-Next, create a database and user:
+**Next, create a database and user:**
 
 ```bash
 psql postgres -c "create user secapp with password 'test'"
@@ -47,43 +25,99 @@ psql postgres -c "create database sec"
 psql secapp -c "grant all privileges on database sec to secapp"
 ```
 
-Now load the schema:
+**See [ETL](https://github.com/CBIIT/sec_etl) for instructions loading the schemas and initial data load.**
+
+---
+
+## Python Development
+
+> **Note:** Python usage in this repo is limited to local scripting (e.g. ad-hoc Jupyter notebooks) and demo work located in demos/. The Python code located in db_api_etl/ is integrated with the [ETL](https://github.com/CBIIT/sec_etl) via git submodules where all the scaffolding is provided for testing/development. Eventually, the ETL code should be removed from this repo and placed in the ETL.
+
+### Local Python Scripting
+
+For local scripting or demo tasks in this repo, [`uv`](https://github.com/astral-sh/uv) is recommended for fast, isolated Python dependency management.
+
+**Install dependencies including those listing in workspaces:**
 
 ```bash
-psql -U secapp -d sec -f db_api_etl/nci_api_db.sql
+uv sync --all-packages
 ```
 
-### Load Data into Your Development Database
+**Add packages with:**
 
 ```bash
-python3 db_api_etl/refresh_ncit_pg.py --dbname sec --host localhost --user secapp --password test --port 5432 --use_evs_api_for_pref_name
+uv add # adds at the root level
+uv add --package <workspace name> # adds to a specific workspace (e.g. an isolated project listed in demos/)
+```
+
+**Export requirements for a specific workspace:**
+
+```bash
+uv export --format requirements.txt --package <workspace name>
 ```
 
 ## R Development
 
-In production, we are using R version 3.6.0. The current R is 4.x. While it is probably OK to develop with 4.x, be sure to test thoroughly with 3.6.0 before deploying anything. Or, upgrade R on production and test thoroughly.
+This project uses **R 4.4.1** and [renv](https://rstudio.github.io/renv/) for dependency management.
 
-It can be non-trivial to install an older R version, since the R maintainers only provide binary packages for the current version. See running R in the [docker directory](./docker/R/oel8/Dockerfile).
+#### Getting Started
 
-Edit [config.yml](config.yml) to point to your local postgres DB with the correct credentials and add a valid CTS API key. Then you should be able to run app.R from either RStudio or the command line.
+1. **Install R 4.4.1** if you do not already have it. You can download it from [CRAN](https://cran.r-project.org/).
 
-The R packages needed are enumerated in [install_deps.pak.R](./docker/R/files/install_deps.pak.R).
+2. **Initialize the renv environment:**
 
-## Production
+   - Open a terminal in the project directory and start R:
+     ```R
+     # In the R console
+     renv::restore()
+     ```
+   - This will install all required R packages as specified in `renv.lock`.
 
-In production, if the packages are out of sync with dev (master), it can lead to difficult issues to debug. The [packages.dev.csv](packages.dev.csv) and [packages.prod.csv](packages.prod.csv) files are meant to help with resolving package version updates. To update in Production, use `install.packages('package')`). R may complain about `ERROR: 'configure' exists but is not executable -- see the 'R Installation and Administration Manual'`. The installation process saves source code to some /tmp/dir/ before it can be compiled. Unfortunately once the gz file is extracted and ready for compile, the owner is set to `users` and the root user cannot execute. [Please see this article for explanation](https://vsoch.github.io/2013/install-r-packages-that-require-compilation-on-linux-without-sudo/). Essentially the source code needs to be installed in a folder that the root user has full exec access to. Setting the TMPDIR environment variable to one of the root's own folder is what fixes the issue.
+3. **Set up environment variables:**
 
-### Deploying Code to Production
+   - Before running the app, you must set environment variables referenced in [`config.yml`](config.yml):
+     - Obtain a working example of required environment variables from AWS Account `NIH.NCI.CBIIT.FHIR.NONPROD` and `s3://sec-poc-archive/.env.local`.
+       - To access, submit an NCI ServiceNow ticket requesting poweruser access to `NIH.NCI.CBIIT.FHIR.NONPROD`.
+     - The database variables will depend on your approach to [Set up a Local Development Database](#set-up-a-local-development-database).
+     - Add a valid CTS API key. A key is provided for you in the `s3://sec-poc-archive/.env.local` (dev) and `s3://sec-poc-archive/.env` (prod) files, but you can also create your own by following the instructions in the [NCI CTS API documentation](https://clinicaltrialsapi.cancer.gov/doc). Note that the key provided in S3 has a higher rate limit, which is ideal for production use.
 
-1. Push changes to master branch.
-2. Create a PR from master -> prod.
-3. Log in to the remote server with your NIH credentials.
-4. Authenticate to GitHub with `gh auth login`.
-5. Obtain `root` access with `sudo su`.
-6. Navigate to the shiny source code folder `/srv/shiny-server/sec-apps/stage/sec_poc`.
-7. Make sure the current branch is set to `prod`.
-8. Create a commit checkpoint with `git tag save-point`.
-9. Run `git pull` to receive the updates from the pull request.
-10. If everything looks good, delete the checkpoint tag `git tag -d save-point`. **You're done.**
-11. If there's an error with the new changes, you can quickly restore the last working version with `git reset --hard save-point`.
-12. Fix the issue, apply the changes to master, repeat the process.
+4. **Run the app:**
+   - You can run `app.R` from RStudio or from the command line using:
+     ```bash
+     Rscript app.R
+     # or
+     R -e "shiny::runApp()"
+     ```
+
+### Notes
+
+- The R packages needed are managed by `renv` and listed in `renv.lock`. If you need to add or update packages, use `renv::install()` and then run `renv::snapshot()` to update the lockfile.
+
+## Production Deployment
+
+This application is deployed on the NCI's internal Appshare (Posit Connect) using [Posit Publisher](https://github.com/posit-dev/publisher). There are other ways to deploy which are documented on [publishing overview](https://docs.posit.co/connect/user/publishing-overview/). They will be similar to process outlined here.
+
+### 1. Prerequisites
+
+- All operations involving the NCI's Appshare (Posit Connect) located at https://appshare-dev.cancer.gov/ require NIH VPN connection.
+- Ensure you have publisher access to the Posit Connect server: https://appshare-dev.cancer.gov/ (contact one of the administrators for publisher access: George Zaki, Guillermo Choy-Leon, Raymond Kobe)
+- Create an API key under your profile inside of Appshare (Posit Connect). Reference https://docs.posit.co/connect/user/api-keys/.
+
+### 2. Prepare Your Project
+
+The project is already prepared and the configuration/deployment files are located under .posit/. Refer to those deployment files for adding/removing application files or environment variables. To create a new deployment, see the [vscode instructions](https://github.com/posit-dev/publisher/blob/main/docs/vscode.md).
+
+> **Note:** For more configuration options, see the [Posit Publisher configuration reference](https://github.com/posit-dev/publisher/blob/main/docs/configuration.md).
+
+### 3. Deploy
+
+See the [vscode instructions](https://github.com/posit-dev/publisher/blob/main/docs/vscode.md) for help with deploying the project.
+
+### 4. Post-Deployment
+
+- After deployment, access your app at the provided URL on https://appshare-dev.cancer.gov/.
+- If you need to update your app, repeat the deploy step after making changes.
+
+**Best Practices:**
+
+- Do not store secrets in the repo files. Instead, use the Posit Connect UI to set environment variables securely. Once they are set, they cannot be revealed, so be sure to have a secure copy available elsewhere.
