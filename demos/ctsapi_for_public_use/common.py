@@ -196,3 +196,22 @@ def explore_ctsapi_fields(d, parent_key="", sep="."):
                 del v["fields"]
             items.append({"field": new_key, **v})
     return items
+
+
+def remove_tree_terms(trial: dict):
+    for i, arm in enumerate(trial.get("arms", [])):
+        interventions = []
+        for intervention in arm.get("interventions", []):
+            if intervention["inclusion_indicator"] != "TREE":
+                interventions.append(intervention)
+        if interventions:
+            trial["arms"][i] = interventions
+
+    diseases = []
+    for disease in trial.get("diseases", []):
+        if disease["inclusion_indicator"] != "TREE":
+            diseases.append(disease)
+    if diseases:
+        trial["diseases"] = diseases
+
+    return trial

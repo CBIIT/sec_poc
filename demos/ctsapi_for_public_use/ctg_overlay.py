@@ -1,13 +1,28 @@
-###
-GET https://www.cancer.gov/cts_api/zip_code_lookup/28502
+import ast
+import os
+import requests
+import streamlit as st
 
-###
-@from = 0
-@size = 1
-POST https://clinicaltrialsapi.cancer.gov/api/v2/trials
-x-api-key: {{$processEnv CTS_V2_API_KEY}}
+from common import remove_tree_terms
 
-{
+st.subheader("Overlay CTS API data on ClinicalTrials.gov")
+
+
+@st.cache_data
+def get_trial(query: str):
+    trials_res = requests.post(
+        "https://clinicaltrialsapi.cancer.gov/api/v2/trials",
+        json=ast.literal_eval(query),
+        headers={"X-API-Key": os.environ["CTS_V2_API_KEY"]},
+    )
+    trials_res.raise_for_status()
+    return trials_res.json()["data"][0]
+
+
+st.markdown("### Trial Finder")
+query = st.text_area(
+    "Enter a search term to find trials",
+    value="""{
     "include": [
         "current_trial_status",
         "brief_title",
@@ -39,8 +54,8 @@ x-api-key: {{$processEnv CTS_V2_API_KEY}}
         "primary_purpose",
         "masking.allocation_code",
         "interventional_model",
-        "masking.masking",
-        "principal_investigator",
+        "masking.masking"
+        "principal_investigator"
         "amendment_date",
         "current_trial_status_date",
         "start_date",
@@ -48,32 +63,17 @@ x-api-key: {{$processEnv CTS_V2_API_KEY}}
         "completion_date",
         "completion_date_type_code"
     ],
-
-    "nct_id": "NCT02203526",
-
-    #// "current_trial_status_date": [
-    #//     "2023-08-31",
-    #//     "2022-06-16"
-    #// ],
-
-    #// "lead_org._raw": "National Cancer Institute",
-
-    #// "nci_funded_not": "Direct",
-
-    #// "missing_not": ["ctep_id"],
-    #// "outer_or_lead_org._fulltext": "NCI",
- 
-    "current_trial_status": [
-        "Active",
-        "Approved",
-        "Enrolling by Invitation",
-        "Temporarily Closed to Accrual",
-        "Temporarily Closed to Accrual and Intervention"
-    ],
-    "from": {{from}},
-    "size": {{size}}
+    "from": 0,
+    "size": 1,
 }
+""",
+    key="search_term",
+    help="Type a search term to find trials related to that condition or topic.",
+    height=1000,
+)
 
-### ClinicalTrials.gov API
-@study = NCT05879926
-GET https://clinicaltrials.gov/api/v2/studies/{{study}}?format=json&fields=EligibilityModule
+if st.button("Search Trials"):
+    st.markdown("### Results")
+    response = get_trial(query)
+    response = remove_tree_terms(response)
+    st.json(response)
