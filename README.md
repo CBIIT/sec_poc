@@ -97,6 +97,8 @@ This project uses **R 4.4.1** and [renv](https://rstudio.github.io/renv/) for de
 
 This application is deployed on the NCI's internal Appshare (Posit Connect) using [Posit Publisher](https://github.com/posit-dev/publisher). There are other ways to deploy which are documented on [publishing overview](https://docs.posit.co/connect/user/publishing-overview/). They will be similar to process outlined here.
 
+> **NOTE:** The NCI's Appshare (Posit Connect) located at https://appshare-dev.cancer.gov/ is treated as a Dev environment, which means it doesn't run 24x7 and has fewer system resources; it shuts down around 5-6pm ET daily. For this reason, the ETL deployment is hosted on a separate instance of Posit Connect, but it's still under the NCI's infrastructure. It is located at https://posit-connect-prod.cancer.gov/.
+
 ### 1. Prerequisites
 
 - All operations involving the NCI's Appshare (Posit Connect) located at https://appshare-dev.cancer.gov/ require NIH VPN connection.
