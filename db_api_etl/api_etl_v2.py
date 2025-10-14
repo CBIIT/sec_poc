@@ -191,9 +191,10 @@ data['size'] = size
 
 print("there are ", total, 'trials')
 run = True
+session = requests.Session()
 while run:
     print('START:', start)
-    r = requests.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
+    r = session.post('https://clinicaltrialsapi.cancer.gov/api/v2/trials',
                       headers=header_v2_api, json=data, timeout=(5.0, 20.0) )
     print('status code returned = ', r.status_code)
     t = r.text
