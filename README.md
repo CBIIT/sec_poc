@@ -58,11 +58,11 @@ uv export --format requirements.txt --package <workspace name>
 
 ## R Development
 
-This project uses **R 4.4.1** and [renv](https://rstudio.github.io/renv/) for dependency management.
+This project uses **R 4.5.1** and [renv](https://rstudio.github.io/renv/) for dependency management.
 
 #### Getting Started
 
-1. **Install R 4.4.1** if you do not already have it. You can download it from [CRAN](https://cran.r-project.org/).
+1. **Install R 4.5.1** if you do not already have it. You can download it from [CRAN](https://cran.r-project.org/).
 
 2. **Initialize the renv environment:**
 
