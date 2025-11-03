@@ -60,9 +60,27 @@ uv export --format requirements.txt --package <workspace name>
 
 This project uses **R 4.5.1** and [renv](https://rstudio.github.io/renv/) for dependency management.
 
-#### Getting Started
+### Getting Started
 
-1. **Install R 4.5.1** if you do not already have it. You can download it from [CRAN](https://cran.r-project.org/).
+#### Installing R
+
+- **Install R 4.5.1** if you do not already have it. You can download it from [CRAN](https://cran.r-project.org/).
+- Or using Docker,
+
+```bash
+workspace_name=sec_poc_workspace
+mkdir $workspace_name
+cd $workspace_name
+git clone https://github.com/CBIIT/sec_poc.git # this repo; a dashboard for querying CTS API trials using enhanced criteria
+git clone https://github.com/CBIIT/sec_admin.git # the admin dashboard for reviewing NLP generated criteria expressions
+git clone https://github.com/CBIIT/sec_etl.git # the ETL process that populates the database
+git clone https://github.com/CBIIT/sec_nlp.git # the NLP logic that integrates with the ETL
+docker run -it -d -v "/Users/$(whoami)/${workspace_name}:/app" --name sec_poc_workspace-4.5.1 rocker/r-ver:4.5.1 sleep infinity
+```
+
+- Attach to the container using [VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) or similar. Alternatively, connect using `docker exec -it sec_poc_workspace-4.5.1 bash`. This docker container will have the workspace directory mounted to synchronize any code changes between the container and host. I prefer opening each repo in a separate VS Code workspace by first launching the container in VS Code and then running `code -n {name of cloned repo}`.
+
+#### Installing R Dependencies
 
 2. **Initialize the renv environment:**
 
@@ -89,7 +107,7 @@ This project uses **R 4.5.1** and [renv](https://rstudio.github.io/renv/) for de
      R -e "shiny::runApp()"
      ```
 
-### Notes
+#### Notes
 
 - The R packages needed are managed by `renv` and listed in `renv.lock`. If you need to add or update packages, use `renv::install()` and then run `renv::snapshot()` to update the lockfile.
 
