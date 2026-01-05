@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: sec
+      POSTGRES_USER: sec
+      POSTGRES_PASSWORD: sec
+    ports:
+      - 5433:5432
+    volumes:
+      - ~/sec_poc_pg:/var/lib/postgresql/data
+  app:
+    # See ./Dockerfile
+    image: matt3
+    command: tail -f /dev/null
+    platform: linux/amd64
+    volumes:
+      - ~/p/sec/sec_poc:/opt/R/sec_poc
+      #- ~/Desktop/sec_poc_workspace:/opt/R/sec_poc_workspace
+    depends_on:
+      - postgres
+
+volumes:
+  sec_poc_pg:
+    external: true
