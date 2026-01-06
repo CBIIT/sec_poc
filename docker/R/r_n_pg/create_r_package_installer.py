@@ -1,7 +1,7 @@
 from rpy2.robjects.packages import importr
 import rpy2.robjects as ro
 from functools import cache
-from os.path import dirname, join as pjoin, basename
+from os.path import dirname, join as pjoin, basename, pardir
 import re
 import rpy2.robjects as robjects
 import rpy2.robjects.packages as rpackages
@@ -24,7 +24,7 @@ def main():
             package_data.rx(True, 'Version')  # get Version column
         ))
     available_packages = extract_versions(utils.available_packages())
-    lst = open(pjoin(dirname(__file__), 'files', 'install_deps.pak.R'), 'rt').read().split('\n')
+    lst = open(pjoin(dirname(__file__), pardir, 'files', 'install_deps.pak.R'), 'rt').read().split('\n')
     out = ['options(repos = c(CRAN = sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/centos8-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))))']
     for line in lst:
         if line.startswith('#'):

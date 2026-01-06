@@ -91,7 +91,7 @@ RUN cmake -DABSL_BUILD_TESTING=ON -DABSL_USE_GOOGLETEST_HEAD=ON -DCMAKE_CXX_STAN
 WORKDIR /opt/R/sec_poc
 #               install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))
 
-COPY files/install-r-packages.R .
+COPY files/quick-install-r-packages.R .
 #RUN Rscript ./quick-install-r-packages.R
 #RUN Rscript -e 'options(repos = c(CRAN = sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/centos8-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))))'
 #RUN Rscript -e 'options(repos = c(CRAN = sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/centos8-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))));install.packages("glue@1.7.0", ask = FALSE)'
