@@ -6,12 +6,12 @@ services:
       POSTGRES_USER: sec
       POSTGRES_PASSWORD: sec
     ports:
-      - 5433:5432
+      - $PG_EXTERNAL_PORT:5432
     volumes:
-      - ~/sec_poc_pg:/var/lib/postgresql/data
+      - $LOCAL_PG_DATA_DIR:/var/lib/postgresql/data
   app:
     # See ./Dockerfile
-    image: matt3
+    image: r_n_pg
     command: tail -f /dev/null
     platform: linux/amd64
     volumes:

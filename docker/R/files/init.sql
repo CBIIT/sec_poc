@@ -1,3 +1,4 @@
 psql postgres -c "create user if not exist sec with password 'sec'"
 psql postgres -c "create database if not exist sec"
 psql secapp -c "grant all privileges on database sec to sec"
+psql postgres -c "createuser --superuser postgres"

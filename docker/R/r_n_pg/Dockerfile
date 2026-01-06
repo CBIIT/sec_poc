@@ -1,9 +1,32 @@
+
+
+FROM postgres:17
+#RUN dnf install -y postgresql17
+#RUN dnf install postgresql17-server
+#RUN /usr/pgsql-17/bin/postgresql-17-setup initdb
+#RUN systemctl start postgresql-17
+COPY files/init.sql /docker-entrypoint-initdb.d/
+#USER postgres
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=postgres
+ENV POSTGRES_DB=sec
+RUN apt-get install -y curl \
+    yum \
+    lsof \
+    ping
+
+# Expose the default PostgreSQL port
+EXPOSE 5432
+#RUN echo "postgres" | passwd "postgres" --stdin
+#
 FROM oraclelinux:8
 
 ARG OPTIONALS="true"
 ENV R_VERSION=4.5.1
 ENV USERNAME=sec
 ENV USERID=1000
+
+#
 VOLUME [ "/opt/R/sec_poc" ]
 
 RUN curl -L https://rstd.io/r-install > r-install.sh && \
@@ -45,15 +68,10 @@ RUN dnf install -y epel-release && \
 RUN if [ "${OPTIONALS}" = "true" ]; then \
     dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo && \
-    dnf install -y gh --repo gh-cli && \
+    dnf install -y gh --repo gh-cli --nobest && \
     dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm && \
     dnf -qy module disable postgresql; \
     fi
-RUN dnf install -y postgresql17
-RUN dnf install postgresql17-server
-#RUN /usr/pgsql-17/bin/postgresql-17-setup initdb
-#RUN systemctl start postgresql-17
-COPY files/init.sql /docker-entrypoint-initdb.d/
 
 WORKDIR /opt/R/sec_poc
 COPY files/.Rprofile ~/
@@ -74,7 +92,7 @@ WORKDIR /opt/R/sec_poc
 #               install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))
 
 COPY files/install-r-packages.R .
-#RUN Rscript ./install-r-packages.R
+#RUN Rscript ./quick-install-r-packages.R
 #RUN Rscript -e 'options(repos = c(CRAN = sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/centos8-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))))'
 #RUN Rscript -e 'options(repos = c(CRAN = sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/centos8-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))));install.packages("glue@1.7.0", ask = FALSE)'
 #RUN Rscript -e 'options(repos = c(CRAN = sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/centos8-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))));install.packages("cpp11@0.4.7", ask = FALSE)'
@@ -143,10 +161,8 @@ RUN dnf install -y sudo && \
 USER ${USERNAME}
 COPY files/.bashrc /home/${USERNAME}/.bashrc
 COPY files/.zshrc /home/${USERNAME}/.zshrc
-USER postgres
 COPY files/init.sh .
 RUN bash ./init.sh
 USER root
 RUN echo "root" | passwd "root" --stdin
-RUN echo "postgres" | passwd "postgres" --stdin
 CMD ["tail -f /dev/null"]
