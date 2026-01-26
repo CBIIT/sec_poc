@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+import contextlib
 # # Generate the transitive closure table for the NCI Thesaurus
 #
 # This notebook shows how to generate the transitive closure table for the NCI (National Cancer Institute) Thesaurus.
@@ -14,6 +14,8 @@
 # Hubert Hickman
 
 import sqlite3
+import traceback
+
 import pandas as pd
 import sqlalchemy
 import zipfile
@@ -30,10 +32,14 @@ import psycopg2.extras
 import csv
 import io
 import time
+from os import environ as env
 
 #
 # A simple function to yield chunks from a list
 #
+def is_truthy(value):
+    sv = str(value)
+    return sv.lower() in ["1", "y", "yes", "true"] or sv.isdigit() and float(sv) > 0
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
@@ -45,18 +51,65 @@ pp = pprint.PrettyPrinter(indent=4)
 
 parser = argparse.ArgumentParser(description='Download the NCIT Thesaurus Zip file and create transitive closure tables in a database.')
 
-parser.add_argument('--dbname', action='store', type=str, required=False)
-parser.add_argument('--host', action='store', type=str, required=False)
-parser.add_argument('--user', action='store', type=str, required=False)
-parser.add_argument('--password', action='store', type=str, required=False)
-parser.add_argument('--port', action='store', type=str, required=False)
-parser.add_argument('--use_evs_api_for_pref_name' , action='store_true')
+parser.add_argument('--dbname', action='store', type=str, required=False,default=env.get('dbname', 'sec'))
+parser.add_argument('--host', action='store', type=str, required=False,default=env.get('host', 'localhost'))
+parser.add_argument('--user', action='store', type=str, required=False,default=env.get('user', 'sec'))
+parser.add_argument('--password', action='store', type=str, required=False,default=env.get('password', 'sec'))
+parser.add_argument('--port', action='store', type=str, required=False,default=env.get('port', '5433'))
+parser.add_argument('--use_evs_api_for_pref_name' , action='store_true',default=is_truthy(env.get('use_evs_api_for_pref_name', 'true')))
 
 
 args = parser.parse_args()
 
 #con = sqlite3.connect(args.dbfilename)
-
+@contextlib.contextmanager
+def yield_conn_new(
+        self,
+        auto_close=True,
+        auto_commit=True,
+        close_on_exc=False,
+        commit_on_exc=False,
+        raise_on_exc=True,
+        wait=None,
+        return_dicts=True,
+):
+    factory = self.dict_row if return_dicts else None
+    wait = [wait] if isinstance(wait, int) else wait
+    while True:
+        try:
+            #        'fact-backend-matt-stateful-aurorav2-pg-16.proxy-clb9vkosemwm.us-east-1.rds.amazonaws.com'
+            for i, props in enumerate(
+                    [self.get_db_props(factory), self.get_db_props_with_password(factory)]
+            ):
+                conn = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, port=args.port,
+ password=args.password)
+                if conn:
+                    #conn.execute(f"SET SEARCH_PATH to {self._config.schema}")
+                    break
+                else:
+                    print(f"tryconnect failed:{i}")
+            break
+        except Exception as exc:
+            if not wait:
+                raise exc
+            time.sleep(wait.pop(0))
+    if not conn:
+        raise Exception(f"bad connection:{conn}")
+    try:
+        yield conn
+        if auto_commit:
+            conn.commit()
+        if auto_close:
+            conn.close()
+    except Exception as e:
+        print(traceback.format_exc())
+        print(f"exception {e}")
+        if commit_on_exc:
+            conn.commit()
+        if close_on_exc:
+            conn.close()
+        if raise_on_exc:
+            raise e
 con = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, port=args.port,
  password=args.password)
 
@@ -72,6 +125,8 @@ if len(evs_results) != 1 or 'version' not in evs_results[0]:
     sys.exit(0)
 
 current_evs_version = evs_results[0]['version']
+if current_evs_version=="25.12e":
+    current_evs_version = "25.11d"
 print("Current EVS NCIT version :", current_evs_version)
 #
 # E.g. https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/archive/22.01e_Release/Thesaurus_22.01e.FLAT.zip
@@ -99,7 +154,26 @@ url_string = url_fstring % (current_evs_version, current_evs_version)
 
 tfilename = Path(url_string).name
 tfile = tempfile.NamedTemporaryFile(suffix=tfilename)
-thesaurus_zip = wget.download(url=url_string, out=tfile.name)
+#thesaurus_zip = wget.download(url=url_string, out=tfile.name)
+timeout_seconds = 10  # Set timeout to 10 seconds
+
+try:
+    response = requests.get(url_string, timeout=5, stream=True)
+    response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+
+    # Code to save the file...
+    thesaurus_zip = tfile.name
+    with open(tfile.name, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+
+    print("Download complete.")
+
+except requests.exceptions.Timeout:
+    print(f"Error: The request timed out after {timeout_seconds} seconds.")
+except requests.exceptions.RequestException as e:
+    print(f"An error occurred: {e}")
+
 arch = zipfile.ZipFile(thesaurus_zip, mode='r')
 
 print("Extracting thesaurus file contents")
@@ -258,36 +332,79 @@ cur.execute("create index par_par_idx on parents(parent)")
 # In[63]:
 
 print("computing transitive closure")
-cur.execute("drop table if exists ncit_tc_with_path")
-cur.execute("""
-create table ncit_tc_with_path as with recursive ncit_tc_rows(parent, descendant, level, path) as (
-    select
-        parent,
-        concept as descendant,
-        level,
-        path
-    from
-        parents
-    union
-    all
-    select
-        p.parent,
-        n.descendant as descendant,
-        n.level + 1 as level,
-        p.parent || '|' || n.path as path
-    from
-        ncit_tc_rows n
-        join parents p on n.parent = p.concept
-)
-select
-    *
-from
-    ncit_tc_rows
-""")
 
-cur.execute('create index ncit_tc_path_parent on ncit_tc_with_path(parent)')
-cur.execute('CREATE INDEX ncit_tc_path_descendant on ncit_tc_with_path(descendant)')
-con.commit()
+
+def process_transitive_closure(self):
+    print("Computing transitive closure.   start", time.asctime())
+    with yield_conn_new(auto_commit=True) as conn:
+        cur = conn.cursor()
+        cur.execute(f"drop index if exists ncit_tc_path_parent")
+        cur.execute(f"drop index if exists ncit_tc_path_descendant")
+        cur.execute(
+            f"""
+            insert into ncit_tc_with_path
+            with recursive ncit_tc_rows(parent, descendant, level, path ) as
+                    (select parent, concept as descendant, level, path from parents union all
+                    select p.parent , n.descendant as descendant, n.level+1 as level ,  p.parent || '|' || n.path  as path
+                    from ncit_tc_rows n join parents p on n.parent = p.concept
+                    ) select * from ncit_tc_rows
+            """
+        )
+
+        cur.execute(
+            f"create index ncit_tc_path_parent on ncit_tc_with_path(parent)"
+        )
+        cur.execute(
+            f"CREATE INDEX ncit_tc_path_descendant on ncit_tc_with_path(descendant)"
+        )
+        conn.commit()
+        print("Computing transitive closure.   end", time.asctime())
+
+        # Create the transitive closure table.  This fits the mathematical definition of transitive closure.
+
+        print("Creating transitive closure table. start", time.asctime())
+        # cur.execute(f'truncate table ncit_tc')
+        cur.execute(f"drop index if exists ncit_tc_parent")
+        cur.execute(f"drop index if exists ncit_tc_descendant")
+        cur.execute(
+            f"insert into ncit_tc(parent, descendant)  select distinct parent, descendant from ncit_tc_with_path"
+        )
+        cur.execute(
+            f"create index ncit_tc_parent on ncit_tc(parent) "
+        )
+        cur.execute(
+            f"create index ncit_tc_descendant on ncit_tc(descendant) "
+        )
+# cur.execute("drop table if exists ncit_tc_with_path")
+# cur.execute("""
+# create table ncit_tc_with_path as with recursive ncit_tc_rows(parent, descendant, level, path) as (
+#     select
+#         parent,
+#         concept as descendant,
+#         level,
+#         path
+#     from
+#         parents
+#     union
+#     all
+#     select
+#         p.parent,
+#         n.descendant as descendant,
+#         n.level + 1 as level,
+#         p.parent || '|' || n.path as path
+#     from
+#         ncit_tc_rows n
+#         join parents p on n.parent = p.concept
+# )
+# select
+#     *
+# from
+#     ncit_tc_rows
+# """)
+#
+# cur.execute('create index ncit_tc_path_parent on ncit_tc_with_path(parent)')
+# cur.execute('CREATE INDEX ncit_tc_path_descendant on ncit_tc_with_path(descendant)')
+# con.commit()
 
 # Create the transitive closure table.  This fits the mathematical definition of transitive closure.
 
@@ -445,7 +562,7 @@ for rec in r:
 print("inserting synonmyms in database")
 cur.execute("BEGIN TRANSACTION")
 #cur.executemany(insert_sql, biglist )
-psycopg2.extras.execute_batch(cur, insert_sql, biglist, page_size=500)
+psycopg2.extras.execute_batch(insert_sql, biglist, con=cur, page_size=500)
 con.commit()
 print("done inserting synonyms in database")
 cur.execute('create index ncit_syns_code_idx on ncit_syns(code)')

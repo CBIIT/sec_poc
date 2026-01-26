@@ -83,7 +83,7 @@ def insert_prior_therapies(db_conn, db_cur, nct_id,
                           for prior_therapy in prior_therapies]
         sql = """insert into trial_prior_therapies(nct_id, nci_thesaurus_concept_id, eligibility_criterion, inclusion_indicator, name)
                     values(%s, %s, %s, %s, %s)"""
-        psycopg2.extras.execute_batch(cur, sql, args_to_insert)
+        psycopg2.extras.execute_batch(sql, args_to_insert, con=cur)
         db_conn.commit()
 
 
@@ -91,11 +91,11 @@ start_time = datetime.datetime.now()
 
 parser = argparse.ArgumentParser(
     description='Update the specified sqlite database with information from the cancer.gov API')
-parser.add_argument('--dbname',action='store',type=str, required=False )
-parser.add_argument('--host',action='store',type=str, required=False )
-parser.add_argument('--user',action='store',type=str, required=False )
-parser.add_argument('--password',action='store',type=str, required=False )
-parser.add_argument('--port',action='store',type=str, required=False )
+parser.add_argument('--dbname', action='store', type=str, required=False, default='sec')
+parser.add_argument('--host', action='store', type=str, required=False, default='localhost')
+parser.add_argument('--user', action='store', type=str, required=False, default='sec')
+parser.add_argument('--password', action='store', type=str, required=False, default='sec')
+parser.add_argument('--port', action='store', type=str, required=False, default='5433')
 args = parser.parse_args()
 
 
@@ -132,28 +132,57 @@ two_years_ago = today_date.replace(year = today_date.year - 2)
 
 size = 1
 start = 0
-include_items = ['nct_id',
-                 'eligibility.structured.max_age_in_years',
-                 'eligibility.structured.min_age_in_years',
-                 'eligibility.structured.sex',
-                 'eligibility.unstructured',
-                 'diseases',
-                 'brief_title',
-                 'official_title',
-                 'brief_summary',
-                 'detail_description',
-                 'current_trial_status',
-                 'primary_purpose',
-                 'phase',
-                 'screening',
-                 'primary_purpose_code',
-                 'study_source',
-                 'record_verification_date',
-                 'sites',
-                 'amendment_date',
-                 'biomarkers',
-                 'prior_therapy'
-                 ]
+
+
+include_items = [
+    'active_sites_count',
+    'age_expression',
+    'amendment_date',
+    'biomarkers',
+    'brief_summary',
+    'brief_title',
+    'ccr_id',
+    'classification_code',
+    'completion_date',
+    'completion_date_type_code',
+    'ctep_id',
+    'current_trial_status',
+    'current_trial_status_date',
+    'dcp_id',
+    'detail_description',
+    'disease_names_lead',
+    'diseases',
+    'eligibility.structured.max_age_in_years',
+    'eligibility.structured.min_age_in_years',
+    'eligibility.structured.sex',
+    'eligibility.unstructured',
+    'gender',
+    'gender_expression',
+    'interventional_model',
+    'lead_org',
+    'lead_org_cancer_center',
+    'max_age_in_years',
+    'min_age_in_years',
+    'minimum_target_accrual_number',
+    'nci_funded',
+    'nct_id',
+    'number_of_arms',
+    'official_title',
+    'phase',
+    'primary_purpose',
+    'principal_investigator',
+    'protocol_id',
+    'record_verification_date',
+    'sampling_method_code',
+    'sites',
+    'start_date',
+    'start_date_type_code',
+    'study_model_code',
+    'study_model_other_text',
+    'study_population_description',
+    'study_protocol_type',
+    'study_source',
+    'study_subtype_code']
 
 data = {'current_trial_status': 'Active',
         'primary_purpose': ['TREATMENT', 'SCREENING'],
@@ -230,55 +259,124 @@ while run:
 
         max_age_in_years = 999 if 'max_age_in_years' not in trial['eligibility']['structured'] else trial['eligibility']['structured']['max_age_in_years']
         min_age_in_years = 0 if 'min_age_in_years' not in trial['eligibility']['structured'] else trial['eligibility']['structured']['min_age_in_years']
+
         biomarker_info = [[], [], [], []] if ('biomarkers' not in trial or trial['biomarkers'] is None )  else gen_biomarker_info(trial['biomarkers'])
         print(biomarker_info)  # (biomarker_inc_codes, biomarker_inc_names, biomarker_exc_codes, biomarker_exc_names)
+        current_trial_status = trial.get('current_trial_status', '')
+        current_trial_status = current_trial_status.lower() if current_trial_status is not None else ''
 
-        cur.execute(
-            """insert into
-            trials(
-                nct_id,
-                brief_title,
-                official_title,
-                brief_summary,
-                detail_description,
-                max_age_in_years,
-                min_age_in_years,
-                gender,
-                age_expression,
-                gender_expression,
-                phase,
-                primary_purpose_code,
-                study_source,
-                record_verification_date,
-                amendment_date,
-                biomarker_inc_codes,
-                biomarker_inc_names,
-                biomarker_exc_codes,
-                biomarker_exc_names
-            )
-            values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-            [
-                trial["nct_id"],
-                trial["brief_title"],
-                trial["official_title"],
-                trial["brief_summary"],
-                trial["detail_description"],
-                max_age_in_years,
-                min_age_in_years,
-                trial["eligibility"]["structured"]["sex"],
-                None if max_age_in_years is None or min_age_in_years is None else "C25150 >= " + str(min_age_in_years) + " & C25150 <= " + str(max_age_in_years),
-                gender_expression,
-                trial["phase"],
-                trial["primary_purpose"],
-                trial["study_source"],
-                None if "record_verification_date" not in trial else trial["record_verification_date"],
-                None if "amendment_date" not in trial else trial["amendment_date"],
-                None if len(biomarker_info[0]) == 0 else ", ".join(biomarker_info[0]),
-                None if len(biomarker_info[1]) == 0 else ", ".join(biomarker_info[1]),
-                None if len(biomarker_info[2]) == 0 else ", ".join(biomarker_info[2]),
-                None if len(biomarker_info[3]) == 0 else ", ".join(biomarker_info[3]),
-            ],
-        )
+
+#
+
+        active_sites_count = trial['active_sites_count']
+        age_expression = age_expression = None if max_age_in_years is None or min_age_in_years is None else "C25150 >= " + str(
+            min_age_in_years) + " & C25150 <= " + str(max_age_in_years)
+        amendment_date = trial['amendment_date']
+        biomarker_inc_codes = None if len(biomarker_info[0]) == 0 else ", ".join(biomarker_info[0])
+        biomarker_inc_names = None if len(biomarker_info[1]) == 0 else ", ".join(biomarker_info[1])
+        biomarker_exc_codes = None if len(biomarker_info[2]) == 0 else ", ".join(biomarker_info[2])
+        biomarker_exc_names = None if len(biomarker_info[3]) == 0 else ", ".join(biomarker_info[3])
+        biomarkers = trial['biomarkers']
+        brief_summary = trial['brief_summary']
+        brief_title = trial['brief_title']
+        ccr_id = trial['ccr_id']
+        classification_code = trial['classification_code']
+        completion_date = trial['completion_date']
+        completion_date_type_code = trial['completion_date_type_code']
+        ctep_id = trial['ctep_id']
+        #current_trial_status = trial['current_trial_status']
+        current_trial_status_date = trial['current_trial_status_date']
+        dcp_id = trial['dcp_id']
+        detail_description = trial['detail_description']
+        diseases = trial['diseases']
+        # eligibility.structured.max_age_in_years = trial['max_age_in_years']
+        # eligibility.structured.min_age_in_years = trial['min_age_in_years']
+        # eligibility.structured.sex = trial['sex']
+        # eligibility.unstructured = trial['unstructured']
+        gender = trial['eligibility']['structured']['sex']
+        #gender_expression = gender_expression']
+        interventional_model = trial['interventional_model']
+        lead_org = trial['lead_org']
+        lead_org_cancer_center = trial['lead_org_cancer_center']
+        # max_age_in_years = trial['max_age_in_years']
+        # min_age_in_years = trial['min_age_in_years']
+        minimum_target_accrual_number = trial['minimum_target_accrual_number']
+        nci_funded = trial['nci_funded']
+        nct_id = trial['nct_id']
+        number_of_arms = trial['number_of_arms']
+        official_title = trial['official_title']
+        phase = trial['phase']
+        primary_purpose = trial['primary_purpose']
+        primary_purpose_code = trial['primary_purpose']
+        principal_investigator = trial['principal_investigator']
+        #prior_therapy = trial['prior_therapy']
+        protocol_id = trial['protocol_id']
+        record_verification_date = trial['record_verification_date']
+        sampling_method_code = trial['sampling_method_code']
+        sites = trial['sites']
+        start_date = trial['start_date']
+        start_date_type_code = trial['start_date_type_code']
+        study_model_code = trial['study_model_code']
+        study_model_other_text = trial['study_model_other_text']
+        study_population_description = trial['study_population_description']
+        study_protocol_type = trial['study_protocol_type']
+        study_source = trial['study_source']
+        study_subtype_code = trial['study_subtype_code']
+
+        values = {
+                'active_sites_count': active_sites_count,
+                'age_expression': age_expression,
+                'amendment_date': amendment_date,
+                'biomarker_exc_codes': biomarker_exc_codes,
+                'biomarker_exc_names': biomarker_exc_names,
+                'biomarker_inc_codes': biomarker_inc_codes,
+                'biomarker_inc_names': biomarker_inc_names,
+                'brief_summary': brief_summary,
+                'brief_title': brief_title,
+                'ccr_id': ccr_id,
+                'classification_code': classification_code,
+                'completion_date': completion_date,
+                'completion_date_type_code': completion_date_type_code,
+                'ctep_id': ctep_id,
+                'current_trial_status': current_trial_status,
+                'current_trial_status_date': current_trial_status_date,
+                'dcp_id': dcp_id,
+                'detail_description': detail_description,
+                'max_age_in_years': max_age_in_years,
+                'min_age_in_years': min_age_in_years,
+                'gender': gender,
+                'gender_expression': gender_expression,
+                'interventional_model': interventional_model,
+                'lead_org': lead_org,
+                'lead_org_cancer_center': lead_org_cancer_center,
+                'max_age_in_years': max_age_in_years,
+                'min_age_in_years': min_age_in_years,
+                'minimum_target_accrual_number': minimum_target_accrual_number,
+                'nci_funded': nci_funded,
+                'nct_id': nct_id,
+                'number_of_arms': number_of_arms,
+                'official_title': official_title,
+                'phase': phase,
+                'primary_purpose': primary_purpose,
+                'primary_purpose_code': primary_purpose_code,
+                'principal_investigator': principal_investigator,
+                'protocol_id': protocol_id,
+                'record_verification_date': record_verification_date,
+                'sampling_method_code': sampling_method_code,
+                'start_date': start_date,
+                'start_date_type_code': start_date_type_code,
+                'study_model_code': study_model_code,
+                'study_model_other_text': study_model_other_text,
+                'study_population_description': study_population_description,
+                'study_protocol_type': study_protocol_type,
+                'study_source': study_source,
+                'study_subtype_code': study_subtype_code
+        }
+        params = list(values.values())
+        sstring = ['%s' for _ in params]
+        sql = f"""insert into trials({",".join(values.keys())}) values({','.join(sstring)})"""
+
+        cur.execute(sql, params)
         con.commit()
 
         # disease processing
@@ -324,19 +422,15 @@ while run:
             [','.join(dlist_all), ','.join(dlist_lead), ','.join(dname_list_all), ','.join(dname_list_lead),
              trial['nct_id']])
 
-        psycopg2.extras.execute_batch(cur, """insert into
-            trial_diseases(
-                nct_id,
-                nci_thesaurus_concept_id,
-                lead_disease_indicator,
-                preferred_name,
-                disease_type,
-                inclusion_indicator,
-                display_name
-            )
-        values (%s,%s,%s,%s,%s,%s,%s)
-        """,
-        dlist, page_size = 1000)
+        psycopg2.extras.execute_batch("""insert into trial_diseases(nct_id,
+                                                                    nci_thesaurus_concept_id,
+                                                                    lead_disease_indicator,
+                                                                    preferred_name,
+                                                                    disease_type,
+                                                                    inclusion_indicator,
+                                                                    display_name)
+                                         values (%s, %s, %s, %s, %s, %s, %s)
+                                      """, dlist, con=cur, page_size=1000)
 
         for maintype in maintype_set:
             cur.execute('insert into trial_maintypes(nct_id, nci_thesaurus_concept_id) values (%s,%s)',
@@ -931,3 +1025,8 @@ for a_node in mul_nodes:
 con.close()
 end_time = datetime.datetime.now()
 print("API ETL all ops completed in ", end_time - start_time)
+
+def get_safe(adict, key, default_if_none):
+    v = adict.get(key, default_if_none)
+    v = v if v is not None else default_if_none
+    return v

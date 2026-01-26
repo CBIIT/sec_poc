@@ -58,26 +58,35 @@ def save(db: connect, query: str, data: tuple=None ) -> None:
 def get_nlp() -> blank:
     return blank("en")
     
-
+def get_db_config(args):
+    return {
+        k : args.get(k, d) for (k, d) in
+        [('dbname', 'sec'), ('host', 'localhost'), ('port', '5432'), ('user', 'secapp'), ('password', 'sec')]
+    }
 if __name__ == '__main__':
     print(spacy.__version__)
     print(pickle.format_version)
     start_time = datetime.now()
     parser = argparse.ArgumentParser(
         description='Update the specified sqlite database with information from the cancer.gov API')
-    parser.add_argument('--dbname',action='store',type=str, required=False )
-    parser.add_argument('--host',action='store',type=str, required=False )
-    parser.add_argument('--user',action='store',type=str, required=False )
-    parser.add_argument('--password',action='store',type=str, required=False )
-    parser.add_argument('--port',action='store',type=str, required=False )
+    parser.add_argument('--force', '-f', action='store_true', required=False, default=False)
+    parser.add_argument('--dbname',action='store',type=str, required=False , default='sec')
+    parser.add_argument('--host',action='store',type=str, required=False ,default='localhost')
+    parser.add_argument('--user',action='store',type=str, required=False, default='sec' )
+    parser.add_argument('--password',action='store',type=str, required=False, default='sec')
+    parser.add_argument('--port',action='store',type=str, required=False, default='5433' )
+
     args = parser.parse_args()
-    db = get_db(**vars(args))
+    db = get_db(**get_db_config(vars(args)))
     
     active_version_count = get_one(db, """
     select count(*) from ncit_version where active_version = 'Y' and ncit_tokenizer is not null
     """)[0]
     print("is tokenizer up to date",active_version_count )
-    if active_version_count == 0:  
+    print(f'force run = {args.force}')
+    should_run = (active_version_count ==0 or args.force)
+    print("should run?",should_run)
+    if should_run:
         print("updating NLP ")
         nlp = get_nlp()
      

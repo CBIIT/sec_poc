@@ -11,9 +11,11 @@ services:
       - $LOCAL_PG_DATA_DIR:/var/lib/postgresql/data
   app:
     # See ./Dockerfile
-    image: r_n_pg
+    image: tstdocker
     command: tail -f /dev/null
     platform: linux/amd64
+    ports:
+      - 8080:8080
     volumes:
       - $SEC_POC_HOME:/opt/R/sec_poc
       #- ~/Desktop/sec_poc_workspace:/opt/R/sec_poc_workspace

@@ -1,0 +1,1 @@
+docker buildx build --platform linux/amd64 -t r_n_pg2   -f docker/R/r_n_pg2/Dockerfile . --output type=docker $@

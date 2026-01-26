@@ -1,0 +1,1 @@
+docker buildx build --platform linux/amd64 -t tstdocker   -f docker/R/tstdocker/Dockerfile . --output type=docker

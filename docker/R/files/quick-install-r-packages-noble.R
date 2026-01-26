@@ -1,10 +1,44 @@
-#options(repos = c(CRAN = sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/centos8-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))))
-# region RSQLite
+#options(repos = c(CRAN = "https://cloud.r-project.org"))
+#options(pkgType = "both")
+options(HTTPUserAgent = sprintf(
+   "R/%s R (%s)",
+   getRversion(),
+   paste(
+     getRversion(),
+     R.version["platform"],
+     R.version["arch"],
+     R.version["os"]
+   )
+ ))
 options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/noble/latest"))
+install.packages("renv")
+install.packages("pak")
+install.packages("devtools")
+library(devtools)
+# install.packages("remotes")
+# library(remotes)
+#devtools::install_github("username/repo_name")
+#install.packages(c("bit64", "blob", "cpp11", "memoise", "pkgconfig", "plogr", "rlang", "DBI"))
+# Force update the metadata cache before installing
+pak::meta_update()
 
+#options(repos = c(CRAN = sprintf("https://packagemanager.posit.co/cran/__linux__/noble/latest-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))))
+my_repos <- getOption("repos")
+# Add r-universe and another CRAN mirror
+my_repos["R_universe"] <- "https://ropensci.r-universe.dev/"
+my_repos["CRAN2"] <- "cloud.r-project.org"
+#
+pak::repo_add("https://r-dbi.r-universe.dev")
+
+pak::pkg_install("r-lib/pak") # Install pak if not in apt/r2u
+pak::pkg_install("cran/blob")
+pak::pkg_install("cran/RSQLite")
+pak::pkg_install("RSQLite")
+
+# region RSQLite
 pak::pkg_install("cran/glue@1.8.0", ask = FALSE)
 pak::pkg_install("cran/cpp11@0.5.2", ask = FALSE)
-pak::pkg_install("cran/RSQLite@2.4.5", ask = FALSE)
+#pak::pkg_install("cran/RSQLite@2.4.5", ask = FALSE)
 # endregion
 # region devtools
 pak::pkg_install("cran/downlit@0.4.5", ask = FALSE)
@@ -55,5 +89,3 @@ pak::pkg_install("cran/stringr@1.6.0", ask = FALSE)
 pak::pkg_install("cran/shinymanager@1.0.410", ask = FALSE)
 pak::pkg_install("cran/writexl@1.5.4", ask = FALSE)
 pak::pkg_install("cran/config@0.3.2", ask = FALSE)
-
-renv::restore()

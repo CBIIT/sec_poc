@@ -29,11 +29,11 @@ start_time = datetime.datetime.now()
 parser = argparse.ArgumentParser(
     description="Update the specified sqlite database with information from the cancer.gov API"
 )
-parser.add_argument("--dbname", action="store", type=str, required=False)
-parser.add_argument("--host", action="store", type=str, required=False)
-parser.add_argument("--user", action="store", type=str, required=False)
-parser.add_argument("--password", action="store", type=str, required=False)
-parser.add_argument("--port", action="store", type=str, required=False)
+parser.add_argument('--dbname', action='store', type=str, required=False, default='sec')
+parser.add_argument('--host', action='store', type=str, required=False, default='localhost')
+parser.add_argument('--user', action='store', type=str, required=False, default='sec')
+parser.add_argument('--password', action='store', type=str, required=False, default='sec')
+parser.add_argument('--port', action='store', type=str, required=False, default='5433')
 args = parser.parse_args()
 
 
@@ -96,7 +96,7 @@ assert (
 ), "No associations found. Something must be wrong with connection to EVS API."
 
 print(f"inserting {local_size} associations")
-psycopg2.extras.execute_batch(cur, insert_sql, associations, page_size=1000)
+psycopg2.extras.execute_batch(insert_sql, associations, con=cur, page_size=1000)
 
 con.commit()
 cur.execute("grant select on associations to sec_read")
