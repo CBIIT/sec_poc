@@ -562,7 +562,9 @@ for rec in r:
 print("inserting synonmyms in database")
 cur.execute("BEGIN TRANSACTION")
 #cur.executemany(insert_sql, biglist )
-psycopg2.extras.execute_batch(insert_sql, biglist, con=cur, page_size=500)
+#psycopg2.extras.execute_batch(insert_sql, biglist, con=cur, page_size=500)
+psycopg2.extras.execute_batch(cur, insert_sql, biglist, page_size=500)
+
 con.commit()
 print("done inserting synonyms in database")
 cur.execute('create index ncit_syns_code_idx on ncit_syns(code)')
@@ -614,7 +616,7 @@ cur.execute( 'grant select on ncit_syns to sec_read')
 cur.execute('grant select on ncit_version_view to sec_read')
 
 con.commit()
-
+print(f'granted select to sec_read', flush=True)
 end_time = datetime.datetime.now()
 print("Process complete in ", end_time - start_time)
 

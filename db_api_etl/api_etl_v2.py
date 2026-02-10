@@ -83,7 +83,7 @@ def insert_prior_therapies(db_conn, db_cur, nct_id,
                           for prior_therapy in prior_therapies]
         sql = """insert into trial_prior_therapies(nct_id, nci_thesaurus_concept_id, eligibility_criterion, inclusion_indicator, name)
                     values(%s, %s, %s, %s, %s)"""
-        psycopg2.extras.execute_batch(sql, args_to_insert, con=cur)
+        psycopg2.extras.execute_batch(con.cursor(), sql, args_to_insert)
         db_conn.commit()
 
 
@@ -91,11 +91,11 @@ start_time = datetime.datetime.now()
 
 parser = argparse.ArgumentParser(
     description='Update the specified sqlite database with information from the cancer.gov API')
-parser.add_argument('--dbname', action='store', type=str, required=False, default='sec')
-parser.add_argument('--host', action='store', type=str, required=False, default='localhost')
-parser.add_argument('--user', action='store', type=str, required=False, default='sec')
-parser.add_argument('--password', action='store', type=str, required=False, default='sec')
-parser.add_argument('--port', action='store', type=str, required=False, default='5433')
+parser.add_argument('--dbname', action='store', type=str, required=False, default=os.environ.get('DB_NAME', 'sec'))
+parser.add_argument('--host', action='store', type=str, required=False, default=os.environ.get('DB_HOST', 'localhost'))
+parser.add_argument('--user', action='store', type=str, required=False, default=os.environ.get('DB_USER', 'sec'))
+parser.add_argument('--password', action='store', type=str, required=False, default=os.environ.get('DB_PASS', 'sec'))
+parser.add_argument('--port', action='store', type=str, required=False, default=os.environ.get('DB_PORT', '5433'))
 args = parser.parse_args()
 
 
@@ -422,7 +422,7 @@ while run:
             [','.join(dlist_all), ','.join(dlist_lead), ','.join(dname_list_all), ','.join(dname_list_lead),
              trial['nct_id']])
 
-        psycopg2.extras.execute_batch("""insert into trial_diseases(nct_id,
+        psycopg2.extras.execute_batch(cur, """insert into trial_diseases(nct_id,
                                                                     nci_thesaurus_concept_id,
                                                                     lead_disease_indicator,
                                                                     preferred_name,
@@ -430,7 +430,7 @@ while run:
                                                                     inclusion_indicator,
                                                                     display_name)
                                          values (%s, %s, %s, %s, %s, %s, %s)
-                                      """, dlist, con=cur, page_size=1000)
+                                      """, dlist, page_size=1000)
 
         for maintype in maintype_set:
             cur.execute('insert into trial_maintypes(nct_id, nci_thesaurus_concept_id) values (%s,%s)',
