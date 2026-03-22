@@ -882,7 +882,9 @@ select nci_thesaurus_concept_id, display_name
   #     )
 
   df_biomarker_list_t <- get_biomarkers_from_evs()
-  colnames(df_biomarker_list_t) <- c("type", "code", "biomarker")
+  print("print(colnames(df_biomarker_list_t))=")
+  print(colnames(df_biomarker_list_t))
+  colnames(df_biomarker_list_t) <- c("type", "code", "biomarker", "name")
   df_biomarker_list_s <- subset(df_biomarker_list_t, select = -c(type))
 
   # To get around the wacko server side bug, render this thing here as a normal static selectize but with the biomarker dataframe from the server side

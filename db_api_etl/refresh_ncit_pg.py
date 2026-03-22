@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 import contextlib
+import os
 # # Generate the transitive closure table for the NCI Thesaurus
 #
 # This notebook shows how to generate the transitive closure table for the NCI (National Cancer Institute) Thesaurus.
@@ -33,6 +34,21 @@ import csv
 import io
 import time
 from os import environ as env
+from datetime import datetime as dt
+
+# try:
+#     from etl_processor import ETLProcessor as EtlProcessor
+# except Exception:
+#     print("ETLProcessor failed import ", flush=True)
+
+class EtlProcessor:
+    def __init__(self, name=None, args=None):
+        self.name = name
+        self._args = args
+
+    @property
+    def args(self):
+        return self._args
 
 #
 # A simple function to yield chunks from a list
@@ -46,25 +62,9 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 
-start_time = datetime.datetime.now()
-pp = pprint.PrettyPrinter(indent=4)
-
-parser = argparse.ArgumentParser(description='Download the NCIT Thesaurus Zip file and create transitive closure tables in a database.')
-
-parser.add_argument('--dbname', action='store', type=str, required=False,default=env.get('dbname', 'sec'))
-parser.add_argument('--host', action='store', type=str, required=False,default=env.get('host', 'localhost'))
-parser.add_argument('--user', action='store', type=str, required=False,default=env.get('user', 'sec'))
-parser.add_argument('--password', action='store', type=str, required=False,default=env.get('password', 'sec'))
-parser.add_argument('--port', action='store', type=str, required=False,default=env.get('port', '5433'))
-parser.add_argument('--use_evs_api_for_pref_name' , action='store_true',default=is_truthy(env.get('use_evs_api_for_pref_name', 'true')))
-
-
-args = parser.parse_args()
-
-#con = sqlite3.connect(args.dbfilename)
 @contextlib.contextmanager
 def yield_conn_new(
-        self,
+    args,
         auto_close=True,
         auto_commit=True,
         close_on_exc=False,
@@ -73,22 +73,19 @@ def yield_conn_new(
         wait=None,
         return_dicts=True,
 ):
-    factory = self.dict_row if return_dicts else None
-    wait = [wait] if isinstance(wait, int) else wait
+    if args is None:
+        raise ValueError("args is required for database connection")
+
     while True:
+        conn=None
         try:
-            #        'fact-backend-matt-stateful-aurorav2-pg-16.proxy-clb9vkosemwm.us-east-1.rds.amazonaws.com'
-            for i, props in enumerate(
-                    [self.get_db_props(factory), self.get_db_props_with_password(factory)]
-            ):
                 conn = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, port=args.port,
  password=args.password)
                 if conn:
                     #conn.execute(f"SET SEARCH_PATH to {self._config.schema}")
                     break
                 else:
-                    print(f"tryconnect failed:{i}")
-            break
+                    print("tryconnect failed")
         except Exception as exc:
             if not wait:
                 raise exc
@@ -110,271 +107,42 @@ def yield_conn_new(
             conn.close()
         if raise_on_exc:
             raise e
-con = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, port=args.port,
- password=args.password)
 
-cur = con.cursor()
-
-url_fstring = "https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/archive/%s_Release/Thesaurus_%s.FLAT.zip"
-r = requests.get('https://api-evsrest.nci.nih.gov/api/v1/concept/ncit',
-                 params={'include': 'minimal', 'list': 'C2991'}, timeout=(.4, 7.0))
-evs_results = r.json()
-#print(evs_results)
-if len(evs_results) != 1 or 'version' not in evs_results[0]:
-    print("NO VERSION NUMBER in returned info from EVS", evs_results)
-    sys.exit(0)
-
-current_evs_version = evs_results[0]['version']
-if current_evs_version=="25.12e":
-    current_evs_version = "25.11d"
-print("Current EVS NCIT version :", current_evs_version)
-#
-# E.g. https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/archive/22.01e_Release/Thesaurus_22.01e.FLAT.zip
-# Note that the NCIT Download page MAY have a different version that what EVS is using.  We
-# want to stay in sync with EVS
-#
-
-check_version_sql = " select version_id from ncit_version where active_version = 'Y'"
-cur = con.cursor()
-cur.execute(check_version_sql)
-rs = cur.fetchone()
-
-if rs is not None and rs[0] == current_evs_version:
-    print("POC NCIt is same as EVS NCIt, exiting")
-    con.commit()
-    con.close()
-    sys.exit(0)
-elif rs is None:
-    print("No current NCIt version noted in the POC db")
-else:
-    print("EVS NCIt version :", current_evs_version, " POC DB NCIt version:", rs[0])
-
-print("Preparing to process NCIT version", current_evs_version)
-url_string = url_fstring % (current_evs_version, current_evs_version)
-
-tfilename = Path(url_string).name
-tfile = tempfile.NamedTemporaryFile(suffix=tfilename)
-#thesaurus_zip = wget.download(url=url_string, out=tfile.name)
-timeout_seconds = 10  # Set timeout to 10 seconds
-
-try:
-    response = requests.get(url_string, timeout=5, stream=True)
-    response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
-
-    # Code to save the file...
-    thesaurus_zip = tfile.name
-    with open(tfile.name, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
-
-    print("Download complete.")
-
-except requests.exceptions.Timeout:
-    print(f"Error: The request timed out after {timeout_seconds} seconds.")
-except requests.exceptions.RequestException as e:
-    print(f"An error occurred: {e}")
-
-arch = zipfile.ZipFile(thesaurus_zip, mode='r')
-
-print("Extracting thesaurus file contents")
-thesaurus_file = arch.open('Thesaurus.txt', mode='r')
-
-
-#
-# Process the file from EVS, then call the EVS API to get the preferred
-# term if the flag is set
-#
-
-print("reading tsv file into dataframe")
-if args.use_evs_api_for_pref_name:
-    ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
-                              names=('code', 'url', 'parents', 'synonyms',
-                                     'definition', 'display_name', 'concept_status',
-                                     'semantic_type', 'concept_in_subset'))
-
-    num_concepts_per_evs_call = 575
-    concept_list = ncit_df['code'].tolist()
-
-
-    concept_url_fstring = "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit?list=%s&include=summary"
-    new_column_vals = []
-    chunk_count = 0
-    record_count = 0
-    retry_limit = 3
-
-    print("Calling EVS to get preferred terms")
-    for ch in chunks(concept_list, num_concepts_per_evs_call):
-        c_codes = list(ch)
-        record_count += len(c_codes)
-        c_codes_string = ','.join(c_codes)
-        concept_url_string = concept_url_fstring % (c_codes_string)
-        retry_count = 0
-
-        while  retry_count < retry_limit:
+def grant_select_to_sec_read(args):
+    with yield_conn_new(args=args) as conn:
+        with conn.cursor() as cur:
             try:
-                r = requests.get(concept_url_string, timeout=(1.0, 15.0))
-            except requests.exceptions.RequestException as e:
-                print("exception -- ", e)
-                print("sleeping")
-                retry_count += 1
-                if retry_count == retry_limit:
-                    print("retry max limit hit -- bailing out ")
-                    sys.exit()
-                time.sleep(15)
-            else:
-                concept_set = r.json()
-                for newc in concept_set:
-                    new_column_vals.append((newc['code'], newc['name']))
+                cur.execute('grant select on trial_unstructured_criteria to sec_read')
+                cur.execute('grant select on maintypes to sec_read')
+                cur.execute('grant select on distinct_trial_diseases to sec_read')
+                cur.execute('grant select on nlp_data_tab to sec_read')
+                cur.execute('grant select on trials to sec_read')
+                cur.execute('grant select on ncit_tc_with_path to sec_read')
+                cur.execute('grant select on trial_sites to sec_read');
+                cur.execute('grant select on trial_maintypes to sec_read')
+                cur.execute('grant select on curated_crosswalk to sec_read')
+                cur.execute('grant select on disease_tree to sec_read')
+                cur.execute('grant select on nlp_data_view to sec_read')
+                cur.execute('grant select on ncit to sec_read')
+                cur.execute('grant select on disease_tree_nostage to sec_read')
+                cur.execute('grant select on candidate_criteria to sec_read')
+                cur.execute('grant select on ncit_nlp_concepts to sec_read')
+                cur.execute('grant select on trial_criteria to sec_read')
+                cur.execute('grant select on ncit_tc to sec_read')
+                cur.execute('grant select on trial_diseases to sec_read')
+                cur.execute('grant select on trial_nlp_dates to sec_read')
+                cur.execute('grant select on ncit_syns to sec_read')
+                cur.execute('grant select on ncit_version_view to sec_read')
+            except Exception as e:
+                trace = traceback.format_exc()
+                print(trace, flush=True)
 
-                chunk_count = chunk_count + 1
-                print("processing chunk ", chunk_count, " record count = ", record_count )
-                break
-
-    #
-    print("merging dataframes")
-    new_df = pd.DataFrame(data=new_column_vals, columns = ['code', 'pref_name'])
-    #
-    ncit_df = pd.merge(ncit_df, new_df, on = 'code', how='left')
-
-else:
-    ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
-                              names=('code', 'url', 'parents', 'synonyms',
-                                     'definition', 'display_name', 'concept_status',
-                                     'semantic_type', 'concept_in_subset', 'pref_name'))
-    ncit_df['pref_name'] = ncit_df.apply(lambda row: row['synonyms'].split('|')[0], axis=1)
-
-cur.execute("drop index if exists ncit_code_index")
-cur.execute("drop index if exists lower_pref_name_idx")
+def exit(error_code=0, grant_select_2_sec_read=True, args=None):
+    if grant_select_2_sec_read == True:
+        grant_select_to_sec_read(args=args)
+    sys.exit(error_code)
 
 
-cur.execute("truncate table ncit")
-con.commit()
-
-connection_string = f'postgresql://{args.user}:{args.password}@{args.host}:{args.port}/{args.dbname}'
-#
-# create sqlalchemy connection
-#
-print('process_df_crit: getting sqlalchemy connection')
-sqlalchemy_connection = sqlalchemy.create_engine(connection_string)
-ncit_df= ncit_df.set_index('code')
-
-ncit_df.to_sql(name='ncit', con=sqlalchemy_connection, if_exists='append')
-sqlalchemy_connection.dispose()
-
-
-
-
-print("creating thesaurus file indexes")
-cur.execute("create index ncit_code_index on ncit(code)")
-cur.execute("create index lower_pref_name_idx on ncit(lower(pref_name))")
-con.commit()
-
-# In[43]:
-
-
-print("getting all concepts that have parents")
-cur = con.cursor()
-cur.execute("select code, parents from ncit where (parents is not null and parents <> '')")
-
-# Get all of the concepts that have parents into a result set
-
-# In[44]:
-
-
-concept_parents = cur.fetchall()
-
-# In[45]:
-
-
-#print(len(concept_parents))
-
-# In[46]:
-
-
-con.commit()
-
-# Create a table that will hold the concept, the parent, the path from parent to the concept, and the level (need this to properly recurse along the relationship).
-
-# In[47]:
-
-
-cur.execute('truncate table parents')
-
-# Put the direct concept &rarr; parent relationships in the table as level 1 items.
-
-# In[48]:
-
-cur.execute("drop index if exists par_concept_idx")
-
-cur.execute("drop index if exists par_par_idx")
-
-con.commit()
-for concept, parents in concept_parents:
-    parentl = parents.split('|')
-    for p in parentl:
-        cur.execute("insert into parents(concept, parent, level, path )values(%s,%s,1,%s)",
-                    (concept, p, p + '|' + concept))
-con.commit()
-
-# In[49]:
-
-
-#print(con.execute("select * from parents where parent= 'C3824'").fetchall())
-
-# In[50]:
-
-
-cur.execute("create index par_concept_idx on parents(concept)")
-cur.execute("create index par_par_idx on parents(parent)")
-
-# This is the key part - execute the recursive SQL to generate the set of all paths through the NCIt.  We'll prune this to just concepts and descendants a few steps below.
-
-# In[63]:
-
-print("computing transitive closure")
-
-
-def process_transitive_closure(self):
-    print("Computing transitive closure.   start", time.asctime())
-    with yield_conn_new(auto_commit=True) as conn:
-        cur = conn.cursor()
-        cur.execute(f"drop index if exists ncit_tc_path_parent")
-        cur.execute(f"drop index if exists ncit_tc_path_descendant")
-        cur.execute(
-            f"""
-            insert into ncit_tc_with_path
-            with recursive ncit_tc_rows(parent, descendant, level, path ) as
-                    (select parent, concept as descendant, level, path from parents union all
-                    select p.parent , n.descendant as descendant, n.level+1 as level ,  p.parent || '|' || n.path  as path
-                    from ncit_tc_rows n join parents p on n.parent = p.concept
-                    ) select * from ncit_tc_rows
-            """
-        )
-
-        cur.execute(
-            f"create index ncit_tc_path_parent on ncit_tc_with_path(parent)"
-        )
-        cur.execute(
-            f"CREATE INDEX ncit_tc_path_descendant on ncit_tc_with_path(descendant)"
-        )
-        conn.commit()
-        print("Computing transitive closure.   end", time.asctime())
-
-        # Create the transitive closure table.  This fits the mathematical definition of transitive closure.
-
-        print("Creating transitive closure table. start", time.asctime())
-        # cur.execute(f'truncate table ncit_tc')
-        cur.execute(f"drop index if exists ncit_tc_parent")
-        cur.execute(f"drop index if exists ncit_tc_descendant")
-        cur.execute(
-            f"insert into ncit_tc(parent, descendant)  select distinct parent, descendant from ncit_tc_with_path"
-        )
-        cur.execute(
-            f"create index ncit_tc_parent on ncit_tc(parent) "
-        )
-        cur.execute(
-            f"create index ncit_tc_descendant on ncit_tc(descendant) "
-        )
 # cur.execute("drop table if exists ncit_tc_with_path")
 # cur.execute("""
 # create table ncit_tc_with_path as with recursive ncit_tc_rows(parent, descendant, level, path) as (
@@ -409,216 +177,493 @@ def process_transitive_closure(self):
 # Create the transitive closure table.  This fits the mathematical definition of transitive closure.
 
 # In[52]:
+#con = sqlite3.connect(args.dbfilename)
+class NcitProcessor(EtlProcessor):
+    def __init__(self, args=None):
+        super().__init__(name=Path(__file__).stem, args=args)
 
-cur.execute('drop view if exists good_pt_codes')
-cur.execute('drop table if exists ncit_tc')
-cur.execute("create table ncit_tc as select distinct parent, descendant from ncit_tc_with_path ")
-cur.execute('create index ncit_tc_parent on ncit_tc (parent) ')
+    @staticmethod
+    def _build_parser() -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description='Download the NCIT Thesaurus Zip file and create transitive closure tables in a database.')
+        parser.add_argument('--force', '-f', action='store_true', required=False, default=False)
+        parser.add_argument('--dbname', action='store', type=str, required=False,
+                            default=os.environ.get('DB_NAME', 'sec'))
+        parser.add_argument('--host', action='store', type=str, required=False,
+                            default=os.environ.get('DB_HOST', 'localhost'))
+        parser.add_argument('--user', action='store', type=str, required=False,
+                            default=os.environ.get('DB_USER', 'sec'))
+        parser.add_argument('--password', action='store', type=str, required=False,
+                            default=os.environ.get('DB_PASS', 'sec'))
+        parser.add_argument('--port', action='store', type=str, required=False,
+                            default=os.environ.get('DB_PORT', '5433'))
+        parser.add_argument('--use_evs_api_for_pref_name', action='store_true',
+                            default=is_truthy(env.get('use_evs_api_for_pref_name', 'true')))
+        return parser
 
-# In[53]:
+    def process_transitive_closure(self):
+        print("Computing transitive closure.   start", time.asctime())
+        with yield_conn_new(args=self.args, auto_commit=True) as conn:
+            cur = conn.cursor()
+            cur.execute(f"drop index if exists ncit_tc_path_parent")
+            cur.execute(f"drop index if exists ncit_tc_path_descendant")
+            cur.execute(
+                f"""
+                insert into ncit_tc_with_path
+                with recursive ncit_tc_rows(parent, descendant, level, path ) as
+                        (select parent, concept as descendant, level, path from parents union all
+                        select p.parent , n.descendant as descendant, n.level+1 as level ,  p.parent || '|' || n.path  as path
+                        from ncit_tc_rows n join parents p on n.parent = p.concept
+                        ) select * from ncit_tc_rows
+                """
+            )
 
-cur.execute('select count(*) from ncit_tc')
-total_num_rows_in_tc = cur.fetchone()[0]
-print("There are ", total_num_rows_in_tc, "rows in the transitive closure table")
+            cur.execute(
+                f"create index ncit_tc_path_parent on ncit_tc_with_path(parent)"
+            )
+            cur.execute(
+                f"CREATE INDEX ncit_tc_path_descendant on ncit_tc_with_path(descendant)"
+            )
+            conn.commit()
+            print("Computing transitive closure.   end", time.asctime())
 
-# In[54]:
+            # Create the transitive closure table.  This fits the mathematical definition of transitive closure.
+
+            print("Creating transitive closure table. start", time.asctime())
+            # cur.execute(f'truncate table ncit_tc')
+            cur.execute(f"drop index if exists ncit_tc_parent")
+            cur.execute(f"drop index if exists ncit_tc_descendant")
+            cur.execute(
+                f"insert into ncit_tc(parent, descendant)  select distinct parent, descendant from ncit_tc_with_path"
+            )
+            cur.execute(
+                f"create index ncit_tc_parent on ncit_tc(parent) "
+            )
+            cur.execute(
+                f"create index ncit_tc_descendant on ncit_tc(descendant) "
+            )
+
+    def process(self):
+        start_time = datetime.datetime.now()
+        pp = pprint.PrettyPrinter(indent=4)
+
+        con = psycopg2.connect(database=self.args.dbname, user=self.args.user, host=self.args.host, port=self.args.port,
+                               password=self.args.password)
+
+        cur = con.cursor()
+
+        url_fstring = "https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/archive/%s_Release/Thesaurus_%s.FLAT.zip"
+        r = requests.get('https://api-evsrest.nci.nih.gov/api/v1/concept/ncit',
+                         params={'include': 'minimal', 'list': 'C2991'}, timeout=(.4, 7.0))
+        evs_results = r.json()
+        # print(evs_results)
+        if len(evs_results) != 1 or 'version' not in evs_results[0]:
+            print("NO VERSION NUMBER in returned info from EVS", evs_results)
+            exit(error_code=1, grant_select_2_sec_read=True, args=self.args)
+
+        current_evs_version = evs_results[0]['version']
+
+        print("Current EVS NCIT version :", current_evs_version)
+        #
+        # E.g. https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/archive/22.01e_Release/Thesaurus_22.01e.FLAT.zip
+        # Note that the NCIT Download page MAY have a different version that what EVS is using.  We
+        # want to stay in sync with EVS
+        #
+
+        check_version_sql = " select version_id from ncit_version where active_version = 'Y'"
+        cur = con.cursor()
+        cur.execute(check_version_sql)
+        rs = cur.fetchone()
+
+        if not self.args.force and rs is not None and rs[0] == current_evs_version:
+            print("POC NCIt is same as EVS NCIt, exiting")
+            con.commit()
+            con.close()
+            exit(error_code=0, grant_select_2_sec_read=True, args=self.args)
+        elif rs is None:
+            print("No current NCIt version noted in the POC db")
+        else:
+            print("EVS NCIt version :", current_evs_version, " POC DB NCIt version:", rs[0])
+
+        print("Preparing to process NCIT version", current_evs_version)
+        url_string = url_fstring % (current_evs_version, current_evs_version)
+
+        tfilename = Path(url_string).name
+        tfile = tempfile.NamedTemporaryFile(suffix=tfilename)
+        # thesaurus_zip = wget.download(url=url_string, out=tfile.name)
+        timeout_seconds = 10  # Set timeout to 10 seconds
+
+        try:
+            response = requests.get(url_string, timeout=5, stream=True)
+            response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+
+            # Code to save the file...
+            thesaurus_zip = tfile.name
+            with open(tfile.name, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            print("Download complete.")
+
+        except requests.exceptions.Timeout:
+            print(f"Error: The request timed out after {timeout_seconds} seconds.")
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred: {e}")
+
+        arch = zipfile.ZipFile(thesaurus_zip, mode='r')
+
+        print("Extracting thesaurus file contents")
+        thesaurus_file = arch.open('Thesaurus.txt', mode='r')
+
+        #
+        # Process the file from EVS, then call the EVS API to get the preferred
+        # term if the flag is set
+        #
+
+        print("reading tsv file into dataframe")
+        if self.args.use_evs_api_for_pref_name:
+            ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
+                                  names=('code', 'url', 'parents', 'synonyms',
+                                         'definition', 'display_name', 'concept_status',
+                                         'semantic_type', 'concept_in_subset'))
+
+            num_concepts_per_evs_call = 575
+            concept_list = ncit_df['code'].tolist()
+
+            concept_url_fstring = "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit?list=%s&include=summary"
+            new_column_vals = []
+            chunk_count = 0
+            record_count = 0
+            retry_limit = 3
+
+            print("Calling EVS to get preferred terms")
+            all_chunks = list(chunks(concept_list, num_concepts_per_evs_call))
+            for i, ch in enumerate(all_chunks):
+                c_codes = list(ch)
+                record_count += len(c_codes)
+                c_codes_string = ','.join(c_codes)
+                concept_url_string = concept_url_fstring % (c_codes_string)
+                retry_count = 0
+
+                while retry_count < retry_limit:
+                    try:
+                        r = requests.get(concept_url_string, timeout=(1.0, 15.0))
+                    except requests.exceptions.RequestException as e:
+                        print("exception -- ", e)
+                        print("sleeping")
+                        retry_count += 1
+                        if retry_count == retry_limit:
+                            print("retry max limit hit -- bailing out ")
+                            exit(error_code=0, grant_select_2_sec_read=True, args=self.args)
+                        time.sleep(15)
+                    else:
+                        concept_set = r.json()
+                        for newc in concept_set:
+                            new_column_vals.append((newc['code'], newc['name']))
+
+                        chunk_count = chunk_count + 1
+                        print("processing chunk ", chunk_count, " record count = ", record_count)
+                        break
+
+            #
+            print("merging dataframes")
+            new_df = pd.DataFrame(data=new_column_vals, columns=['code', 'pref_name'])
+            #
+            ncit_df = pd.merge(ncit_df, new_df, on='code', how='left')
+
+        else:
+            ncit_df = pd.read_csv(thesaurus_file, delimiter='\t', header=None,
+                                  names=('code', 'url', 'parents', 'synonyms',
+                                         'definition', 'display_name', 'concept_status',
+                                         'semantic_type', 'concept_in_subset', 'pref_name'))
+            ncit_df['pref_name'] = ncit_df.apply(lambda row: row['synonyms'].split('|')[0], axis=1)
+
+        cur.execute("drop index if exists ncit_code_index")
+        cur.execute("drop index if exists lower_pref_name_idx")
+
+        cur.execute("truncate table ncit")
+        con.commit()
+
+        connection_string = f'postgresql://{self.args.user}:{self.args.password}@{self.args.host}:{self.args.port}/{self.args.dbname}'
+        #
+        # create sqlalchemy connection
+        #
+        print('process_df_crit: getting sqlalchemy connection')
+        sqlalchemy_connection = sqlalchemy.create_engine(connection_string)
+        ncit_df = ncit_df.set_index('code')
+
+        ncit_df.to_sql(name='ncit', con=sqlalchemy_connection, if_exists='append')
+        sqlalchemy_connection.dispose()
+
+        print("creating thesaurus file indexes")
+        cur.execute("create index ncit_code_index on ncit(code)")
+        cur.execute("create index lower_pref_name_idx on ncit(lower(pref_name))")
+        con.commit()
+
+        # In[43]:
+
+        print("getting all concepts that have parents")
+        cur = con.cursor()
+        cur.execute("select code, parents from ncit where (parents is not null and parents <> '')")
+
+        # Get all of the concepts that have parents into a result set
+
+        # In[44]:
+
+        concept_parents = cur.fetchall()
+        print(f'len(concept_parents) = {len(concept_parents)}')
+
+        # In[45]:
+
+        # print(len(concept_parents))
+
+        # In[46]:
+
+        con.commit()
+
+        # Create a table that will hold the concept, the parent, the path from parent to the concept, and the level (need this to properly recurse along the relationship).
+
+        # In[47]:
+
+        cur.execute('truncate table parents')
+
+        # Put the direct concept &rarr; parent relationships in the table as level 1 items.
+
+        # In[48]:
+
+        cur.execute("drop index if exists par_concept_idx")
+
+        cur.execute("drop index if exists par_par_idx")
+
+        con.commit()
+        tupes = []
+        for i, (concept, parents) in enumerate(concept_parents):
+            parentl = parents.split('|')
+            tupes.extend([(concept, p, p + '|' + concept) for p in parentl])
+            if i % 10000 == 0:
+                print(f"processing {i}/{len(concept_parents)} rows")
+            # for p in parentl:
+            #     cur.execute("insert into parents(concept, parent, level, path )values(%s,%s,1,%s)",
+            #                 (concept, p, p + '|' + concept))
+        insert_sql = "insert into parents(concept, parent, level, path )values(%s,%s,1,%s)"
+        all_chunks = list(chunks(tupes, 10000))
+        for i, chunk in enumerate(all_chunks):
+            if i % 10 == 0:
+                print(f"/ing {i}/{len(all_chunks)} rows")
+            psycopg2.extras.execute_batch(cur, insert_sql, chunk, page_size=500)
+        con.commit()
+
+        # In[49]:
+
+        # print(con.execute("select * from parents where parent= 'C3824'").fetchall())
+
+        # In[50]:
+
+        cur.execute("create index par_concept_idx on parents(concept)")
+        cur.execute("create index par_par_idx on parents(parent)")
+
+        # This is the key part - execute the recursive SQL to generate the set of all paths through the NCIt.  We'll prune this to just concepts and descendants a few steps below.
+
+        # In[63]:
+
+        print("computing transitive closure")
+        self.process_transitive_closure()
+        cur.execute('drop view if exists good_pt_codes')
+        cur.execute('drop table if exists ncit_tc')
+        cur.execute("create table ncit_tc as select distinct parent, descendant from ncit_tc_with_path ")
+        cur.execute('create index ncit_tc_parent on ncit_tc (parent) ')
+
+        # In[53]:
+
+        cur.execute('select count(*) from ncit_tc')
+        total_num_rows_in_tc = cur.fetchone()[0]
+        print("There are ", total_num_rows_in_tc, "rows in the transitive closure table")
+
+        # In[54]:
+
+        # pp.pprint(con.execute("select count(*) from ncit_tc where parent = 'C7057'").fetchall())
+
+        # In[55]:
+
+        # pp.pprint(con.execute("select code from ncit where parents is null").fetchall())
+
+        # In[56]:
+
+        # pp.pprint(con.execute("select * from ncit_tc limit 10").fetchall())
+
+        # We need to add in the reflexive relations (i.e. xRx for any concept x).  This is a convenience to simplify the subsumption operations using the database table.
+
+        # In[57]:
+
+        cur.execute(
+            '''with codes as
+                        (select distinct parent as code
+                         from ncit_tc
+                         union
+                         select distinct descendant as code
+                         from ncit_tc)
+               insert
+               into ncit_tc (parent, descendant)
+            select c.code as parent, c.code as descendant
+            from codes c
+            ''')
+
+        # In[64]:
+
+        # cur.execute(
+        #     '''with codes as
+        #                 (select distinct parent as code
+        #                  from ncit_tc
+        #                  union
+        #                  select distinct descendant as code
+        #                  from ncit_tc)
+        #        insert
+        #        into ncit_tc_with_path (parent, descendant, level, path)
+        #     select c.code, c.code, 0, c.code
+        #     from codes c
+        #     ''')
+
+        # In[59]:
+
+        cur.execute("""
+                    create
+                    or replace view good_pt_codes as (
+            with descendants as (
+                select descendant from ncit_tc where parent in ('C25218', 'C1908', 'C62634', 'C163758')
+            ),
+            descendants_to_remove as (
+                select descendant from ncit_tc where parent in ('C25294','C102116','C173045','C65141','C91102','C20993')
+                UNION
+                select 'C305' as descendant -- bilirubin
+                union
+                select 'C399' as descendant -- creatinine
+                union
+                select 'C37932' as descendant -- contraception
+                union
+                select 'C92949' as descendant -- pregnancy test
+                UNION
+                select 'C1505' as descendant -- dietary supplment
+                UNION
+                select 'C71961' as descendant -- grapefruit juice
+                UNION
+                select 'C71974' as descendant -- grapefruit
+                UNION
+                select 'C16124' as descendant -- prior therapy
+            ),
+            good_codes as (
+                select d.descendant from descendants d
+                except
+                select d2.descendant from descendants_to_remove d2
+            )
+            select n.code, trim(n.pref_name) as pref_name, trim(n.synonyms) as synonyms, trim(n.semantic_type) as semantic_type
+            from ncit n join good_codes gc on n.code = gc.descendant
+        )""")
+
+        # In[61]:
+
+        cur.execute("select count(*) from ncit_tc_with_path ")
+        num_paths = cur.fetchone()[0]
+        print("There are ", num_paths, " distinct paths in the NCIt.")
+
+        # In[62]:
+
+        cur.execute("drop index if exists ncit_tc_parent")
+        cur.execute("drop index if exists ncit_tc_descendant")
+        cur.execute('create index ncit_tc_parent on ncit_tc (parent) ')
+        cur.execute('create index ncit_tc_descendant on ncit_tc (descendant) ')
+
+        con.commit()
+
+        # Now update the synonyms
+        sql = '''select code, synonyms \
+                 from ncit
+                 where (concept_status is null or \
+                        (concept_status not like '%Obsolete%' and concept_status not like '%Retired%')) \
+              '''
+
+        insert_sql = '''
+                     insert into ncit_syns(code, syn_name, l_syn_name) \
+                     values (%s, %s, %s) \
+                     '''
+        cur = con.cursor()
+        cur.execute('drop table if exists ncit_syns')
+        con.commit()
+        cur.execute(
+            """
+            create table ncit_syns
+            (
+                code       varchar(100),
+                syn_name   text,
+                l_syn_name text
+            )""")
+        con.commit()
+        cur.execute(sql)
+        r = cur.fetchall()
+        # bar = progressbar.ProgressBar(maxval=len(r),
+        #
+        #                       widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        # bar.start()
+
+        biglist = []
+        i = 0
+        for rec in r:
+            c = rec[0]
+            synonyms = rec[1].split('|')
+            newlist = list(zip([c] * len(synonyms), synonyms, [s.lower() for s in synonyms]))
+
+            i += 1
+            #   bar.update(i)
+            biglist.extend(newlist)
+            # print(rs)
+
+        print("inserting synonmyms in database")
+        cur.execute("BEGIN TRANSACTION")
+        # cur.executemany(insert_sql, biglist )
+        # psycopg2.extras.execute_batch(insert_sql, biglist, con=cur, page_size=500)
+        psycopg2.extras.execute_batch(cur, insert_sql, biglist, page_size=500)
+
+        con.commit()
+        print("done inserting synonyms in database")
+        cur.execute('create index ncit_syns_code_idx on ncit_syns(code)')
+        cur.execute('create index ncit_syns_syn_name on ncit_syns(syn_name)')
+        cur.execute('create index ncit_lsyns_syn_name on ncit_syns(l_syn_name)')
+
+        # Delete the bad synonyms from the synonym table
+
+        cur.execute("""
+                    DELETE
+                    FROM ncit_syns ns
+                    WHERE EXISTS
+                              (SELECT 1
+                               FROM bad_ncit_syns bns
+                               WHERE ns.code = bns.code
+                                 and ns.syn_name = bns.syn_name);
+                    """);
+        con.commit();
+
+        # First make sure other versions are not marked as active
+
+        cur.execute('update ncit_version set active_version = NULL')
+        cur.execute(
+            """insert into ncit_version(version_id, downloaded_url, transitive_closure_generation_date, active_version)
+               values(%s,%s,%s,%s)
+                    """, [current_evs_version, url_string, datetime.datetime.now(), 'Y'])
+        con.commit()
+
+        #
+        # Now add in permissions for the sec_read user
+        #
+
+        grant_select_to_sec_read(self.args)
+        con.commit()
+        print(f'granted select to sec_read', flush=True)
+        end_time = datetime.datetime.now()
+        print("Process complete in ", end_time - start_time)
+
+        con.close()
 
 
-#pp.pprint(con.execute("select count(*) from ncit_tc where parent = 'C7057'").fetchall())
-
-# In[55]:
-
-
-#pp.pprint(con.execute("select code from ncit where parents is null").fetchall())
-
-# In[56]:
-
-
-#pp.pprint(con.execute("select * from ncit_tc limit 10").fetchall())
-
-# We need to add in the reflexive relations (i.e. xRx for any concept x).  This is a convenience to simplify the subsumption operations using the database table.
-
-# In[57]:
-
-
-cur.execute(
-    '''with codes as
-    (
-    select distinct parent as code from ncit_tc
-    union
-    select distinct descendant as code from ncit_tc
-    )
-    insert into ncit_tc (parent, descendant)
-    select c.code as parent, c.code as descendant from codes c
-    ''')
-
-# In[64]:
-
-
-cur.execute(
-    '''with codes as
-    (
-    select distinct parent as code from ncit_tc
-    union
-    select distinct descendant as code from ncit_tc
-    )
-    insert into ncit_tc_with_path (parent, descendant, level, path)
-    select c.code, c.code, 0  , c.code  from codes c
-    ''')
-
-# In[59]:
-
-cur.execute("""
-create or replace view good_pt_codes as (
-    with descendants as (
-        select descendant from ncit_tc where parent in ('C25218', 'C1908', 'C62634', 'C163758')
-    ),
-    descendants_to_remove as (
-        select descendant from ncit_tc where parent in ('C25294','C102116','C173045','C65141','C91102','C20993')
-        UNION
-        select 'C305' as descendant -- bilirubin
-        union
-        select 'C399' as descendant -- creatinine
-        union
-        select 'C37932' as descendant -- contraception
-        union
-        select 'C92949' as descendant -- pregnancy test
-        UNION
-        select 'C1505' as descendant -- dietary supplment
-        UNION
-        select 'C71961' as descendant -- grapefruit juice
-        UNION
-        select 'C71974' as descendant -- grapefruit
-        UNION
-        select 'C16124' as descendant -- prior therapy
-    ),
-    good_codes as (
-        select d.descendant from descendants d
-        except
-        select d2.descendant from descendants_to_remove d2
-    )
-    select n.code, trim(n.pref_name) as pref_name, trim(n.synonyms) as synonyms, trim(n.semantic_type) as semantic_type
-    from ncit n join good_codes gc on n.code = gc.descendant
-)""")
-
-# In[61]:
-
-
-cur.execute("select count(*) from ncit_tc_with_path ")
-num_paths = cur.fetchone()[0]
-print("There are ", num_paths , " distinct paths in the NCIt.")
-
-# In[62]:
-
-
-cur.execute("drop index if exists ncit_tc_parent")
-cur.execute("drop index if exists ncit_tc_descendant")
-cur.execute('create index ncit_tc_parent on ncit_tc (parent) ')
-cur.execute('create index ncit_tc_descendant on ncit_tc (descendant) ')
-
-
-
-con.commit()
-
-# Now update the synonyms
-sql = '''select code, synonyms from ncit
-where (concept_status is null or (concept_status not like '%Obsolete%' and concept_status not like '%Retired%') )
-'''
-
-insert_sql = '''
-insert into ncit_syns(code, syn_name, l_syn_name) values(%s,%s,%s)
-'''
-cur = con.cursor()
-cur.execute('drop table if exists ncit_syns')
-con.commit()
-cur.execute(
-    """
-create table ncit_syns
-(
-code varchar(100),
-syn_name text,
-l_syn_name text)""")
-con.commit()
-cur.execute(sql)
-r = cur.fetchall()
-#bar = progressbar.ProgressBar(maxval=len(r),
-#
-#                       widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-#bar.start()
-
-biglist = []
-i=0
-for rec in r:
-
-    c = rec[0]
-    synonyms = rec[1].split('|')
-    newlist = list(zip([c] * len(synonyms), synonyms, [s.lower() for s in synonyms]))
-
-    i += 1
- #   bar.update(i)
-    biglist.extend(newlist)
-    #print(rs)
-
-print("inserting synonmyms in database")
-cur.execute("BEGIN TRANSACTION")
-#cur.executemany(insert_sql, biglist )
-#psycopg2.extras.execute_batch(insert_sql, biglist, con=cur, page_size=500)
-psycopg2.extras.execute_batch(cur, insert_sql, biglist, page_size=500)
-
-con.commit()
-print("done inserting synonyms in database")
-cur.execute('create index ncit_syns_code_idx on ncit_syns(code)')
-cur.execute('create index ncit_syns_syn_name on ncit_syns(syn_name)')
-cur.execute('create index ncit_lsyns_syn_name on ncit_syns(l_syn_name)')
-
-# Delete the bad synonyms from the synonym table
-
-cur.execute("""
-DELETE FROM ncit_syns ns
-WHERE EXISTS
-  (SELECT 1
-    FROM bad_ncit_syns bns
-    WHERE ns.code = bns.code and ns.syn_name = bns.syn_name  );
-""");
-con.commit();
-
-# First make sure other versions are not marked as active
-
-cur.execute('update ncit_version set active_version = NULL')
-cur.execute("""insert into ncit_version(version_id, downloaded_url, transitive_closure_generation_date, active_version)
-           values(%s,%s,%s,%s)
-   """, [current_evs_version, url_string, datetime.datetime.now(), 'Y'])
-con.commit()
-
-#
-# Now add in permissions for the sec_read user
-#
-cur.execute('grant select on trial_unstructured_criteria to sec_read')
-cur.execute('grant select on maintypes to sec_read')
-cur.execute('grant select on distinct_trial_diseases to sec_read')
-cur.execute('grant select on nlp_data_tab to sec_read')
-cur.execute('grant select on trials to sec_read')
-cur.execute('grant select on ncit_tc_with_path to sec_read')
-cur.execute('grant select on trial_sites to sec_read');
-cur.execute('grant select on trial_maintypes to sec_read')
-cur.execute('grant select on curated_crosswalk to sec_read')
-cur.execute( 'grant select on disease_tree to sec_read')
-cur.execute( 'grant select on nlp_data_view to sec_read')
-cur.execute( 'grant select on ncit to sec_read')
-cur.execute( 'grant select on disease_tree_nostage to sec_read')
-cur.execute( 'grant select on candidate_criteria to sec_read')
-cur.execute( 'grant select on ncit_nlp_concepts to sec_read')
-cur.execute( 'grant select on trial_criteria to sec_read')
-cur.execute( 'grant select on ncit_tc to sec_read')
-cur.execute( 'grant select on trial_diseases to sec_read')
-cur.execute( 'grant select on trial_nlp_dates to sec_read')
-cur.execute( 'grant select on ncit_syns to sec_read')
-cur.execute('grant select on ncit_version_view to sec_read')
-
-con.commit()
-print(f'granted select to sec_read', flush=True)
-end_time = datetime.datetime.now()
-print("Process complete in ", end_time - start_time)
-
-con.close()
+if __name__ == "__main__":
+    parsed_args = NcitProcessor._build_parser().parse_args()
+    NcitProcessor(args=parsed_args).process()
 

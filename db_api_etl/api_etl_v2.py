@@ -103,8 +103,8 @@ con = psycopg2.connect(database=args.dbname, user=args.user, host=args.host, por
  password=args.password)
 
 cur = con.cursor()
-cur.execute("delete from maintypes")
 
+cur.execute("delete from maintypes")
 # First get the maintypes, then get the study data needed.
 
 try:
