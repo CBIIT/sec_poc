@@ -36,7 +36,7 @@ import time
 from os import environ as env
 from datetime import datetime as dt
 # Ensure the sec_etl root (where etl_processor.py lives) is on sys.path whether
-# run via the sec_etl-level symlink, directly, or through etl-new.qmd.
+# run via the sec_etl-level symlink, directly, or through etl.qmd.
 import os as _os
 import sys as _sys
 _THIS_DIR = _os.path.dirname(_os.path.abspath(__file__))
@@ -666,7 +666,7 @@ class NcitProcessor(EtlProcessor):
 if __name__ == "__main__":
     parsed_args = NcitProcessor._build_parser().parse_args()
     processor = NcitProcessor(args=parsed_args)
-    # Module-level `success` is what etl-new.qmd reads back out of the module
+    # Module-level `success` is what etl.qmd reads back out of the module
     # namespace (runpy.run_path) to decide whether this step passed. Unlike the
     # other scripts this one deliberately lets exceptions propagate, so `success`
     # stays False and the exception still surfaces to the caller.
