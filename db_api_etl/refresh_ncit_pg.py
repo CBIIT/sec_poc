@@ -35,20 +35,18 @@ import io
 import time
 from os import environ as env
 from datetime import datetime as dt
+# Ensure the sec_etl root (where etl_processor.py lives) is on sys.path whether
+# run via the sec_etl-level symlink, directly, or through etl-new.qmd.
+import os as _os
+import sys as _sys
+_THIS_DIR = _os.path.dirname(_os.path.abspath(__file__))
+for _root in (_THIS_DIR, _os.path.dirname(_THIS_DIR), _os.path.dirname(_os.path.dirname(_THIS_DIR)), _os.getcwd()):
+    if _os.path.isfile(_os.path.join(_root, 'etl_processor.py')):
+        if _root not in _sys.path:
+            _sys.path.insert(0, _root)
+        break
 
-# try:
-#     from etl_processor import ETLProcessor as EtlProcessor
-# except Exception:
-#     print("ETLProcessor failed import ", flush=True)
-
-class EtlProcessor:
-    def __init__(self, name=None, args=None):
-        self.name = name
-        self._args = args
-
-    @property
-    def args(self):
-        return self._args
+from etl_processor import EtlProcessor, etl_printer
 
 #
 # A simple function to yield chunks from a list
@@ -180,7 +178,7 @@ def exit(error_code=0, grant_select_2_sec_read=True, args=None):
 #con = sqlite3.connect(args.dbfilename)
 class NcitProcessor(EtlProcessor):
     def __init__(self, args=None):
-        super().__init__(name=Path(__file__).stem, args=args)
+        super().__init__(name=Path(__file__).stem, args=args, python_file=__file__)
 
     @staticmethod
     def _build_parser() -> argparse.ArgumentParser:
@@ -201,6 +199,7 @@ class NcitProcessor(EtlProcessor):
                             default=is_truthy(env.get('use_evs_api_for_pref_name', 'true')))
         return parser
 
+    @etl_printer
     def process_transitive_closure(self):
         print("Computing transitive closure.   start", time.asctime())
         with yield_conn_new(args=self.args, auto_commit=True) as conn:
@@ -243,6 +242,7 @@ class NcitProcessor(EtlProcessor):
                 f"create index ncit_tc_descendant on ncit_tc(descendant) "
             )
 
+    @etl_printer
     def process(self):
         start_time = datetime.datetime.now()
         pp = pprint.PrettyPrinter(indent=4)
@@ -665,5 +665,15 @@ class NcitProcessor(EtlProcessor):
 
 if __name__ == "__main__":
     parsed_args = NcitProcessor._build_parser().parse_args()
-    NcitProcessor(args=parsed_args).process()
+    processor = NcitProcessor(args=parsed_args)
+    # Module-level `success` is what etl-new.qmd reads back out of the module
+    # namespace (runpy.run_path) to decide whether this step passed. Unlike the
+    # other scripts this one deliberately lets exceptions propagate, so `success`
+    # stays False and the exception still surfaces to the caller.
+    success = False
+    try:
+        processor.process()
+        success = processor.succeeded
+    finally:
+        processor.post_process()
 

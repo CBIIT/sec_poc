@@ -2,7 +2,7 @@
 '$schema' = 'https://cdn.posit.co/publisher/schemas/posit-publishing-record-schema-v3.json'
 server_type = 'connect'
 server_url = 'https://appshare-dev.cancer.gov'
-client_version = '1.22.0'
+client_version = '1.36.0'
 created_at = ''
 dismissed_at = ''
 type = 'r-shiny'
@@ -11,9 +11,9 @@ id = '6fe04d08-5df3-465e-b6c8-961d7812213f'
 dashboard_url = 'https://appshare-dev.cancer.gov/connect/#/apps/6fe04d08-5df3-465e-b6c8-961d7812213f'
 direct_url = 'https://appshare-dev.cancer.gov/content/6fe04d08-5df3-465e-b6c8-961d7812213f/'
 logs_url = 'https://appshare-dev.cancer.gov/connect/#/apps/6fe04d08-5df3-465e-b6c8-961d7812213f/logs'
-deployed_at = '2025-10-15T12:23:05Z'
-bundle_id = '1292'
-bundle_url = 'https://appshare-dev.cancer.gov/__api__/v1/content/6fe04d08-5df3-465e-b6c8-961d7812213f/bundles/1292/download'
+deployed_at = '2026-04-15T09:28:57-04:00'
+bundle_id = '1943'
+bundle_url = 'https://appshare-dev.cancer.gov/__api__/v1/content/6fe04d08-5df3-465e-b6c8-961d7812213f/bundles/1943/download'
 files = [
   '.posit/publish/deployments/deployment-INA0.toml',
   '.posit/publish/sec_poc-QK8U.toml',
@@ -22,6 +22,13 @@ files = [
   'config.yml',
   'disease_tree_modal.R',
   'docker/R/files/install_deps.pak.R',
+  'docker/R/files/quick-install-r-packages-noble.R',
+  'docker/R/files/quick-install-r-packages.R',
+  'docker/R/files/quick-install-r-packages2.R',
+  'docker/pg/files/install_deps.pak.R',
+  'docker/pg/files/quick-install-r-packages-noble.R',
+  'docker/pg/files/quick-install-r-packages.R',
+  'docker/pg/files/quick-install-r-packages2.R',
   'eval_criteria.R',
   'eval_prior_therapy.R',
   'eval_prior_therapy_app.R',
@@ -83,7 +90,7 @@ title = 'sec_poc'
 secrets = ['BING_MAPS_API_KEY', 'CTS_V2_API_KEY', 'DB_HOST', 'DB_NAME', 'DB_PASS', 'DB_PORT', 'DB_USER', 'UMLS_API_KEY']
 
 [configuration.r]
-version = '4.5.1'
+version = '4.5.2'
 package_file = 'renv.lock'
 package_manager = 'renv'
 requires_r = '~=4.5.0'
