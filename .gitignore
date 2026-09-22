@@ -15,3 +15,11 @@ __pycache__
 .rest-client/
 demos/stage_iv_hnc/stage_codes.json
 http_cache.sqlite
+
+# Never commit env files -- these have held live CTS/UMLS API keys.
+*.env
+.env
+
+# Local PostgreSQL data directory backup (1.9 GB, not source).
+postgres_data_dir-bkup/
+postgres_data_dir/
