@@ -24,7 +24,7 @@ for _root in (_THIS_DIR, _os.path.dirname(_THIS_DIR), _os.path.dirname(_os.path.
             _sys.path.insert(0, _root)
         break
 
-from etl_processor import EtlProcessor, etl_printer
+from etl_processor import EtlProcessor, etl_printer, force_requested
 
 
 class NlpTokenizerProcessor(EtlProcessor):
@@ -61,7 +61,8 @@ class NlpTokenizerProcessor(EtlProcessor):
         parser = argparse.ArgumentParser(
             description='Update the specified sqlite database with information from the cancer.gov API'
         )
-        parser.add_argument('--force', '-f', action='store_true', required=False, default=False)
+        parser.add_argument('--force', '-f', action='store_true', required=False,
+                            default=force_requested(__file__))
         parser.add_argument('--dbname', action='store', type=str, required=False, default=os.environ.get('DB_NAME', 'sec'))
         parser.add_argument('--host', action='store', type=str, required=False, default=os.environ.get('DB_HOST', 'localhost'))
         parser.add_argument('--user', action='store', type=str, required=False, default=os.environ.get('DB_USER', 'sec'))

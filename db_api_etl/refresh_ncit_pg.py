@@ -46,7 +46,7 @@ for _root in (_THIS_DIR, _os.path.dirname(_THIS_DIR), _os.path.dirname(_os.path.
             _sys.path.insert(0, _root)
         break
 
-from etl_processor import EtlProcessor, etl_printer
+from etl_processor import EtlProcessor, etl_printer, force_requested
 
 #
 # A simple function to yield chunks from a list
@@ -184,7 +184,8 @@ class NcitProcessor(EtlProcessor):
     def _build_parser() -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
             description='Download the NCIT Thesaurus Zip file and create transitive closure tables in a database.')
-        parser.add_argument('--force', '-f', action='store_true', required=False, default=False)
+        parser.add_argument('--force', '-f', action='store_true', required=False,
+                            default=force_requested(__file__))
         parser.add_argument('--dbname', action='store', type=str, required=False,
                             default=os.environ.get('DB_NAME', 'sec'))
         parser.add_argument('--host', action='store', type=str, required=False,
